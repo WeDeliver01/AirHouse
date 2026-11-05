@@ -114,7 +114,7 @@ const LeadCaptureForm = () => {
     }
 
     if (!formData.consent) {
-      next.consent = 'Please agree to be contacted about this property'
+      newErrors.consent = 'Please agree to be contacted about this property'
     }
 
     if (!formData.phone.trim()) {
