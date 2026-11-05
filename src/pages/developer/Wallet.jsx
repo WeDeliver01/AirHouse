@@ -46,17 +46,11 @@ const DeveloperWallet = () => {
 
       if (walletError && walletError.code !== 'PGRST116') throw walletError
 
-      let currentWallet = walletData
-      if (!walletData) {
-        const { data: newWallet, error: createError } = await supabase
-          .from('wallets')
-          .insert({ user_id: user.id, wallet_type: 'developer' })
-          .select()
-          .single()
-
-        if (createError) throw createError
-        currentWallet = newWallet
-      }
+      // Wallets are provisioned by the signup trigger and, where needed, by
+      // the financial functions. The client no longer creates them: it has no
+      // INSERT privilege on `wallets`, and a browser-created wallet was a way
+      // to attach a wallet row to an arbitrary user_id.
+      const currentWallet = walletData
       setWallet(currentWallet)
 
       if (currentWallet) {
@@ -96,38 +90,17 @@ const DeveloperWallet = () => {
 
     setProcessing(true)
     try {
-      const newBalance = (wallet?.balance || 0) + amount
-
-      const { error: walletError } = await supabase
-        .from('wallets')
-        .update({
-          balance: newBalance,
-          total_deposited: (wallet?.total_deposited || 0) + amount,
-        })
-        .eq('id', wallet.id)
-
-      if (walletError) throw walletError
-
-      await supabase.from('wallet_transactions').insert({
-        wallet_id: wallet.id,
-        transaction_type: 'deposit',
-        amount,
-        fee: 0,
-        net_amount: amount,
-        balance_before: wallet?.balance || 0,
-        balance_after: newBalance,
-        description: 'Wallet top-up',
-        reference_number: `DEP-${Date.now()}`,
-        created_by: user.id,
-      })
-
-      toast.success(`${formatCurrency(amount)} deposited successfully!`)
-      setShowDepositModal(false)
-      setDepositAmount('')
-      fetchWalletData()
+      // This used to write the new balance straight to the wallet from the
+      // browser, so a developer could credit themselves any amount without a
+      // payment ever being taken. A deposit may only be recorded by the
+      // server once the payment provider has confirmed settlement, so there
+      // is nothing safe to do here until that integration exists (AH-013).
+      throw new Error(
+        'Wallet top-up is unavailable: no payment provider is configured yet.',
+      )
     } catch (e) {
       console.error('Error:', e)
-      toast.error('Failed to process deposit')
+      toast.error(e.message || 'Failed to process deposit')
     } finally {
       setProcessing(false)
     }

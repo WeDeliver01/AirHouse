@@ -15,7 +15,7 @@ const TermsAcceptanceCard = () => {
   useEffect(() => {
     let active = true
     if (!user?.id) { setLoading(false); return }
-    ;(async () => {
+    (async () => {
       try {
         const { data } = await supabase
           .from('terms_acceptances')

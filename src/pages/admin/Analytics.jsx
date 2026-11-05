@@ -325,7 +325,7 @@ const AdminAnalytics = () => {
           trend[idx].value += Math.abs(parseFloat(t.amount) || 0)
         })
       } else {
-        ;(campaigns || []).forEach((c) => {
+        (campaigns || []).forEach((c) => {
           const idx = trendIndex.get(bucketKey(c.created_at))
           if (idx === undefined) return
           trend[idx].value += parseFloat(c.platform_fee) || 0

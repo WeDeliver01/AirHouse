@@ -499,9 +499,12 @@ const Marketplace = () => {
         console.error('Marketplace fetch error:', err)
         setError(err.message || 'Failed to load creators')
       } finally {
-        if (cancelled) return
-        setLoading(false)
-        setLoadingMore(false)
+        // A `return` inside finally discards any exception still propagating,
+        // so guard with a conditional block instead of returning early.
+        if (!cancelled) {
+          setLoading(false)
+          setLoadingMore(false)
+        }
       }
     }
     fetchPage()

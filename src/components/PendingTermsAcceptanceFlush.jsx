@@ -34,7 +34,7 @@ const PendingTermsAcceptanceFlush = () => {
     if (!raw) return
     let payload
     try { payload = JSON.parse(raw) } catch { window.localStorage.removeItem(STORAGE_KEY); return }
-    ;(async () => {
+    (async () => {
       try {
         const { error } = await supabase.from('terms_acceptances').insert({
           user_id: user.id,

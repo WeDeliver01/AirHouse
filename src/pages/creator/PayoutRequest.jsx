@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { requestPayout } from '../../lib/payments'
 import {
   PageHeader,
   Card,
@@ -166,31 +167,11 @@ const PayoutRequest = () => {
 
     setProcessing(true)
     try {
-      const payoutFee = amountNum * PAYMENT_CONFIG.PAYOUT_FEE_RATE
-      const netAmount = amountNum - payoutFee
-
-      const { data: payout, error: insErr } = await supabase
-        .from('payout_requests')
-        .insert({
-          user_id: user.id,
-          wallet_id: wallet.id,
-          bank_account_id: selectedBankId,
-          amount: amountNum,
-          payout_fee: payoutFee,
-          net_amount: netAmount,
-          status: 'pending',
-        })
-        .select()
-        .single()
-      if (insErr) throw insErr
-
-      await supabase
-        .from('wallets')
-        .update({
-          balance: wallet.balance - amountNum,
-          pending_balance: (wallet.pending_balance || 0) + amountNum,
-        })
-        .eq('id', wallet.id)
+      // The request row and the balance hold used to be two separate browser
+      // writes, with the fee computed client-side: if the second failed the
+      // creator kept a balance they had already requested out. Both now happen
+      // inside request_creator_payout(), which recomputes the fee server-side.
+      await requestPayout(user.id, amountNum, selectedBankId)
 
       toast.success('Payout request submitted')
       notify.payoutRequested(user?.email || profile?.email, {

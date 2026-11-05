@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# Cancel superseded runs on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    name: Lint, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        # Errors fail the build; the pre-existing warnings are tracked
+        # separately rather than blocking every change (AH-014).
+        run: npx eslint . --ext js,jsx
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+  database-integrity:
+    name: Database integrity tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-16
+
+      - name: Run migration and integrity suite
+        env:
+          PGBIN: /usr/lib/postgresql/16/bin
+        run: |
+          # The cluster cannot be initialised as root.
+          sudo chmod -R a+rX "$GITHUB_WORKSPACE"
+          bash supabase/tests/run_tests.sh
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for committed secrets
+        run: |
+          set -euo pipefail
+
+          echo "==> Checking for .env files"
+          if git ls-files | grep -E '(^|/)\.env$|(^|/)\.env\.(local|production)$'; then
+            echo "::error::An environment file is tracked in git."
+            exit 1
+          fi
+
+          echo "==> Checking for service-role keys and provider secrets"
+          # A Supabase service_role JWT, or a Resend/Stripe style secret key,
+          # must never appear in the tree.
+          PATTERN='service_role"|sk_live_|re_[A-Za-z0-9]{20,}|SUPABASE_SERVICE_ROLE_KEY=.+'
+          if git grep -nIE "$PATTERN" -- . ':(exclude).github/workflows/ci.yml' ':(exclude).env.example'; then
+            echo "::error::A possible secret is committed."
+            exit 1
+          fi
+
+          echo "No committed secrets found."
+
+  dependency-audit:
+    name: Dependency vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: npm audit
+        # Reported, not gated: a transitive advisory should not block an
+        # unrelated fix. Review the output on every run (AH-015).
+        run: npm audit --audit-level=high || true
+
+  production-safety:
+    name: Production safety checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Simulated payment gateway must not be the production default
+        run: |
+          set -euo pipefail
+
+          # payments.js must keep its production guard against the test gateway.
+          if ! grep -q "assertRealGatewayAvailable" src/lib/payments.js; then
+            echo "::error::The production guard on the simulated payment gateway is missing."
+            exit 1
+          fi
+
+          # The notification service must keep refusing to boot half-configured.
+          if ! grep -q "validateConfig()" server/index.js; then
+            echo "::error::Startup configuration validation is missing from the server."
+            exit 1
+          fi
+
+          # Direct client writes to financial tables must not come back.
+          if grep -rnE "from\('(wallets|wallet_transactions|payout_requests)'\)[[:space:]]*$" -A2 src/ \
+             | grep -qE "\.(insert|update|delete|upsert)\("; then
+            echo "::error::A direct client write to a financial table was reintroduced."
+            exit 1
+          fi
+
+          echo "Production safety checks passed."

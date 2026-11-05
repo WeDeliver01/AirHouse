@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { requestPayout } from '../../lib/payments'
 import {
   PageHeader,
   Card,
@@ -131,62 +132,13 @@ const CreatorWallet = () => {
 
     setProcessing(true)
     try {
-      const payoutFee = amount * PAYOUT_FEE_RATE
-      const netAmount = amount - payoutFee
-
-      const { data: payout, error: payoutError } = await supabase
-        .from('payout_requests')
-        .insert({
-          user_id: user.id,
-          wallet_id: wallet.id,
-          bank_account_id: selectedBankAccount,
-          amount,
-          payout_fee: payoutFee,
-          net_amount: netAmount,
-          status: 'pending',
-        })
-        .select()
-        .single()
-      if (payoutError) throw payoutError
-
-      const newBalance = wallet.balance - amount
-      const { error: walletError } = await supabase
-        .from('wallets')
-        .update({
-          balance: newBalance,
-          total_withdrawn: (wallet.total_withdrawn || 0) + amount,
-        })
-        .eq('id', wallet.id)
-      if (walletError) throw walletError
-
-      await supabase.from('wallet_transactions').insert([
-        {
-          wallet_id: wallet.id,
-          transaction_type: 'payout_request',
-          amount: -amount,
-          fee: 0,
-          net_amount: -amount,
-          balance_before: wallet.balance,
-          balance_after: newBalance,
-          related_payout_id: payout.id,
-          description: 'Payout request',
-          reference_number: `PAY-${Date.now()}`,
-          created_by: user.id,
-        },
-        {
-          wallet_id: wallet.id,
-          transaction_type: 'payout_fee',
-          amount: -payoutFee,
-          fee: payoutFee,
-          net_amount: 0,
-          balance_before: newBalance,
-          balance_after: newBalance,
-          related_payout_id: payout.id,
-          description: '3% payout fee',
-          reference_number: `FEE-${Date.now()}`,
-          created_by: user.id,
-        },
-      ])
+      // This was four separate browser writes -- payout row, wallet balance,
+      // then two ledger entries -- with the fee computed client-side. A
+      // failure part-way through left the records inconsistent. It now runs
+      // as one transaction in request_creator_payout(), which recomputes the
+      // fee and holds the funds server-side.
+      const result = await requestPayout(user.id, amount, selectedBankAccount)
+      const netAmount = result?.net_amount ?? amount
 
       toast.success(`Payout requested. You'll receive ${formatCurrency(netAmount)}`)
       setShowPayoutModal(false)
