@@ -9,6 +9,10 @@ CREATE TABLE profiles (
   email TEXT,
   role user_role NOT NULL DEFAULT 'creator',
   full_name TEXT NOT NULL DEFAULT 'User',
+  avatar_url TEXT,
+  company_name TEXT,
+  bio TEXT,
+  phone TEXT,
   is_verified BOOLEAN DEFAULT FALSE,
   is_super_admin BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -338,7 +342,8 @@ CREATE TABLE notifications (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   type TEXT NOT NULL,
   title TEXT NOT NULL,
-  is_read BOOLEAN DEFAULT FALSE
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE support_tickets (
