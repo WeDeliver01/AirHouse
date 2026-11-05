@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import {
   PageHeader, Button, Card, MetricCard, Chip, Select, Icon,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -19,9 +19,9 @@ const CreatorActiveCampaigns = () => {
 
   useEffect(() => {
     if (user?.id) fetchAssignments()
-  }, [user])
+  }, [user, fetchAssignments])
 
-  const fetchAssignments = async () => {
+  const fetchAssignments = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -66,7 +66,7 @@ const CreatorActiveCampaigns = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id])
 
   const copyReferralLink = (assignment) => {
     const link = `${window.location.origin}/lead/${assignment.campaign_id}?ref=${assignment.creator_referral_code}`

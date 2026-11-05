@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -107,9 +107,9 @@ const CreatorScorecard = () => {
 
   useEffect(() => {
     if (user?.id) fetchData()
-  }, [user])
+  }, [user, fetchData])
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -182,7 +182,7 @@ const CreatorScorecard = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id])
 
   const scoreColor = (s) => (s >= 90 ? '#006c4e' : s >= 70 ? '#ca8a04' : '#ba1a1a')
   const scoreLabel = (s) => (s >= 90 ? 'Excellent' : s >= 70 ? 'Good' : 'Needs Improvement')

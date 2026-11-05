@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import {
   PageHeader,
@@ -54,9 +53,9 @@ const ContentSubmission = () => {
 
   useEffect(() => {
     if (assignmentId) fetchData()
-  }, [assignmentId])
+  }, [assignmentId, fetchData])
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setError(null)
     try {
       const { data: assignmentData, error: assignmentError } = await supabase
@@ -102,7 +101,7 @@ const ContentSubmission = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [assignmentId])
 
   const uploadFiles = async (files) => {
     if (!files || files.length === 0) return

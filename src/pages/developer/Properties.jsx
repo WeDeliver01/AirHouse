@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -28,9 +28,9 @@ const Properties = () => {
 
   useEffect(() => {
     if (user?.id) load()
-  }, [user])
+  }, [user, load])
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -48,7 +48,7 @@ const Properties = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id])
 
   const filtered = properties.filter(p => {
     if (filter.status && p.status !== filter.status) return false

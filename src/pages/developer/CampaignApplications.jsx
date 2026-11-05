@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -29,9 +29,9 @@ const CampaignApplications = () => {
 
   useEffect(() => {
     if (campaignId) fetchData()
-  }, [campaignId])
+  }, [campaignId, fetchData])
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -93,7 +93,7 @@ const CampaignApplications = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [campaignId])
 
   const updateApplicationStatus = async (appId, status) => {
     setProcessing(true)

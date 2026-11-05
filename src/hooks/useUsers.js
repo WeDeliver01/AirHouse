@@ -3,7 +3,11 @@ import { supabase } from '../lib/supabase'
 import { toast } from 'react-hot-toast'
 
 export const useUsers = (options = {}) => {
-  const { role, status, limit = 50 } = options
+  // Note: this hook has no callers. It previously also accepted a `status`
+  // option that it never applied, which would have silently returned
+  // unfiltered results; that option has been removed rather than left as a
+  // trap for the first caller.
+  const { role, limit = 50 } = options
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -36,7 +40,7 @@ export const useUsers = (options = {}) => {
     } finally {
       setLoading(false)
     }
-  }, [role, status, limit])
+  }, [role, limit])
 
   useEffect(() => {
     fetchUsers()

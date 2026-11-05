@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
-import { supabase } from '../../lib/supabase'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { isStrongPassword } from '../../lib/passwordPolicy'
+import { supabase } from '../../lib/supabase'
 import { Button, Input } from '../../components/ui'
 import { Shield, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
@@ -22,9 +23,9 @@ const AdminInvite = () => {
 
   useEffect(() => {
     validateInvite()
-  }, [code])
+  }, [code, validateInvite])
 
-  const validateInvite = async () => {
+  const validateInvite = useCallback(async () => {
     try {
       const { data, error } = await supabase.rpc('validate_admin_invite', {
         p_invite_code: code
@@ -49,7 +50,7 @@ const AdminInvite = () => {
       console.error(e)
       setStatus('invalid')
     }
-  }
+  }, [code])
 
   const validate = () => {
     const errs = {}
@@ -59,7 +60,7 @@ const AdminInvite = () => {
       errs.password = 'Password is required'
     } else if (formData.password.length < 12) {
       errs.password = 'Password must be at least 12 characters'
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(formData.password)) {
+    } else if (!isStrongPassword(formData.password)) {
       errs.password = 'Must include uppercase, lowercase, number, and special character'
     }
     if (formData.password !== formData.confirmPassword) errs.confirmPassword = 'Passwords do not match'

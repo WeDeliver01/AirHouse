@@ -464,6 +464,11 @@ const Marketplace = () => {
     }
 
     return q
+    // favLoadedKey is intentionally a dependency even though the callback
+    // does not read it: it forces the query to rebuild once the favourites
+    // list has loaded. ESLint cannot see that, and removing it leaves an
+    // empty grid when filtering by favourites.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedFilters, isDeveloper, favLoadedKey])
 
   // Reset paging when filters change

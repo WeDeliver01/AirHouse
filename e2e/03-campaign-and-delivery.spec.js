@@ -22,6 +22,10 @@ test.describe('Campaign lifecycle', () => {
     await installSupabaseMock(page, { signedInAs: 'dev@example.com' })
     await visit(page, '/developer/campaigns')
 
+    // Wait for the list to render before reading it; otherwise this races the
+    // loading state.
+    await expect(page.getByText('Sea Point Launch').first()).toBeVisible()
+
     const body = await page.locator('body').innerText()
     expect(body).toMatch(/draft/i)
     expect(body).toMatch(/active|live/i)

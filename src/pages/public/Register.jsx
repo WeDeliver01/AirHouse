@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { cn } from '../../lib/utils'
+import { isStrongPassword } from '../../lib/passwordPolicy'
 import { supabase } from '../../lib/supabase'
 import { COMPANY } from '../../data/companyInfo'
 import { stashPendingTermsAcceptance } from '../../components/PendingTermsAcceptanceFlush'
@@ -51,7 +52,7 @@ const Register = () => {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Please enter a valid email'
     if (!formData.password) newErrors.password = 'Password is required'
     else if (formData.password.length < 12) newErrors.password = 'Password must be at least 12 characters'
-    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(formData.password)) {
+    else if (!isStrongPassword(formData.password)) {
       newErrors.password = 'Password must include uppercase, lowercase, number, and special character'
     }
     if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match'

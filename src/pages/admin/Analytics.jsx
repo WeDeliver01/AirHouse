@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { Button, LoadingSpinner, ErrorState } from '../../components/ui'
@@ -201,9 +201,9 @@ const AdminAnalytics = () => {
 
   const selectedRange = RANGES.find((r) => r.key === range) || RANGES[0]
 
-  useEffect(() => { fetchData() /* eslint-disable-next-line */ }, [range])
+  useEffect(() => { fetchData() /* eslint-disable-next-line */ }, [range, fetchData])
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -464,7 +464,7 @@ const AdminAnalytics = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedRange.days])
 
   const conversionPct = useMemo(
     () => (data.leadsTotal ? (data.convertedTotal / data.leadsTotal) * 100 : 0),

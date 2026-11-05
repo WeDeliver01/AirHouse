@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { Button, Badge, Modal, Input, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
@@ -50,9 +50,9 @@ const CreatorVerification = () => {
 
   useEffect(() => {
     if (creatorProfile?.id) fetchVerifications()
-  }, [creatorProfile])
+  }, [creatorProfile, fetchVerifications])
 
-  const fetchVerifications = async () => {
+  const fetchVerifications = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -68,7 +68,7 @@ const CreatorVerification = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [creatorProfile.id])
 
   const submitVerification = async () => {
     if (!selectedType || !creatorProfile?.id) return

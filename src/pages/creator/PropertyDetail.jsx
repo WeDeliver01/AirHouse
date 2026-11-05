@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { Button, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
@@ -16,9 +16,9 @@ const PropertyDetail = () => {
   const [campaigns, setCampaigns] = useState([])
   const [activePhoto, setActivePhoto] = useState(0)
 
-  useEffect(() => { load() }, [slug])
+  useEffect(() => { load() }, [slug, load])
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     setActivePhoto(0)
@@ -51,7 +51,7 @@ const PropertyDetail = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [slug])
 
   if (loading) {
     return (

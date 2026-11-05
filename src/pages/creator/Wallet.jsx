@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -72,9 +72,9 @@ const CreatorWallet = () => {
 
   useEffect(() => {
     if (user?.id) fetchWalletData()
-  }, [user])
+  }, [user, fetchWalletData])
 
-  const fetchWalletData = async () => {
+  const fetchWalletData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -121,7 +121,7 @@ const CreatorWallet = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id])
 
   const handlePayoutRequest = async () => {
     const amount = parseFloat(payoutAmount)

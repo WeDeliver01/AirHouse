@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '../context/AuthContext'
+import { useState, useEffect, useCallback } from 'react'
 import { getOrCreateTrackingLink } from '../lib/tracking'
 import { Card, Button} from '../components/ui'
 import { toast } from 'react-hot-toast'
@@ -17,9 +16,9 @@ const CreatorTrackingLinks = ({ assignmentId }) => {
     if (assignmentId) {
       loadTrackingLink()
     }
-  }, [assignmentId])
+  }, [assignmentId, loadTrackingLink])
 
-  const loadTrackingLink = async () => {
+  const loadTrackingLink = useCallback(async () => {
     try {
       const trackingLink = await getOrCreateTrackingLink(assignmentId)
       setLink(trackingLink)
@@ -29,7 +28,7 @@ const CreatorTrackingLinks = ({ assignmentId }) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [assignmentId])
 
   const copyToClipboard = async () => {
     if (!link) return

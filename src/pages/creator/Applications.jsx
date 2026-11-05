@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -28,9 +28,9 @@ const CreatorApplications = () => {
 
   useEffect(() => {
     if (user?.id) fetchApplications()
-  }, [user])
+  }, [user, fetchApplications])
 
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -77,7 +77,7 @@ const CreatorApplications = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id])
 
   const withdrawApplication = async (applicationId) => {
     if (!confirm('Are you sure you want to withdraw this application?')) return

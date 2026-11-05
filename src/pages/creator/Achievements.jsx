@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -30,9 +30,9 @@ const Achievements = () => {
 
   useEffect(() => {
     if (user?.id) fetchData()
-  }, [user])
+  }, [user, fetchData])
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -75,7 +75,7 @@ const Achievements = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id])
 
   if (loading)
     return (

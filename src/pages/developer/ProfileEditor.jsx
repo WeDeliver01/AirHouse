@@ -47,7 +47,7 @@ const DeveloperProfileEditor = () => {
 
     setUploadingAvatar(true)
     try {
-      const avatarUrl = await uploadAvatar(user.id, file)
+      await uploadAvatar(user.id, file)
       await refreshUserData()
       toast.success('Profile photo updated!')
     } catch (error) {

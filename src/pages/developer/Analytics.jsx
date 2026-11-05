@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { Button, LoadingSpinner, ErrorState } from '../../components/ui'
@@ -71,9 +71,9 @@ const DeveloperAnalytics = () => {
 
   useEffect(() => {
     if (user?.id) fetchData()
-  }, [user, period])
+  }, [user, period, fetchData])
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -174,7 +174,7 @@ const DeveloperAnalytics = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id])
 
   if (loading) return <div className="flex items-center justify-center min-h-[400px]"><LoadingSpinner size="lg" text="Loading..." /></div>
   if (error) return <ErrorState message={error} onRetry={fetchData} />

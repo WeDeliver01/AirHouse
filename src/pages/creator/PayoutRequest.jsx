@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -76,9 +76,9 @@ const PayoutRequest = () => {
 
   useEffect(() => {
     loadData()
-  }, [user.id])
+  }, [user.id, loadData])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setError(null)
     try {
       const { data: walletData } = await supabase
@@ -112,7 +112,7 @@ const PayoutRequest = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id])
 
   const handleAddBank = async () => {
     if (!bankForm.bankName || !bankForm.accountNumber || !bankForm.branchCode) {
