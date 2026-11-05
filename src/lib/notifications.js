@@ -1,10 +1,32 @@
+import { supabase } from './supabase'
+
 const API_BASE = '/api/notifications';
+
+/**
+ * Build request headers including the caller's Supabase access token.
+ *
+ * The notification endpoints require authentication (AH-004); an
+ * unauthenticated caller is rejected with 401.
+ */
+async function authorizedHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } catch {
+    // Fall through without a token; the server will reject the request.
+  }
+
+  return headers;
+}
 
 export async function sendNotification(type, to, data = {}) {
   try {
     const response = await fetch(`${API_BASE}/send`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authorizedHeaders(),
       body: JSON.stringify({ type, to, data }),
     });
 
@@ -25,7 +47,7 @@ export async function sendBatchNotifications(notifications) {
   try {
     const response = await fetch(`${API_BASE}/batch`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authorizedHeaders(),
       body: JSON.stringify({ notifications }),
     });
 
@@ -36,9 +58,30 @@ export async function sendBatchNotifications(notifications) {
   }
 }
 
+/**
+ * Raise the "new lead" notification for a lead that was just created.
+ *
+ * Public visitors are not authenticated, so this posts only the lead id to a
+ * dedicated endpoint; the server resolves the developer's address and the
+ * email body from the stored lead (AH-004). Notification failures are
+ * swallowed deliberately — a visitor's enquiry must still succeed.
+ */
+export async function notifyNewLead(leadId) {
+  try {
+    const response = await fetch(`${API_BASE}/lead`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId }),
+    });
+    return await response.json();
+  } catch (error) {
+    console.warn('Lead notification failed:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 export const notify = {
   campaignInvite: (to, data) => sendNotification('campaign_invite', to, data),
-  newLead: (to, data) => sendNotification('new_lead', to, data),
   contentApproved: (to, data) => sendNotification('content_approved', to, data),
   contentRejected: (to, data) => sendNotification('content_rejected', to, data),
   payoutConfirmed: (to, data) => sendNotification('payout_confirmed', to, data),

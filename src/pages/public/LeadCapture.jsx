@@ -7,7 +7,7 @@ import {
   Building2, User, Mail, Phone, MessageSquare, CheckCircle, 
   MapPin, Calendar, Home, ChevronLeft, ChevronRight, X, Download, FileText, Image
 } from 'lucide-react'
-import { notify } from '../../lib/notifications'
+import { notifyNewLead } from '../../lib/notifications'
 
 const INTEREST_LEVELS = [
   { value: 'hot', label: 'Ready to buy - actively looking' },
@@ -171,13 +171,20 @@ const LeadCaptureForm = () => {
         pipeline_stage: 'new',
       }
 
-      const { error } = await supabase
+      const { data: insertedLead, error } = await supabase
         .from('leads')
         .insert(leadData)
+        .select('id')
+        .single()
 
       if (error) throw error
 
-      notify.newLead(campaign?.developer?.email || '', { developerName: campaign?.developer?.full_name, campaignTitle: campaign?.title || campaign?.property_name, leadName: formData.name, leadEmail: formData.email, leadPhone: formData.phone })
+      // The developer's notification is raised server-side from the stored
+      // lead, so this public page never supplies a recipient address or email
+      // content. Failure to notify must not fail the visitor's submission.
+      if (insertedLead?.id) {
+        notifyNewLead(insertedLead.id)
+      }
       setSubmitted(true)
     } catch (error) {
       console.error('Error submitting lead:', error)

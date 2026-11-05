@@ -1,8 +1,30 @@
 import { Resend } from 'resend';
 
-let connectionSettings = null;
+import { config } from './config.js';
 
+/**
+ * Resolve Resend credentials.
+ *
+ * Credentials come from the hosting provider's secret manager
+ * (RESEND_API_KEY / RESEND_FROM_EMAIL). The Replit connector lookup is kept
+ * only as an opt-in fallback for legacy Replit deployments so that the
+ * application is not coupled to that platform (AH-005).
+ */
 async function getCredentials() {
+  if (config.resendApiKey) {
+    return { apiKey: config.resendApiKey, fromEmail: config.resendFromEmail };
+  }
+
+  const credentials = await getReplitConnectorCredentials();
+  if (credentials) return credentials;
+
+  throw new Error(
+    'Email is not configured. Set RESEND_API_KEY (and RESEND_FROM_EMAIL) in the environment.',
+  );
+}
+
+/** Legacy Replit connector lookup. Returns null when not running on Replit. */
+async function getReplitConnectorCredentials() {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? 'repl ' + process.env.REPL_IDENTITY
@@ -10,47 +32,48 @@ async function getCredentials() {
     ? 'depl ' + process.env.WEB_REPL_RENEWAL
     : null;
 
-  if (!xReplitToken) {
-    throw new Error('Authentication token not available');
-  }
+  if (!hostname || !xReplitToken) return null;
 
-  connectionSettings = await fetch(
+  const settings = await fetch(
     'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
     {
       headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken,
+        Accept: 'application/json',
+        X_REPLIT_TOKEN: xReplitToken,
       },
-    }
-  ).then(res => res.json()).then(data => data.items?.[0]);
+    },
+  )
+    .then((res) => res.json())
+    .then((data) => data.items?.[0])
+    .catch(() => null);
 
-  if (!connectionSettings || !connectionSettings.settings.api_key) {
-    throw new Error('Resend not connected');
-  }
+  if (!settings?.settings?.api_key) return null;
 
   return {
-    apiKey: connectionSettings.settings.api_key,
-    fromEmail: connectionSettings.settings.from_email,
+    apiKey: settings.settings.api_key,
+    fromEmail: settings.settings.from_email,
   };
 }
 
 async function getResendClient() {
-  const { apiKey } = await getCredentials();
+  const { apiKey, fromEmail } = await getCredentials();
   return {
     client: new Resend(apiKey),
-    fromEmail: connectionSettings.settings.from_email,
+    fromEmail,
   };
 }
 
 const BRAND = {
   name: 'AirHouse',
   color: '#6B9B8C',
-  url: process.env.REPLIT_DEV_DOMAIN
-    ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-    : 'https://airhouse.co.za',
+  url: config.appUrl,
 };
 
-function escapeHtml(value) {
+/**
+ * Escape a value for safe interpolation into an HTML email body.
+ * Exported for tests; applied centrally by `sanitizeTemplateData`.
+ */
+export function escapeHtmlValue(value) {
   if (value === null || value === undefined) return '';
   return String(value)
     .replace(/&/g, '&amp;')
@@ -59,6 +82,28 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+/**
+ * Escape every string field of a template payload.
+ *
+ * Templates previously interpolated caller-supplied values straight into the
+ * email body, so a crafted name or feedback string could inject markup into
+ * outbound mail (AH-007). All data is now escaped once, here, at the boundary.
+ */
+export function sanitizeTemplateData(data) {
+  const safe = {};
+  for (const [key, value] of Object.entries(data || {})) {
+    safe[key] = typeof value === 'string' ? escapeHtmlValue(value) : value;
+  }
+  return safe;
+}
+
+/**
+ * Identity passthrough retained for templates written before escaping moved
+ * to the boundary. Values reaching a template are already escaped; escaping
+ * again here would double-encode them.
+ */
+const escapeHtml = (value) => (value === null || value === undefined ? '' : String(value));
 
 function baseTemplate(content, preheader = '') {
   return `<!DOCTYPE html>
@@ -380,7 +425,7 @@ export async function sendNotification(type, to, data) {
     }
 
     const { client, fromEmail } = await getResendClient();
-    const template = TEMPLATES[type](data);
+    const template = TEMPLATES[type](sanitizeTemplateData(data));
 
     const result = await client.emails.send({
       from: fromEmail || `${BRAND.name} <notifications@${BRAND.name.toLowerCase()}.co.za>`,
@@ -389,10 +434,12 @@ export async function sendNotification(type, to, data) {
       html: template.html,
     });
 
-    console.log(`Email sent [${type}] to ${to}:`, result);
+    // Recipient addresses are personal data: log the template type and the
+    // provider's message id, not the address or the rendered body (AH-016).
+    console.log(JSON.stringify({ level: 'info', msg: 'email_sent', type, id: result.data?.id }));
     return { success: true, id: result.data?.id };
   } catch (error) {
-    console.error(`Failed to send email [${type}] to ${to}:`, error.message);
+    console.error(JSON.stringify({ level: 'error', msg: 'email_failed', type, error: error.message }));
     return { success: false, error: error.message };
   }
 }
