@@ -5,9 +5,8 @@ Produced during the Phase 0 enterprise-readiness review, 5 November 2026.
 ## Read in this order
 
 1. **[PRODUCTION_READINESS.md](PRODUCTION_READINESS.md)** — the readiness
-   checklist scored line by line with evidence: 4 of 35 criteria met, and what
-   the shortest path to each remaining category looks like. Includes the
-   answers to the eleven handover questions. **Start here.**
+   checklist scored line by line with evidence: 29 of 33 criteria met, what
+   was found along the way, and the one remaining step. **Start here.**
 
 2. **[PHASE_0_REPORT.md](PHASE_0_REPORT.md)** — what was found, what was
    fixed, the effort estimate and the recommended next five working days.
@@ -24,11 +23,18 @@ Produced during the Phase 0 enterprise-readiness review, 5 November 2026.
 5. **[RISK_REGISTER.md](RISK_REGISTER.md)** — tracked risks with impact,
    remediation, evidence, owner and what remains.
 
-6. **[FINANCIAL_ARCHITECTURE.md](FINANCIAL_ARCHITECTURE.md)** — the integrity
+6. **[RUNBOOK_OPERATIONS.md](RUNBOOK_OPERATIONS.md)** — the daily and weekly
+   work: confirming bank transfers, paying creators, reconciling, verifying
+   backups.
+
+7. **[RUNBOOK_INCIDENTS.md](RUNBOOK_INCIDENTS.md)** — what to do when
+   something is wrong in production.
+
+8. **[FINANCIAL_ARCHITECTURE.md](FINANCIAL_ARCHITECTURE.md)** — the integrity
    layer that exists, the provider integration that does not, and the
    reconciliation required before enabling payments.
 
-7. **[PERMISSIONS_MATRIX.md](PERMISSIONS_MATRIX.md)** — the intended access
+9. **[PERMISSIONS_MATRIX.md](PERMISSIONS_MATRIX.md)** — the intended access
    model, to test the live policies against.
 
 ## Running the checks
@@ -36,9 +42,16 @@ Produced during the Phase 0 enterprise-readiness review, 5 November 2026.
 ```bash
 npm install
 
-npm run lint       # ESLint — 0 errors expected
-npm test           # 74 unit tests
-npm run test:db    # 41 database assertions (needs local PostgreSQL)
+npm run test:all   # lint, unit, database and journey suites together
+```
+
+Or individually:
+
+```bash
+npm run lint       # ESLint — 0 problems expected
+npm test           # 144 unit tests
+npm run test:db    # 123 database assertions (needs local PostgreSQL)
+npm run test:e2e   # 38 end-to-end journeys
 npm run build      # production build
 ```
 
