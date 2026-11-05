@@ -1,0 +1,598 @@
+# AirHouse — Stitch Design Upgrade: Execution Plan & Replit Master Prompt
+
+**Source:** 35 screens from Google Stitch (PropTech Trust Systems design language)
+**Target:** Existing AirHouse codebase (React 18 + Vite + Supabase + Express/Resend, live at airhouse.co.za)
+**Strategy:** Parallel multi-agent execution with strict dependency gates
+
+---
+
+## 1. Stitch Design Audit (What I Found)
+
+### 1.1 The "PropTech Trust Systems" design language
+
+Stitch shipped a complete Material Design 3-flavoured token system. Locked-down identity:
+
+- **Font:** Inter (single family across all weights 400/500/600/700) + Material Symbols Outlined for icons
+- **Border radius philosophy:** *Soft but sharp* — `0.125rem` default (2px), `lg=0.25rem` (4px) for cards/buttons, `xl=0.5rem` (8px) for hero containers, `full=0.75rem` (12px) for max-rounded. **No pill shapes.** This is the opposite of consumer-app rounding.
+- **Spacing scale (custom names):** `xs=4 / sm=12 / base=8 / md=24 / gutter=24 / margin=32 / lg=48 / xl=80` (px). All grid math is on an 8px base.
+- **Layout grid:** Fixed 12-col, max container width **1280px**, sidebar **256px** (`lg:ml-64`).
+- **Elevation:** No drop shadows. Uses `.ambient-shadow` = `0 4px 24px rgba(17,24,39,0.06)` only on raised cards/modals + 1px outlines (`outline-variant #c0c8c4`) for separation.
+
+### 1.2 Color palette (exact hex)
+
+Two parallel palettes are present in the files — the canonical M3 tokens (DESIGN.md) and a "marketing" pair (#6B9B8C sage + #6EE7B7 mint) used in the landing/dashboard chrome. **These must be reconciled.** The recommendation below uses the M3 token names because every screen references them.
+
+| Token | Hex | Use |
+|---|---|---|
+| `primary` | `#38675a` | Headers, primary nav active state, brand text |
+| `primary-container` | `#6b9b8c` | Sidebar logo block, secondary chrome |
+| `secondary` | `#006c4e` | Success states, ZAR currency emphasis |
+| `secondary-container` | `#80f9c8` | **Primary CTA buttons** (with `on-secondary-container` text `#007353`) |
+| `secondary-fixed-dim` | `#62dcad` | CTA hover state |
+| `surface` / `background` | `#f9f9ff` | Page background |
+| `surface-container-lowest` | `#ffffff` | Card surfaces |
+| `surface-container-low` | `#f1f3ff` | Sidebar background |
+| `surface-variant` | `#dce2f7` | Subtle dividers, chip backgrounds |
+| `outline-variant` | `#c0c8c4` | Card borders (1px), table dividers |
+| `on-surface` | `#141b2b` | Primary text |
+| `on-surface-variant` | `#404945` | Secondary/muted text |
+| `error` / `error-container` | `#ba1a1a` / `#ffdad6` | Destructive, increased CPL |
+| `tertiary` / `tertiary-container` | `#555f6d` / `#8892a2` | Disabled / placeholder content |
+
+### 1.3 Typography scale (registered as Tailwind `font-*` and `text-*` utilities)
+
+```
+headline-xl   40/48 -0.02em  weight 700   — page heroes, big metrics
+headline-lg   32/40 -0.01em  weight 600   — page titles
+headline-md   24/32           weight 600   — section titles
+body-lg       18/28           weight 400
+body-md       16/24           weight 400   — base body
+body-sm       14/20           weight 400
+label-lg      14/20  0.02em   weight 600   — buttons, nav items
+label-md      12/16  0.04em   weight 500   — uppercase mini-labels (KPI captions)
+data-mono     14/20           weight 500   — currency, IDs, metric values
+```
+
+### 1.4 Complete screen inventory (35 screens, deduplicated across the 3 zips)
+
+**Public / Auth:**
+1. `landing_page` — hero + bento features + testimonials + footer
+2. `creator_onboarding` (single-screen overview) + steps `_step_1`, `_step_2`, `_step_3` (Profile → Skills → Rates)
+3. `developer_onboarding` (single-screen overview) + steps `_step_1`, `_step_2`, `_step_3` (Company → Specialties → Goals)
+
+**Developer experience (8 screens):**
+4. `developer_dashboard` — Active campaigns / leads / CPL / ROI metrics + pipeline chart
+5. `campaign_manager` — briefing form, budget settings
+6. `creator_marketplace` — search/filter directory of creators (NEW)
+7. `assignments_overview` — pipeline of campaign assignments
+8. `assignment_detail_acceptance` — invite-to-campaign accept/reject flow (NEW)
+9. `sales_pipeline` — kanban (New → Contacted → Qualified → Converted → Lost)
+10. `property_listing_manager` — CRUD for properties (NEW — major gap)
+11. `developer_roi_dashboard` — campaign profitability deep-dive
+
+**Creator experience (6 screens):**
+12. `creator_dashboard` — performance + active links overview
+13. `creator_performance_scorecard_refined` — reliability/approval/on-time tier tracking
+14. `public_profile` — shareable portfolio (already exists at `/creators/:id` — refresh)
+15. `payouts` — ZAR earnings + withdraw
+16. `content_submission` — submit deliverables for approval
+17. `social_proof_badges` — earned achievements gallery
+
+**Trust & Safety (3 screens):**
+18. `id_verification_upload` — multi-step ID upload
+19. `verification_status_overview` — what's verified / what's pending
+20. `digital_contract` — sign agreement (timestamps + parties)
+
+**Admin (3 screens):**
+21. `super_admin_dashboard` — platform revenue + commission + queues + invite admin
+22. `admin_verification_review` — approve/reject creator IDs
+23. `admin_dispute_mediation` — case manager + chat thread + escrow status (NEW)
+24. `admin_analytics_dashboard` — macro market intelligence
+
+**Shared (4 screens):**
+25. `messages` — contextual chat
+26. `notifications_panel` — actionable alerts dropdown
+27. `help_support_center` — self-service docs
+28. `transaction_invoice_detail` — downloadable invoice with 25%/3% fee breakdown (NEW)
+29. `financial_ledger_transactions` — full transaction history
+
+### 1.5 Gap analysis: Stitch designs vs. what's built today
+
+Per the existing AirHouse documentation, these are the screens that **add new functionality** (not just restyles):
+
+| Gap | Status | Priority |
+|---|---|---|
+| Property Listing Manager (CRUD for properties) | ❌ Missing | **HIGH** |
+| Creator Marketplace (browse/search creators) | ❌ Missing | **HIGH** |
+| Dispute reporting + admin mediation workspace | ⚠️ Partial (records exist, no UI) | **HIGH** |
+| Transaction invoices with PDF download | ⚠️ Partial | MEDIUM |
+| Assignment invite/accept flow | ⚠️ Partial | MEDIUM |
+| Social proof badges gallery | ❌ Missing | LOW (polish) |
+| Interactive lead detail (single lead drill-down) | ❌ Missing | LOW (polish) |
+
+Everything else is a **visual restyle** of an existing page using the new design tokens.
+
+### 1.6 Critical reconciliation issues to flag
+
+- **Dual color story** in Stitch HTML: the marketing pages use raw `#6B9B8C`/`#6EE7B7` while internal app pages use M3 token names. Pick **token names everywhere** and remove ad-hoc hex from JSX.
+- **Sidebar inconsistency:** different Stitch screens show different nav item lists. We will define ONE canonical nav per role (see §3.3).
+- **Stitch HTML uses Tailwind CDN.** The real app is Vite + Tailwind built. We need to migrate the config (colors/spacing/fonts), not ship the CDN.
+- **Material Symbols** must be loaded once globally, not per page.
+
+---
+
+## 2. Execution Strategy: Parallel Agent Plan
+
+Replit Agents work best when (a) tasks are surgically scoped, (b) shared dependencies are built first, and (c) each agent has clear file boundaries to avoid merge conflicts. The plan below uses **5 sequential phases**, with **multiple agents running in parallel inside each phase**.
+
+### Phase 0 — Pre-flight (single agent, blocking, ~15 min)
+
+Setup foundations all other agents depend on. Cannot be parallelized.
+
+**Tasks:**
+1. Create branch `feat/stitch-design-system`.
+2. Update `tailwind.config.js` with the full PropTech token set (colors, spacing, fontSize, borderRadius, fontFamily).
+3. Add `Inter` + `Material Symbols Outlined` to `index.html` `<head>`.
+4. Create `src/styles/tokens.css` with the `.ambient-shadow` utility.
+5. Create `src/components/_design-system/` folder with primitives: `Button`, `Card`, `Chip`, `MetricCard`, `Sidebar`, `TopAppBar`, `PageHeader`, `EmptyState`, `Skeleton`.
+6. Create a Storybook-less "kitchen sink" page at `/_design-preview` (dev only) that renders every primitive — used as a smoke test.
+7. Commit. **Gate before Phase 1.**
+
+### Phase 1 — Shared shells & global UI (3 agents in parallel)
+
+**Agent 1A — App Shell (sidebar + top app bar)**
+- Build `<RoleSidebar role="developer|creator|admin" />` with the canonical nav per role.
+- Build `<TopAppBar />` with search input, notifications bell, help icon, profile avatar.
+- Wire to React Router's active route detection (use `NavLink`).
+- Mobile: existing slide-in drawer behavior preserved; just restyle.
+
+**Agent 1B — Notifications + Messages**
+- Restyle `notifications_panel` (in-app dropdown that already exists, just retheme + use Material Symbols).
+- Build `messages` page using the Stitch two-pane layout (thread list left, conversation right). If real-time messaging isn't already wired, scaffold the Supabase table `messages (sender_id, recipient_id, body, campaign_id, created_at, read_at)` + RLS + a simple polling read every 15s.
+
+**Agent 1C — Auth/Landing/Onboarding**
+- Restyle `landing_page` with the bento hero + testimonials.
+- Restyle 3-step onboarding wizards for both roles (already exists — apply tokens, copy the exact form-field structure from Stitch HTML).
+- Restyle login/signup pages to match landing aesthetic.
+
+### Phase 2 — Role dashboards & analytics (4 agents in parallel)
+
+**Agent 2A — Developer Dashboard + ROI**
+- `developer_dashboard`: 4 KPI cards + lead pipeline summary chart + recent campaigns table.
+- `developer_roi_dashboard`: per-campaign profitability with revenue minus cost (read existing analytics computations; do not change calculation logic).
+
+**Agent 2B — Creator Dashboard + Scorecard + Public Profile**
+- `creator_dashboard`: earnings card + active campaigns + tracking links table.
+- `creator_performance_scorecard_refined`: tier (Bronze/Silver/Gold/Platinum) computed from existing reliability/approval/on-time fields. Visual: 3 metric arcs/bars + tier card.
+- `public_profile`: refresh the existing `/creators/:id` page to match the Stitch design (avatar, bio, stats, specialties, past campaigns, reviews).
+- `social_proof_badges`: gallery view of existing achievements (read from existing achievements table — do not add new ones).
+
+**Agent 2C — Super Admin Dashboard + Verification Review + Analytics**
+- `super_admin_dashboard`: Platform revenue / 25% commission earned / active campaigns / verified creators count, plus Active Disputes table and Verification Queue. **Restrict route to `ashleybaloyi.work@gmail.com` via existing role check.**
+- `admin_verification_review`: side-by-side ID + selfie + decision panel.
+- `admin_analytics_dashboard`: macro charts (revenue trend, top regions, top creator categories).
+
+**Agent 2D — Sales Pipeline + Lead Detail**
+- `sales_pipeline`: kanban with the 5 columns (New / Contacted / Qualified / Converted / Lost). Use HTML5 drag-and-drop (existing functionality presumably exists; just restyle and ensure column drops update `lead.status`).
+- New Lead Detail modal/page with conversation history, source attribution, UTM data.
+
+### Phase 3 — New features (gap fillers, 4 agents in parallel)
+
+**Agent 3A — Property Listing Manager (NEW)**
+- DB: create `properties` table → `id, developer_id (FK profiles), title, slug, description, price_zar (numeric), location_city, location_suburb, latitude, longitude, bedrooms, bathrooms, parking, floor_area_sqm, status (enum: draft, active, sold, archived), photo_urls (text[]), created_at, updated_at`. RLS: developer can CRUD own; creators read-only on `status='active'`; admin all-access.
+- Backend: storage bucket `property-photos` with RLS.
+- UI: list view with filters + grid/list toggle (Stitch shows both), single property edit form, photo upload with reordering, link a property to a campaign.
+- Wire campaigns to `property_id` (add column if missing).
+
+**Agent 3B — Creator Marketplace (NEW)**
+- Page: `/marketplace` — searchable, filterable directory of creators. Filters: niche (multi-select), follower range, price range (ZAR), location, verification status.
+- Cards link to existing `/creators/:id`.
+- Server-side search via Supabase `ilike` on `creator_profiles.bio + display_name + skills`. Use existing `creator_profiles` table.
+
+**Agent 3C — Disputes + Digital Contracts UI**
+- Dispute reporting from any campaign assignment (button: "Report Issue" → modal with reason category + description + evidence upload to Supabase storage).
+- `admin_dispute_mediation`: queue of open cases left, thread + actions panel right (release escrow / refund / escalate). Hook to existing `disputes` table.
+- `digital_contract`: read-only view of agreed terms + dual-signature blocks. Generate signed timestamps when a creator accepts an assignment.
+
+**Agent 3D — Invoices, Ledger, Payouts**
+- `transaction_invoice_detail`: per-payment view with line items showing gross, 25% platform fee, 3% creator payout fee, net to creator. Export to PDF using `@react-pdf/renderer` (client-side; no extra service).
+- `financial_ledger_transactions`: full table of transactions with date filter, status filter, CSV export.
+- `payouts`: restyle existing payout request flow + add escrow status indicator.
+
+### Phase 4 — Workflow polish (2 agents in parallel)
+
+**Agent 4A — Campaign + Assignment flow refinements**
+- `campaign_manager`: brief editor with rich text (existing field, just restyle), budget input with ZAR formatting, target audience tags.
+- `assignments_overview`: filterable list view of all assignments with status pills.
+- `assignment_detail_acceptance`: full brief preview + accept/decline buttons + auto-generates digital contract on accept.
+- `content_submission`: form for creator to submit deliverable URLs + tracking link + notes; triggers existing email notification to developer.
+- `id_verification_upload` + `verification_status_overview`: surface progress through email-verified → ID-verified → social-proof-verified.
+
+**Agent 4B — Help & Support + Empty states + Loading states**
+- `help_support_center`: searchable FAQ + contact admin form. Articles can be hard-coded markdown in `src/content/help/` initially.
+- Empty states for every list view (no campaigns, no leads, no creators, no notifications) using consistent illustration + CTA pattern.
+- Skeleton loaders for every page that fetches from Supabase.
+- 404 + 403 pages restyled.
+- Toast styling pass via `react-hot-toast` config.
+
+### Phase 5 — QA, accessibility, ship (single agent)
+
+- Manual route walkthrough using a checklist (see §6).
+- Lighthouse run on top 5 routes.
+- A11y: keyboard tab order on all forms, `aria-label` on icon-only buttons, color contrast (M3 tokens already pass).
+- Responsive sweep at 375 / 768 / 1280 / 1920.
+- Smoke test against production-like data.
+- Merge to `main`, deploy.
+
+### Why this order
+
+Phase 0 unblocks every visual decision. Phase 1 builds the chrome that Phase 2 dashboards plug into. Phase 3 introduces the *new* features that Phase 4 then refines. Each phase has a clean dependency on prior outputs, but **within a phase, agents touch disjoint folders**, so they can run truly in parallel without conflict.
+
+---
+
+## 3. Replit Master Prompt (Copy-Paste Ready)
+
+**How to use this:** In Replit, paste the prompt block below as your initial instruction to the agent. Then for each phase, ask the agent to spin off the listed sub-tasks in parallel using its multi-agent / task feature. The prompt is intentionally exhaustive — front-loading constraints reduces re-work.
+
+---
+
+```
+=========================================================================
+REPLIT AGENT PROMPT — AirHouse Stitch Design System Migration
+=========================================================================
+
+ROLE
+You are leading the visual + functional upgrade of AirHouse, a live SA prop-tech
+marketplace at airhouse.co.za. Stack: React 18 + Vite, Tailwind CSS, Supabase
+(Postgres + Auth + Storage + RLS), Express server on port 3001 (Resend email),
+React Router v6, Recharts, react-hot-toast.
+
+You will execute a 35-screen redesign + new feature build using the
+"PropTech Trust Systems" design language from Google Stitch. The full audit,
+design tokens, and gap analysis are in /docs/STITCH_UPGRADE_PLAN.md.
+
+ABSOLUTE RULES (DO NOT VIOLATE)
+1.  Do NOT change Supabase RLS policies, auth logic, or the role-restriction
+    that limits super-admin to ashleybaloyi.work@gmail.com.
+2.  Do NOT change existing analytics calculations (cost-per-lead, ROI,
+    conversion). Only change how they are displayed.
+3.  Do NOT change the 25% platform commission or 3% payout fee constants.
+4.  Do NOT introduce new auth providers, payment gateways, or third-party
+    services. Yoco/BobPay stay in test mode untouched.
+5.  Do NOT use the Tailwind CDN. The Stitch HTML is reference only — port
+    its tokens into the existing tailwind.config.js.
+6.  Every new DB column or table MUST ship with an RLS policy. Default to
+    "row owner read+write, admin all-access".
+7.  All currency in UI is ZAR, formatted "R 1,234.56" (locale en-ZA).
+8.  Mobile-first: every page works on 375px wide. Sidebar collapses to a
+    slide-in drawer below 1024px (existing behavior — preserve it).
+9.  Inputs MUST use 16px font-size on mobile (prevents iOS zoom). This is
+    already set; do not regress.
+10. Profile saves MUST remain resilient to schema mismatches (existing
+    pattern — keep field allowlisting).
+
+DESIGN SYSTEM (apply to every page)
+- Font: Inter (400/500/600/700) loaded once in index.html. Icons: Material
+  Symbols Outlined (also loaded once).
+- Tailwind config extends with these EXACT tokens (M3-style):
+    colors: primary #38675a, primary-container #6b9b8c, on-primary #ffffff,
+            secondary #006c4e, secondary-container #80f9c8,
+            on-secondary-container #007353, secondary-fixed-dim #62dcad,
+            surface/background #f9f9ff, surface-container-lowest #ffffff,
+            surface-container-low #f1f3ff, surface-variant #dce2f7,
+            outline #707975, outline-variant #c0c8c4,
+            on-surface #141b2b, on-surface-variant #404945,
+            tertiary #555f6d, tertiary-container #8892a2,
+            error #ba1a1a, error-container #ffdad6,
+            inverse-surface #293040, inverse-on-surface #edf0ff
+    spacing: xs 4px, sm 12px, base 8px, md 24px, gutter 24px, margin 32px,
+             lg 48px, xl 80px
+    borderRadius: DEFAULT 0.125rem, lg 0.25rem, xl 0.5rem, full 0.75rem
+    fontSize: headline-xl [40px,{lineHeight:48px,letterSpacing:-0.02em,fontWeight:700}],
+              headline-lg [32px,{lineHeight:40px,letterSpacing:-0.01em,fontWeight:600}],
+              headline-md [24px,{lineHeight:32px,fontWeight:600}],
+              body-lg [18px,{lineHeight:28px,fontWeight:400}],
+              body-md [16px,{lineHeight:24px,fontWeight:400}],
+              body-sm [14px,{lineHeight:20px,fontWeight:400}],
+              label-lg [14px,{lineHeight:20px,letterSpacing:0.02em,fontWeight:600}],
+              label-md [12px,{lineHeight:16px,letterSpacing:0.04em,fontWeight:500}],
+              data-mono [14px,{lineHeight:20px,fontWeight:500}]
+- Add a single utility class .ambient-shadow → box-shadow: 0 4px 24px rgba(17,24,39,0.06)
+- Cards: bg-surface-container-lowest + border border-outline-variant + rounded-lg + p-md
+  (NO default shadow; use ambient-shadow only on hover or for hero cards).
+- Primary CTA button:
+    bg-secondary-container text-on-secondary-container px-md py-sm rounded
+    font-label-lg hover:bg-secondary-fixed-dim
+- Secondary/ghost button:
+    border border-outline text-on-surface px-md py-sm rounded font-label-lg
+    hover:bg-surface-variant
+- Icon-only buttons: p-2 rounded text-tertiary hover:bg-surface-container-low
+- KPI metric card: 140px tall, label-md uppercase caption + headline-xl number
+  + label-md trend with leading icon. Trend up = text-primary, trend down = text-error.
+- Status chips: small rectangle (rounded-DEFAULT), tinted bg of status color,
+  darker text variant. e.g. "Active" = bg-secondary-fixed text-on-secondary-fixed.
+- Charts (Recharts): primary line stroke #38675a, secondary #80f9c8, error
+  for negative trends. Grid lines #c0c8c4 dashed. Tooltip: bg-#293040 text-white.
+- Dividers: 1px solid #c0c8c4.
+
+CANONICAL ROLE NAVIGATION (single source of truth)
+Developer sidebar (top → bottom):
+  Dashboard, Properties, Marketplace, Campaigns, Pipeline, Payouts, Analytics
+  Footer items: Support, Settings, Logout
+Creator sidebar:
+  Dashboard, Assignments, Submissions, Earnings, Verification, Public Profile
+  Footer: Support, Settings, Logout
+Super Admin sidebar:
+  Dashboard, Verification, Disputes, Admin Management, Campaigns, Analytics
+  Footer: Support, Logout
+Active item style: bg-surface-container-lowest text-primary border-l-4 border-primary
+Inactive: text-on-surface-variant hover:bg-surface-container-low
+Sidebar logo block: 32x32 rounded square (bg-primary-container text-on-primary)
++ "AirHouse" wordmark (text-primary, font-bold)
+
+DELIVERABLES BY PHASE
+Phase 0 (run alone, blocking):
+  - Branch feat/stitch-design-system
+  - tailwind.config.js with full token extend
+  - Inter + Material Symbols in index.html
+  - src/styles/tokens.css (.ambient-shadow)
+  - src/components/_design-system/ primitives: Button, Card, Chip, MetricCard,
+    Sidebar, TopAppBar, PageHeader, EmptyState, Skeleton
+  - /_design-preview route (dev only, gated by import.meta.env.DEV) showing
+    every primitive in every state
+  - Commit and surface a screenshot of /_design-preview before proceeding
+
+Phase 1 (3 parallel agents):
+  Agent 1A — App Shell: <RoleSidebar role="..."/> + <TopAppBar/>, wire to
+    React Router NavLink, restyle existing mobile drawer.
+  Agent 1B — Notifications & Messages: restyle existing notifications dropdown,
+    build /messages two-pane page (thread list + conversation). If messages
+    table doesn't exist, create it: messages(id uuid, sender_id, recipient_id,
+    body text, campaign_id nullable, created_at, read_at) with RLS "users see
+    only threads they're a participant in". 15s polling.
+  Agent 1C — Landing/Auth/Onboarding: restyle / route, login, signup, both
+    3-step onboarding wizards. Hero copy: "Connect with Property Creators.
+    Scale your Real Estate Marketing." + bento grid (For Developers / ZAR 45M+
+    panel / For Creators) + testimonials + final CTA.
+
+Phase 2 (4 parallel agents):
+  Agent 2A — Developer Dashboard + ROI dashboard
+  Agent 2B — Creator Dashboard + Scorecard + Public Profile + Social Proof Badges
+  Agent 2C — Super Admin Dashboard + Verification Review + Admin Analytics
+    (super-admin-only route guard MUST check email == ashleybaloyi.work@gmail.com
+    AND profile.role == 'admin')
+  Agent 2D — Sales Pipeline kanban + Lead Detail modal
+
+Phase 3 (4 parallel agents — NEW features):
+  Agent 3A — Property Listing Manager:
+    DB migration creating `properties` table (see schema in
+    /docs/STITCH_UPGRADE_PLAN.md §2 Phase 3A) + `property-photos` storage
+    bucket. Add `property_id` FK to campaigns if absent. UI: list (grid/list
+    toggle), filter bar, create/edit form with photo reorder.
+  Agent 3B — Creator Marketplace at /marketplace: server-side search via
+    supabase ilike across creator_profiles.display_name+bio+skills. Filters:
+    niche multi-select, follower range, price range ZAR, city, verified-only.
+    Cards link to /creators/:id.
+  Agent 3C — Disputes + Digital Contracts:
+    "Report Issue" modal launchable from any assignment row → writes to
+    existing disputes table. Admin mediation page = case queue (left) + thread
+    + escrow actions (right). Digital contract page = read-only terms +
+    dual-signature blocks; sign action stamps creator_signed_at /
+    developer_signed_at on the contracts row.
+  Agent 3D — Invoices, Ledger, Payouts:
+    Invoice detail page with line items + 25%/3% breakdown + PDF export via
+    @react-pdf/renderer (install if missing). Ledger page = transactions
+    table with date/status filters + CSV export. Payouts page restyle.
+
+Phase 4 (2 parallel agents — polish):
+  Agent 4A — Campaigns/Assignments/Submissions/Verification flow refinements
+  Agent 4B — Help Center + every empty state + skeleton loaders + 404/403
+             + react-hot-toast theming pass
+
+Phase 5 (single agent — QA & ship):
+  Manual checklist (see /docs/QA_CHECKLIST.md), Lighthouse on top 5 routes,
+  a11y sweep, responsive sweep at 375/768/1280/1920, merge + deploy.
+
+PARALLELIZATION RULES
+- Within a phase, each agent owns a disjoint set of files. No two agents may
+  edit the same file.
+- Shared edits to tailwind.config.js, App routing, or RoleSidebar items must
+  be queued sequentially.
+- Database migrations from different agents in the same phase: combine into a
+  single migration file before applying.
+
+CODE QUALITY GATES
+- TypeScript or PropTypes on every new component.
+- No inline hex colors in JSX — only Tailwind token classes.
+- No `any` in TS / no untyped props.
+- Every fetch wrapped with try/catch + toast.error on failure.
+- Every list view has loading + empty + error states.
+- Every form has client-side validation + disabled submit while pending.
+
+WHEN YOU'RE DONE WITH A PHASE
+1. Run the existing test suite (if any).
+2. Build with `npm run build` and surface any errors.
+3. Take a screenshot of one new screen and post it for review.
+4. Wait for explicit "go for next phase" before continuing.
+
+START NOW WITH PHASE 0. Do not skip the /_design-preview screenshot step.
+=========================================================================
+```
+
+---
+
+## 4. Database migrations needed
+
+### 4.1 New tables
+
+```sql
+-- Properties (Phase 3A)
+create table public.properties (
+  id uuid primary key default gen_random_uuid(),
+  developer_id uuid not null references public.profiles(id) on delete cascade,
+  title text not null,
+  slug text not null unique,
+  description text,
+  price_zar numeric(14,2) not null,
+  location_city text,
+  location_suburb text,
+  latitude numeric(9,6),
+  longitude numeric(9,6),
+  bedrooms int,
+  bathrooms int,
+  parking int,
+  floor_area_sqm int,
+  status text not null default 'draft' check (status in ('draft','active','sold','archived')),
+  photo_urls text[] default '{}',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table public.properties enable row level security;
+create policy "developers manage own properties" on public.properties
+  for all using (auth.uid() = developer_id) with check (auth.uid() = developer_id);
+create policy "anyone reads active properties" on public.properties
+  for select using (status = 'active');
+create policy "admins all access properties" on public.properties
+  for all using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+
+-- Messages (Phase 1B, if not already present)
+create table if not exists public.messages (
+  id uuid primary key default gen_random_uuid(),
+  sender_id uuid not null references public.profiles(id) on delete cascade,
+  recipient_id uuid not null references public.profiles(id) on delete cascade,
+  campaign_id uuid references public.campaigns(id) on delete set null,
+  body text not null,
+  created_at timestamptz default now(),
+  read_at timestamptz
+);
+
+alter table public.messages enable row level security;
+create policy "participants read messages" on public.messages
+  for select using (auth.uid() = sender_id or auth.uid() = recipient_id);
+create policy "sender writes messages" on public.messages
+  for insert with check (auth.uid() = sender_id);
+create policy "recipient marks read" on public.messages
+  for update using (auth.uid() = recipient_id) with check (auth.uid() = recipient_id);
+```
+
+### 4.2 Column additions
+
+```sql
+alter table public.campaigns
+  add column if not exists property_id uuid references public.properties(id) on delete set null;
+
+alter table public.contracts
+  add column if not exists creator_signed_at timestamptz,
+  add column if not exists developer_signed_at timestamptz;
+```
+
+### 4.3 Storage buckets
+
+```sql
+-- Run in Supabase dashboard
+insert into storage.buckets (id, name, public)
+values ('property-photos', 'property-photos', true)
+on conflict (id) do nothing;
+
+-- Policy: developers upload to their own folder /<developer_id>/...
+create policy "developers upload own property photos"
+  on storage.objects for insert
+  with check (bucket_id = 'property-photos' and auth.uid()::text = (storage.foldername(name))[1]);
+
+create policy "anyone reads property photos"
+  on storage.objects for select using (bucket_id = 'property-photos');
+
+-- Same pattern for dispute-evidence bucket
+```
+
+---
+
+## 5. Routing map
+
+| Path | Component | Guard |
+|---|---|---|
+| `/` | LandingPage | public |
+| `/login`, `/signup` | Auth | public |
+| `/onboarding` | OnboardingWizard | requires auth, role set |
+| `/_design-preview` | DesignPreview | dev only |
+| `/dashboard` | role-aware redirect → DeveloperDashboard / CreatorDashboard / AdminDashboard | auth |
+| `/properties` | PropertyListingManager | developer |
+| `/properties/:id/edit` | PropertyEditor | developer (owner) |
+| `/marketplace` | CreatorMarketplace | developer |
+| `/creators/:id` | PublicProfile | public |
+| `/campaigns` | CampaignsList | developer |
+| `/campaigns/new`, `/campaigns/:id/edit` | CampaignManager | developer |
+| `/pipeline` | SalesPipeline (kanban) | developer |
+| `/leads/:id` | LeadDetail | developer (owner) |
+| `/assignments` | AssignmentsOverview | creator |
+| `/assignments/:id` | AssignmentDetail | creator (assignee) |
+| `/submit/:assignmentId` | ContentSubmission | creator |
+| `/scorecard` | CreatorScorecard | creator |
+| `/badges` | SocialProofBadges | creator |
+| `/payouts` | Payouts | creator |
+| `/verification` | VerificationStatus | creator |
+| `/verification/upload` | IDVerificationUpload | creator |
+| `/messages`, `/messages/:threadId` | Messages | auth |
+| `/notifications` | NotificationsPanel (also dropdown) | auth |
+| `/transactions` | FinancialLedger | auth |
+| `/transactions/:id` | InvoiceDetail | auth (party) |
+| `/contracts/:id` | DigitalContract | auth (party) |
+| `/disputes/new` | ReportDispute | auth |
+| `/help` | HelpSupportCenter | public |
+| `/admin` | SuperAdminDashboard | admin only (email check) |
+| `/admin/verification` | AdminVerificationReview | admin |
+| `/admin/disputes` | AdminDisputeMediation | admin |
+| `/admin/analytics` | AdminAnalytics | admin |
+
+---
+
+## 6. QA checklist (Phase 5)
+
+### Visual fidelity
+- [ ] Every page uses Inter font (no system fallbacks visible)
+- [ ] No raw hex colors in JSX (grep `#[0-9a-f]{3,6}` returns only token comments)
+- [ ] All cards have 1px outline-variant border, no drop shadows except hover/modal
+- [ ] All ZAR currency formatted "R 1,234.56" via single `formatZAR()` util
+- [ ] All metric cards 140px tall, KPI scale consistent
+- [ ] Sidebar active item has 4px left border in primary color
+
+### Functional
+- [ ] Property CRUD round-trips (create → edit → upload photos → publish → list)
+- [ ] Marketplace search returns results in <500ms with empty/loading states
+- [ ] Dispute creation writes a row + emails admin
+- [ ] Invoice PDF downloads correctly with 25%/3% line items
+- [ ] Sales pipeline drag updates lead.status in DB
+- [ ] Onboarding wizard completion sets profile.onboarded = true
+- [ ] Super admin route 403s for non-admin emails
+
+### Cross-cutting
+- [ ] Lighthouse Performance ≥ 85, Accessibility ≥ 95 on `/`, `/dashboard`, `/marketplace`, `/properties`, `/admin`
+- [ ] Tab order natural on every form
+- [ ] Every icon-only button has aria-label
+- [ ] 375px / 768px / 1280px / 1920px all render without horizontal scroll
+- [ ] iOS Safari: no input zoom on focus
+- [ ] Notifications bell auto-refreshes every 30s (existing behavior preserved)
+- [ ] All existing analytics numbers match pre-migration values for the same data
+
+---
+
+## 7. Risk register
+
+| Risk | Mitigation |
+|---|---|
+| Tailwind config conflicts between Stitch tokens and existing brand | Phase 0 commits the merged config; every later agent reads from it. |
+| Two agents editing `App.jsx` routing | Phase 0 establishes the full routing map; later agents only add lazy imports. |
+| Supabase migration drift | All Phase 3 migrations combined into one file before apply. |
+| Visual drift between phases | `/_design-preview` route is the canonical reference; agents diff against it. |
+| Production downtime during deploy | Deploy from `feat/stitch-design-system` to a preview URL first; cut over only after Phase 5 sign-off. |
+| Stitch HTML referenced raw hex colors | Phase 0 gates: "no raw hex in JSX" lint rule (or grep in CI). |
+
+---
+
+## 8. What I'd do differently if you have time
+
+- **Add Storybook** during Phase 0 instead of `/_design-preview`. Three days of investment pays back across all phases.
+- **Add Playwright smoke tests** for the 8 most critical user journeys before Phase 5 — catches regressions the agents introduce.
+- **Add an `app_settings` table** with the 25%/3% fee constants so they're configurable without redeploys (good prep for future).
+- Replace 30s notification polling with **Supabase Realtime** subscriptions when you have a free moment — it's a one-file change but better UX.
