@@ -23,7 +23,6 @@ import CreatorTrackingLinks from '../../components/CreatorTrackingLinks'
 
 const ContentSubmission = () => {
   const { assignmentId } = useParams()
-  const { user, profile } = useAuth()
   const navigate = useNavigate()
 
   const [assignment, setAssignment] = useState(null)

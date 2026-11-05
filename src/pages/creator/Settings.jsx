@@ -34,7 +34,7 @@ const ToggleSwitch = ({ enabled, onChange, label, description }) => (
 )
 
 const CreatorSettings = () => {
-  const { user, profile, updatePassword } = useAuth()
+  const { user, updatePassword } = useAuth()
   const [loading, setLoading] = useState(false)
   const [settings, setSettings] = useState({
     emailNotifications: true,

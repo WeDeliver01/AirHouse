@@ -191,7 +191,7 @@ const TEMPLATES = {
     `, `Your content for ${campaignTitle} was approved`),
   }),
 
-  content_rejected: ({ creatorName, campaignTitle, reviewerName, feedback, dashboardUrl }) => ({
+  content_rejected: ({ creatorName, campaignTitle, _reviewerName, feedback, dashboardUrl }) => ({
     subject: `Content revision needed: ${campaignTitle}`,
     html: baseTemplate(`
       <h2>Revision Requested</h2>

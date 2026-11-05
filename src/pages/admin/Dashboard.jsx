@@ -47,7 +47,6 @@ const MetricCard = ({ label, value, hint, hintTone = 'positive', icon: Icon }) =
 )
 
 const AdminDashboard = () => {
-  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [stats, setStats] = useState({

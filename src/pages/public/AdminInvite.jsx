@@ -8,8 +8,7 @@ import { toast } from 'react-hot-toast'
 
 const AdminInvite = () => {
   const { code } = useParams()
-  const navigate = useNavigate()
-  const { user, isAuthenticated, signUp } = useAuth()
+  const { isAuthenticated, signUp } = useAuth()
   const [status, setStatus] = useState('validating')
   const [emailRestriction, setEmailRestriction] = useState(null)
   const [formData, setFormData] = useState({

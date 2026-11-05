@@ -32,7 +32,7 @@ const PaymentConfirmations = () => {
   const [rejectReason, setRejectReason] = useState('')
   const [mode, setMode] = useState('confirm')
   const [reconciliation, setReconciliation] = useState(null)
-  const [proofUrl, setProofUrl] = useState(null)
+  const [, setProofUrl] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)

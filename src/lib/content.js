@@ -295,7 +295,7 @@ export const uploadCampaignAsset = async (campaignId, file, assetType, descripti
   const fileName = `${campaignId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
 
   // Upload to storage
-  const { data: uploadData, error: uploadError } = await supabase.storage
+  const { error: uploadError } = await supabase.storage
     .from('campaign-assets')
     .upload(fileName, file)
 

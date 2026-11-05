@@ -30,7 +30,6 @@ const Avatar = ({ url, name, size = 40 }) => {
 }
 
 const CreatorRankings = () => {
-  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [creators, setCreators] = useState([])

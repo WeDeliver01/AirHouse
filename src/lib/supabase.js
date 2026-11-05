@@ -261,7 +261,7 @@ export const uploadCampaignMedia = async (campaignId, file, type = 'image') => {
   const bucket = 'campaign-media'
 
   // Upload without compression to maintain 4K quality
-  const { error: uploadError, data } = await supabase.storage
+  const { error: uploadError } = await supabase.storage
     .from(bucket)
     .upload(fileName, file, { 
       upsert: false,

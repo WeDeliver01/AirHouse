@@ -25,7 +25,7 @@ const NICHES = [
 ]
 
 const CreatorProfileEditor = () => {
-  const { user, profile, creatorProfile, updateProfile, updateCreatorProfile, refreshUserData } = useAuth()
+  const { user, profile, creatorProfile, updateProfile, refreshUserData } = useAuth()
   const fileInputRef = useRef(null)
   
   const [loading, setLoading] = useState(false)

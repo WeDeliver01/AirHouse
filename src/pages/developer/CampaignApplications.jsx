@@ -14,7 +14,7 @@ import { notify } from '../../lib/notifications'
 
 const CampaignApplications = () => {
   const { campaignId } = useParams()
-  const { user, profile } = useAuth()
+  const { profile } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)

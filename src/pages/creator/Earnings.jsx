@@ -22,7 +22,7 @@ const CreatorEarnings = () => {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [wallet, setWallet] = useState(null)
+  const [, setWallet] = useState(null)
   const [earningTxs, setEarningTxs] = useState([])
   const [completedPayouts, setCompletedPayouts] = useState([])
   const [campaignsById, setCampaignsById] = useState({})

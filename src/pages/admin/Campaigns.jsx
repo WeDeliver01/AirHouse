@@ -15,8 +15,6 @@ const AdminCampaigns = () => {
   const [stats, setStats] = useState({ total: 0, active: 0, totalBudget: 0, totalLeads: 0 })
   const [filter, setFilter] = useState({ status: '', search: '' })
   const [error, setError] = useState(null)
-  const [selectedCampaign, setSelectedCampaign] = useState(null)
-  const [showModal, setShowModal] = useState(false)
 
   useEffect(() => { fetchCampaigns() }, [])
 

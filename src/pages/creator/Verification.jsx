@@ -34,7 +34,7 @@ const verificationTypes = [
 ]
 
 const CreatorVerification = () => {
-  const { user, profile, creatorProfile } = useAuth()
+  const { creatorProfile } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [verifications, setVerifications] = useState([])

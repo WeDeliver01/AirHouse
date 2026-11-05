@@ -165,7 +165,7 @@ const fetchUnreadMessageNotifications = async (userId) => {
 export const NotificationProvider = ({ children }) => {
   const { user, profile, isAuthenticated } = useAuth()
   const [notifications, setNotifications] = useState([])
-  const [readIds, setReadIds] = useState([])
+  const [, setReadIds] = useState([])
   const [useLocalFallback, setUseLocalFallback] = useState(false)
   const [unreadMessageCount, setUnreadMessageCount] = useState(0)
   const intervalRef = useRef(null)

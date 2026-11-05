@@ -9,7 +9,6 @@ import {
 } from 'lucide-react'
 
 const CreatorTrackingLinks = ({ assignmentId }) => {
-  const { user } = useAuth()
   const [link, setLink] = useState(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)

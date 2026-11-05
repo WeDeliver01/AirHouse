@@ -43,7 +43,7 @@ const formatRelative = (date) => {
 }
 
 const Messages = () => {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
   const { refresh: refreshNotifications } = useNotifications()
   const [searchParams, setSearchParams] = useSearchParams()
 
