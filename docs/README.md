@@ -4,27 +4,31 @@ Produced during the Phase 0 enterprise-readiness review, 5 November 2026.
 
 ## Read in this order
 
-1. **[PHASE_0_REPORT.md](PHASE_0_REPORT.md)** — what was found, what was
-   fixed, answers to the eleven handover questions, effort estimate and the
-   recommended next five days. Start here.
+1. **[PRODUCTION_READINESS.md](PRODUCTION_READINESS.md)** — the readiness
+   checklist scored line by line with evidence: 4 of 35 criteria met, and what
+   the shortest path to each remaining category looks like. Includes the
+   answers to the eleven handover questions. **Start here.**
 
-2. **[SECURITY_AUDIT.md](SECURITY_AUDIT.md)** — every finding with an `AH-xxx`
+2. **[PHASE_0_REPORT.md](PHASE_0_REPORT.md)** — what was found, what was
+   fixed, the effort estimate and the recommended next five working days.
+
+3. **[SECURITY_AUDIT.md](SECURITY_AUDIT.md)** — every finding with an `AH-xxx`
    reference, marked Confirmed or Unverified, including two corrections to the
-   original audit and six findings it did not identify.
+   original audit and seven findings it did not identify.
 
-3. **[MIGRATION_HISTORY.md](MIGRATION_HISTORY.md)** — why the migration series
+4. **[MIGRATION_HISTORY.md](MIGRATION_HISTORY.md)** — why the migration series
    cannot be trusted as a record of the live database, and the read-only
    queries to establish the true state. **Read this before applying anything
    to production.**
 
-4. **[RISK_REGISTER.md](RISK_REGISTER.md)** — tracked risks with impact,
+5. **[RISK_REGISTER.md](RISK_REGISTER.md)** — tracked risks with impact,
    remediation, evidence, owner and what remains.
 
-5. **[FINANCIAL_ARCHITECTURE.md](FINANCIAL_ARCHITECTURE.md)** — the integrity
+6. **[FINANCIAL_ARCHITECTURE.md](FINANCIAL_ARCHITECTURE.md)** — the integrity
    layer that exists, the provider integration that does not, and the
    reconciliation required before enabling payments.
 
-6. **[PERMISSIONS_MATRIX.md](PERMISSIONS_MATRIX.md)** — the intended access
+7. **[PERMISSIONS_MATRIX.md](PERMISSIONS_MATRIX.md)** — the intended access
    model, to test the live policies against.
 
 ## Running the checks

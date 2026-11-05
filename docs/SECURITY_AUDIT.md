@@ -10,7 +10,8 @@ need access to the live Supabase project.
 
 This document responds to the uploaded *Enterprise Readiness: Technical Audit
 & Engineering Handover*. It confirms most of that audit, corrects two points,
-and adds four findings that document did not identify.
+and adds seven findings that document did not identify (AH-003, AH-013,
+AH-018, AH-024, AH-025, AH-026, AH-027).
 
 ---
 
@@ -46,6 +47,8 @@ and adds four findings that document did not identify.
 | AH-016 | Recipient addresses written to logs | P2 | **Fixed in code** |
 | AH-017 | Migration history has diverged from the live database | P0 | **Open** — blocks safe deployment |
 | AH-018 | Rejected payouts stranded creator funds | P1 | **Fixed in code** |
+| AH-024 | MFA and breach-checking advertised to users but absent | P1 | **Open** |
+| AH-025 | Avatar storage policies have no ownership check | P1 | **Open** |
 
 ---
 
@@ -277,6 +280,50 @@ errors, including a `return` inside a `finally` block in `Marketplace.jsx`.
 ### AH-016 — Recipient addresses written to logs
 `server/email.js` logged every recipient address. **Fixed:** structured logs
 carry the template type and a correlation id, not personal data.
+
+### AH-024 — Security features advertised to users but absent
+**Confirmed, not in the uploaded audit.** `src/data/helpContent.json:127`
+tells users that passwords are checked against breach lists at sign-up, that
+2FA with authenticator apps and SMS can be enabled from Settings > Security,
+and that active sessions can be reviewed under Settings > Security > Devices.
+
+None of the three exists. Settings > Security contains only a password-change
+form; sign-up validation is a client-side regex with an 8-character minimum.
+
+This is a disclosure problem as well as a technical gap: the page concerned
+opens by noting the account "holds money". Users may be choosing weaker
+passwords, or forgoing other protection, on the strength of controls that are
+not there.
+
+**Recommended fix:** remove the claims immediately; restore them as the
+features ship. Implement MFA through Supabase's native enrolment, privileged
+accounts first.
+
+### AH-025 — Avatar storage policies have no ownership check
+**Confirmed, not in the uploaded audit.** `supabase/create_storage_buckets.sql`
+lines 54-66:
+
+```sql
+CREATE POLICY "Anyone can upload an avatar"
+ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars');
+
+CREATE POLICY "Anyone can delete their own avatar"
+ON storage.objects FOR DELETE USING (bucket_id = 'avatars');
+```
+
+Despite their names neither policy checks ownership, so any caller reaching the
+bucket can overwrite or delete any user's avatar.
+
+`SUPABASE_SETUP.md` documents the correct stricter form using
+`auth.uid()::text = (storage.foldername(name))[1]`. The repository holds two
+conflicting policy sets and the weaker one is in the runnable script -- another
+instance of AH-017.
+
+Note that the sensitive buckets are correctly declared private:
+`verification-documents` (migration 014) and `dispute-evidence` (migration 011)
+are both `public = FALSE`. The gap is confined to the public buckets, but
+overwriting another user's avatar is still a defacement and impersonation
+vector.
 
 ---
 

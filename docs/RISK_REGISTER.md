@@ -117,6 +117,40 @@ because the deployed database has not been inspected.
 | **Status** | Code fixed |
 | **Remaining** | Audit `payout_requests` with status `failed`/`cancelled` for balances never returned, and correct them with reversing ledger entries — never by editing history. |
 
+### AH-024 — MFA and breach-checking advertised to users but absent
+| | |
+|---|---|
+| **Impact** | Users may choose weaker passwords or forgo other protection believing 2FA, breach-checking and session review exist. None do. A disclosure problem on a page that states the account "holds money", as well as a missing control. |
+| **Cause** | `src/data/helpContent.json:127` describes features never built. Settings → Security offers only a password change. |
+| **Status** | **Open** |
+| **Owner** | Senior engineer / product |
+| **Remaining** | Remove the claims now. Implement MFA via Supabase native enrolment for privileged accounts, which also closes the checklist's "MFA for privileged users". |
+
+### AH-025 — Avatar storage policies have no ownership check
+| | |
+|---|---|
+| **Impact** | Any caller reaching the `avatars` bucket can overwrite or delete any user's avatar. Defacement and impersonation. |
+| **Cause** | `supabase/create_storage_buckets.sql:54-66` — policies named "own avatar" that check only `bucket_id`. `SUPABASE_SETUP.md` documents the correct stricter form; the weaker one is in the runnable script. |
+| **Status** | **Open** |
+| **Owner** | Senior engineer |
+| **Remaining** | Replace with the `storage.foldername(name))[1] = auth.uid()` form, and reconcile the two conflicting versions as part of AH-017. Sensitive buckets (`verification-documents`, `dispute-evidence`) are correctly private and are not affected. |
+
+### AH-026 — Campaign lifecycle has no transition enforcement
+| | |
+|---|---|
+| **Impact** | `campaign_status` is a well-formed enum but nothing prevents an invalid transition, so a completed or cancelled campaign can still accept assignments — explicitly called out in audit §6.12. |
+| **Status** | **Open** |
+| **Owner** | Senior engineer |
+| **Remaining** | Enforce transitions in a database trigger, matching the pattern used by the financial functions. |
+
+### AH-027 — Audit log is written from the client
+| | |
+|---|---|
+| **Impact** | `src/lib/disputes.js:515` inserts into `audit_logs` from the browser. A client-written audit trail can be omitted, delayed or forged, so it cannot be relied on for an investigation or dispute. |
+| **Status** | **Open** |
+| **Owner** | Senior engineer |
+| **Remaining** | Move audit writes server-side, as `financial_operations` already does for money movements, and revoke client `INSERT` on `audit_logs`. |
+
 ### AH-019 — Rate limits are per process
 | | |
 |---|---|

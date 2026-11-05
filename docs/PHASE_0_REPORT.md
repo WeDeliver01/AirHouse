@@ -40,7 +40,7 @@ Two further defects of the same class were not in the audit:
 ### Discovery
 - Inventoried the codebase: 203 files, 37 database tables, 20 migration files.
 - Read and verified every finding in the uploaded audit against the source.
-- Confirmed 14 findings, corrected 2, and added 6 the audit did not identify.
+- Confirmed 14 findings, corrected 2, and added 7 the audit did not identify.
 
 ### Remediation (four commits)
 
