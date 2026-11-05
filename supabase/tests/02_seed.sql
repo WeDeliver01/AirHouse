@@ -38,3 +38,15 @@ VALUES ('cccccccc-0000-4000-8000-000000000001','22222222-2222-4222-8222-22222222
 
 INSERT INTO bank_accounts (id, user_id, bank_name, account_number)
 VALUES ('bbbbbbbb-0000-4000-8000-000000000001','22222222-2222-4222-8222-222222222222','FNB','1234567890');
+
+-- Opening balances: the seeded escrow of R1,000 is recorded in the ledger too,
+-- so the ledger and the derived wallet balances agree before any test runs.
+-- Without this the seed would be money that exists in a wallet but was never
+-- accounted for, and reconciliation would (correctly) flag it.
+INSERT INTO ledger_entries (transaction_id, account_code, direction, amount_cents, event_type, campaign_id, reference)
+SELECT gen_random_uuid(), 'bank', 'debit', 100000, 'opening_balance',
+       'cccccccc-0000-4000-8000-000000000001', 'SEED-OPENING';
+INSERT INTO ledger_entries (transaction_id, account_code, direction, amount_cents, event_type, campaign_id, reference)
+SELECT transaction_id, 'campaign_funds', 'credit', 100000, 'opening_balance',
+       'cccccccc-0000-4000-8000-000000000001', 'SEED-OPENING'
+FROM ledger_entries WHERE reference = 'SEED-OPENING' AND account_code = 'bank';

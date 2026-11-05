@@ -85,6 +85,7 @@ import AdminCampaigns from './pages/admin/Campaigns'
 import AdminLeads from './pages/admin/Leads'
 import AdminSettings from './pages/admin/Settings'
 import AdminFinancials from './pages/admin/Financials'
+import AdminPaymentConfirmations from './pages/admin/PaymentConfirmations'
 import AdminPayments from './pages/admin/Payments'
 import AdminAnalytics from './pages/admin/Analytics'
 import AdminInvite from './pages/public/AdminInvite'
@@ -187,6 +188,7 @@ function App() {
         <Route path="campaigns/:campaignId" element={<CampaignDetail />} />
         <Route path="leads" element={<AdminLeads />} />
         <Route path="financials" element={<AdminFinancials />} />
+        <Route path="payment-confirmations" element={<AdminPaymentConfirmations />} />
         <Route path="payments" element={<AdminPayments />} />
         <Route path="contracts" element={<Contracts />} />
         <Route path="disputes" element={<Disputes />} />

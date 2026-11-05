@@ -1,3 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- Minimal emulation of the Supabase runtime so migrations can be exercised
 -- locally: an auth schema with uid(), and the roles RLS/grants refer to.
 CREATE SCHEMA IF NOT EXISTS auth;

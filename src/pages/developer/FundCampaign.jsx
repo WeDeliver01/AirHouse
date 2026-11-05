@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
-import { PAYMENT_CONFIG, createCheckoutSession, isSimulatedGateway } from '../../lib/payments'
+import { PAYMENT_CONFIG, createCheckoutSession } from '../../lib/payments'
+import {
+  PLATFORM_BANK_DETAILS, bankDetailsConfigured, createPaymentIntent,
+  getPaymentsMode, submitPaymentProof, uploadPaymentProof,
+} from '../../lib/manualPayments'
 import { generateInvoiceData, generateInvoiceHTML } from '../../lib/invoices'
 import {
   PageHeader, Button, Card, Chip, Modal, Icon, EmptyState, Skeleton,
@@ -22,6 +26,9 @@ const FundCampaign = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [fundingComplete, setFundingComplete] = useState(false)
   const [invoiceData, setInvoiceData] = useState(null)
+  const [paymentIntent, setPaymentIntent] = useState(null)
+  const [proofSubmitted, setProofSubmitted] = useState(false)
+  const [bankReference, setBankReference] = useState('')
 
   useEffect(() => {
     fetchCampaign()
@@ -63,15 +70,9 @@ const FundCampaign = () => {
   const handleFundCampaign = async () => {
     setProcessing(true)
     try {
-      if (isSimulatedGateway()) {
-        // Funding used to credit escrow straight from the browser with no
-        // payment taken, which made a campaign look funded when no money had
-        // moved. Escrow may only be credited server-side after a verified
-        // provider webhook, so there is nothing safe to do here yet.
-        throw new Error(
-          'Campaign funding is unavailable: no payment provider is configured yet.',
-        )
-      } else {
+      const mode = await getPaymentsMode()
+
+      if (mode === 'gateway') {
         const session = await createCheckoutSession({
           amount: total,
           currency: 'ZAR',
@@ -81,18 +82,46 @@ const FundCampaign = () => {
           cancelUrl: `${window.location.origin}/developer/campaigns/${campaignId}/funding`,
         })
 
-        if (session.checkoutUrl) {
-          window.location.href = session.checkoutUrl
-        } else {
-          throw new Error(session.error || 'Failed to create checkout session')
+        if (!session.checkoutUrl) {
+          throw new Error(session.error || 'Could not start the card payment')
         }
+        window.location.href = session.checkoutUrl
+        return
       }
+
+      // Manual bank transfer: raise a request and show the payer a reference
+      // to quote. Nothing is funded until an operator confirms the money
+      // arrived, so this does not mark the campaign as paid.
+      const result = await createPaymentIntent(campaignId, total, {
+        idempotencyKey: `intent-${campaignId}-${total}`,
+      })
+      setPaymentIntent(result)
+      toast.success('Funding request created. Follow the transfer instructions below.')
     } catch (e) {
       console.error('Funding error:', e)
-      toast.error(e.message || 'Failed to process payment')
+      toast.error(e.message || 'Could not start funding')
     } finally {
       setProcessing(false)
       setShowConfirmModal(false)
+    }
+  }
+
+  const handleUploadProof = async (file) => {
+    if (!paymentIntent) return
+    setProcessing(true)
+    try {
+      const path = await uploadPaymentProof(user.id, paymentIntent.payment_intent_id, file)
+      await submitPaymentProof(paymentIntent.payment_intent_id, {
+        proofPath: path,
+        bankReference: bankReference || paymentIntent.reference,
+      })
+      setProofSubmitted(true)
+      toast.success('Proof received. We will confirm once the funds reflect.')
+    } catch (e) {
+      console.error('Proof upload failed:', e)
+      toast.error(e.message || 'Could not upload proof of payment')
+    } finally {
+      setProcessing(false)
     }
   }
 
@@ -184,6 +213,95 @@ const FundCampaign = () => {
         title="Fund Campaign"
         description="Complete payment to launch your campaign."
       />
+
+      {paymentIntent && !isFunded ? (
+        <Card className="flex flex-col gap-md">
+          <div className="flex items-start gap-sm">
+            <span className="w-10 h-10 rounded bg-primary-container text-on-primary-container inline-flex items-center justify-center shrink-0">
+              <Icon name="account_balance" size={20} />
+            </span>
+            <div>
+              <h2 className="font-headline-sm text-headline-sm text-on-surface">
+                Transfer {formatCurrency(total)} to complete funding
+              </h2>
+              <p className="font-body-md text-body-md text-on-surface-variant mt-xs">
+                Quote the reference below so we can match your payment. Your campaign
+                goes live once we confirm the funds have cleared.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-surface-container-low border border-outline-variant rounded p-md">
+            <div className="flex justify-between items-center mb-sm pb-sm border-b border-outline-variant">
+              <span className="font-label-lg text-label-lg text-on-surface-variant">Reference</span>
+              <span className="font-data-mono text-title-md text-primary">{paymentIntent.reference}</span>
+            </div>
+            {bankDetailsConfigured() ? (
+              <div className="flex flex-col gap-xs font-body-md text-body-md">
+                <div className="flex justify-between">
+                  <span className="text-on-surface-variant">Account name</span>
+                  <span className="text-on-surface">{PLATFORM_BANK_DETAILS.accountName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-on-surface-variant">Bank</span>
+                  <span className="text-on-surface">{PLATFORM_BANK_DETAILS.bank}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-on-surface-variant">Account number</span>
+                  <span className="text-on-surface font-data-mono">{PLATFORM_BANK_DETAILS.accountNumber}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-on-surface-variant">Branch code</span>
+                  <span className="text-on-surface font-data-mono">{PLATFORM_BANK_DETAILS.branchCode}</span>
+                </div>
+              </div>
+            ) : (
+              <p className="font-body-md text-body-md text-error">
+                Bank details are not configured yet. Contact support for transfer instructions,
+                quoting reference {paymentIntent.reference}.
+              </p>
+            )}
+          </div>
+
+          {proofSubmitted ? (
+            <div className="bg-secondary-container text-on-secondary-container rounded p-md flex items-center gap-sm">
+              <Icon name="schedule" size={20} />
+              <p className="font-body-md text-body-md">
+                Proof received. We will confirm as soon as the funds reflect, usually within
+                one business day.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-sm">
+              <label className="font-label-lg text-label-lg text-on-surface" htmlFor="bank-ref">
+                Your bank&rsquo;s reference (optional)
+              </label>
+              <input
+                id="bank-ref"
+                type="text"
+                value={bankReference}
+                onChange={(e) => setBankReference(e.target.value)}
+                placeholder="e.g. FNB payment 12345"
+                className="w-full rounded border border-outline bg-surface px-md py-sm font-body-md text-body-md text-on-surface"
+              />
+              <label className="font-label-lg text-label-lg text-on-surface" htmlFor="proof-file">
+                Upload proof of payment
+              </label>
+              <input
+                id="proof-file"
+                type="file"
+                accept="image/png,image/jpeg,application/pdf"
+                disabled={processing}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleUploadProof(file)
+                }}
+                className="font-body-md text-body-md text-on-surface-variant"
+              />
+            </div>
+          )}
+        </Card>
+      ) : null}
 
       {isFunded ? (
         <Card className="flex flex-col items-center text-center gap-md py-lg">

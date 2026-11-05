@@ -43,6 +43,7 @@ export const NAV_ITEMS = {
     { label: 'Analytics',    path: '/admin/analytics',    icon: 'monitoring' },
     { label: 'Financials',   path: '/admin/financials',   icon: 'account_balance' },
     { label: 'Payments',     path: '/admin/payments',     icon: 'payments' },
+    { label: 'Confirm Payments', path: '/admin/payment-confirmations', icon: 'fact_check' },
     { label: 'All Campaigns',path: '/admin/campaigns',    icon: 'campaign' },
     { label: 'All Users',    path: '/admin/users',        icon: 'group' },
     { label: 'All Leads',    path: '/admin/leads',        icon: 'groups' },

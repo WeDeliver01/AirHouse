@@ -3,7 +3,8 @@ import { Card, Button, Input, Badge } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { toast } from 'react-hot-toast'
-import { Settings, Globe, Bell, Shield, Database, Palette, Save, UserPlus, Copy, Trash2, Clock } from 'lucide-react'
+import { Settings, Globe, Bell, Shield, Database, Palette, Save, UserPlus, Copy, Trash2, Clock, CreditCard, Landmark } from 'lucide-react'
+import PaymentModeCard from './PaymentModeCard'
 
 const AdminSettings = () => {
   const { isSuperAdmin } = useAuth()
@@ -135,6 +136,8 @@ const AdminSettings = () => {
 
       {isSuperAdmin && (
         <>
+          <PaymentModeCard />
+
           <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
             <div className="flex items-center gap-2 mb-6">
               <Shield className="w-5 h-5 text-primary" />

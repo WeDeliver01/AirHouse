@@ -53,6 +53,7 @@ CREATE TABLE campaigns (
   escrow_amount DECIMAL(12,2) DEFAULT 0.00,
   amount_paid_out DECIMAL(12,2) DEFAULT 0.00,
   escrow_wallet_id UUID,
+  funded_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
