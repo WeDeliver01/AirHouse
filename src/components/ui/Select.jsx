@@ -1,8 +1,9 @@
-import { forwardRef } from 'react'
+import { forwardRef, useId } from 'react'
 import { cn } from '../../lib/utils'
 import { ChevronDown } from 'lucide-react'
 
 const Select = forwardRef(({
+  id,
   className,
   label,
   error,
@@ -12,15 +13,20 @@ const Select = forwardRef(({
   children,
   ...props
 }, ref) => {
+  // Associate the label with the control so screen readers announce it
+  // and so it can be found by its accessible name.
+  const reactId = useId()
+  const controlId = id || reactId
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-xs text-gray-500 mb-1.5 font-medium uppercase tracking-wide">
+        <label htmlFor={controlId} className="block text-xs text-gray-500 mb-1.5 font-medium uppercase tracking-wide">
           {label}
         </label>
       )}
       <div className="relative">
         <select
+        id={controlId}
           ref={ref}
           className={cn(
             'w-full px-4 py-3 rounded-xl border border-gray-200 text-sm bg-white',

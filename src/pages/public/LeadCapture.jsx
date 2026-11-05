@@ -164,9 +164,18 @@ const LeadCaptureForm = () => {
 
         if (trackingLink) {
           creatorId = trackingLink.creator_id
-          
-          // Increment lead count on tracking link
-          await supabase.rpc('increment_link_leads', { p_tracking_code: refCode }).catch(() => {})
+
+          // Bump the link's lead counter. `supabase.rpc()` returns a query
+          // builder, which is thenable but has no `.catch()` until awaited --
+          // calling `.catch()` on it threw a TypeError that aborted the whole
+          // submission, so every enquiry arriving through a referral link was
+          // lost. The counter is a nice-to-have, so a failure here must not
+          // take the lead down with it.
+          try {
+            await supabase.rpc('increment_link_leads', { p_tracking_code: refCode })
+          } catch (counterError) {
+            console.warn('Could not increment link lead count:', counterError)
+          }
         } else {
           // Fallback: Try assignment lookup (old method)
           const { data: assignment } = await supabase

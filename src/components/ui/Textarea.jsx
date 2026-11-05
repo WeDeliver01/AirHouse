@@ -1,7 +1,8 @@
-import { forwardRef } from 'react'
+import { forwardRef, useId } from 'react'
 import { cn } from '../../lib/utils'
 
 const Textarea = forwardRef(({
+  id,
   className,
   label,
   error,
@@ -9,14 +10,19 @@ const Textarea = forwardRef(({
   rows = 4,
   ...props
 }, ref) => {
+  // Associate the label with the control so screen readers announce it
+  // and so it can be found by its accessible name.
+  const reactId = useId()
+  const controlId = id || reactId
   return (
     <div className="w-full">
       {label && (
-        <label className="label">
+        <label htmlFor={controlId} className="label">
           {label}
         </label>
       )}
       <textarea
+        id={controlId}
         ref={ref}
         rows={rows}
         className={cn(
