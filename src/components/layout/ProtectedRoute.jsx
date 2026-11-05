@@ -32,7 +32,7 @@ const ProtectedRoute = ({ children, allowedRoles = [], requireSuperAdmin = false
       return undefined
     }
 
-    ;(async () => {
+    const checkEnrolment = async () => {
       try {
         const [required, enrolled] = await Promise.all([
           mfaRequiredForAdmins(),
@@ -45,7 +45,9 @@ const ProtectedRoute = ({ children, allowedRoles = [], requireSuperAdmin = false
         // Do not lock an operator out because the check itself failed.
         if (!cancelled) setMfaState({ checked: true, enrolled: true })
       }
-    })()
+    }
+
+    checkEnrolment()
 
     return () => {
       cancelled = true

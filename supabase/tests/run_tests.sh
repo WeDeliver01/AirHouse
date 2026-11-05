@@ -52,7 +52,7 @@ echo "==> Applying migration 016_financial_integrity.sql"
 "${PSQL[@]}" -f "$REPO_ROOT/supabase/migrations/016_financial_integrity.sql" 2>&1 \
   | grep -v '^psql:.*NOTICE' || true
 
-for m in 017_access_control_hardening 018_tenant_isolation 019_storage_hardening 020_campaign_lifecycle 021_audit_and_settings 022_double_entry_ledger 023_ledger_integration; do
+for m in 017_access_control_hardening 018_tenant_isolation 019_storage_hardening 020_campaign_lifecycle 021_audit_and_settings 022_double_entry_ledger 023_ledger_integration 024_lead_integrity; do
   echo "==> Applying migration $m.sql"
   "${PSQL[@]}" -f "$REPO_ROOT/supabase/migrations/$m.sql" 2>&1 | grep -v '^psql:.*NOTICE' || true
 done
@@ -67,7 +67,8 @@ OUTPUT="$(
     -f "$HERE/04_payout_tests.sql" \
     -f "$HERE/05_access_control_tests.sql" \
     -f "$HERE/06_tenant_isolation_tests.sql" \
-    -f "$HERE/07_ledger_tests.sql" 2>&1
+    -f "$HERE/07_ledger_tests.sql" \
+    -f "$HERE/08_lead_integrity_tests.sql" 2>&1
 )"
 
 echo "$OUTPUT" | grep -E 'PASS|FAIL|NOTICE:  ---' | sed 's/^psql:[^ ]* //'

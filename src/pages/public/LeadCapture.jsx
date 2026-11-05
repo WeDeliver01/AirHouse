@@ -42,8 +42,14 @@ const LeadCaptureForm = () => {
     timeline: '',
     budget: '',
     message: '',
+    consent: false,
+    // Honeypot: a real person never fills this in because it is hidden.
+    // Automated form-fillers populate every field they find.
+    company_website: '',
   })
 
+  // Used to reject submissions that arrive implausibly fast for a human.
+  const [formLoadedAt] = useState(() => Date.now())
   const [errors, setErrors] = useState({})
   const [fetchError, setFetchError] = useState(null)
 
@@ -107,6 +113,10 @@ const LeadCaptureForm = () => {
       newErrors.email = 'Please enter a valid email'
     }
 
+    if (!formData.consent) {
+      next.consent = 'Please agree to be contacted about this property'
+    }
+
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone number is required'
     }
@@ -115,9 +125,27 @@ const LeadCaptureForm = () => {
     return Object.keys(newErrors).length === 0
   }
 
+  const CONSENT_TEXT =
+    'I agree that my details may be shared with this developer so they can ' +
+    'contact me about this property.'
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validate()) return
+
+    // Bot protection. Neither check inconveniences a real visitor, and both
+    // are cheap compared with a CAPTCHA round trip. The server-side rules in
+    // migration 024 are the real defence; these just cut the obvious noise.
+    if (formData.company_website) {
+      // Honeypot filled: silently accept so the bot does not learn why.
+      setSubmitted(true)
+      return
+    }
+
+    if (Date.now() - formLoadedAt < 2000) {
+      toast.error('Please take a moment to check your details before submitting.')
+      return
+    }
 
     setSubmitting(true)
 
@@ -169,6 +197,8 @@ const LeadCaptureForm = () => {
         attributed_at: creatorId ? new Date().toISOString() : null,
         status: 'new',
         pipeline_stage: 'new',
+        consent_given: true,
+        consent_text: CONSENT_TEXT,
       }
 
       const { data: insertedLead, error } = await supabase
@@ -419,6 +449,40 @@ const LeadCaptureForm = () => {
                 placeholder="Any specific questions or requirements?"
                 rows={3}
               />
+
+              {/* Honeypot: hidden from people, visible to naive bots. */}
+              <div aria-hidden="true" className="absolute left-[-9999px] w-px h-px overflow-hidden">
+                <label htmlFor="company_website">Company website</label>
+                <input
+                  id="company_website"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={formData.company_website}
+                  onChange={(e) => updateField('company_website', e.target.value)}
+                />
+              </div>
+
+              {/* Consent */}
+              <div>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.consent}
+                    onChange={(e) => updateField('consent', e.target.checked)}
+                    className="mt-1 w-4 h-4 rounded accent-primary shrink-0"
+                  />
+                  <span className="text-sm text-gray-600">
+                    {CONSENT_TEXT}{' '}
+                    <a href="/legal/privacy" target="_blank" rel="noreferrer" className="underline">
+                      Privacy Policy
+                    </a>
+                  </span>
+                </label>
+                {errors.consent && (
+                  <p className="text-sm text-red-600 mt-1">{errors.consent}</p>
+                )}
+              </div>
 
               {/* Submit */}
               <Button
