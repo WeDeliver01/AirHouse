@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { toast } from 'react-hot-toast'
 import { Settings, Globe, Bell, Shield, Database, Palette, Save, UserPlus, Copy, Trash2, Clock, CreditCard, Landmark } from 'lucide-react'
 import PaymentModeCard from './PaymentModeCard'
+import SecuritySettings from '../../components/SecuritySettings'
 
 const AdminSettings = () => {
   const { isSuperAdmin } = useAuth()
@@ -136,6 +137,7 @@ const AdminSettings = () => {
 
       {isSuperAdmin && (
         <>
+          <SecuritySettings required />
           <PaymentModeCard />
 
           <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { Button } from '../../components/ui'
+import SecuritySettings from '../../components/SecuritySettings'
 import { toast } from 'react-hot-toast'
 import { 
   Settings, Bell, Shield, Building2, CreditCard, Mail, Lock, 
@@ -199,6 +200,8 @@ const DeveloperSettings = () => {
           />
         </div>
       </div>
+
+      <SecuritySettings required={false} />
 
       {/* Security */}
       <div className="bg-white rounded-2xl p-6 border border-gray-100">

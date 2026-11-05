@@ -124,7 +124,7 @@
       "id": "trust-safety",
       "category": "trust",
       "title": "Account protection: passwords, devices and 2FA",
-      "body": "Your AirHouse account holds money, so we take security seriously:\n\n• Use a unique password — we check new passwords against known breach lists at sign-up and reject ones that are already compromised.\n• Enable two-factor authentication from Settings → Security. We support authenticator apps (Google Authenticator, Authy, 1Password) and SMS as a fallback.\n• Review active sessions in Settings → Security → Devices. Sign out anything you don't recognise immediately and change your password.\n• Payouts always go to bank accounts on your verified profile — we will never ask you to send money to release a payout.\n\nIf you suspect your account is compromised, contact support straight away using the form on this page or email support@airhouse.co.za. We'll freeze pending payouts and walk you through recovery."
+      "body": "Your AirHouse account holds money, so we take security seriously:\n\n• Use a long, unique password that you do not use anywhere else.\n• Turn on two-factor authentication under Settings → Security. Scan the QR code with an authenticator app such as Google Authenticator, Authy or 1Password, and enter the 6-digit code to confirm. Admin accounts are required to have it on.\n• Payouts always go to bank accounts on your verified profile — we will never ask you to send money to release a payout.\n\nIf you suspect your account is compromised, contact support straight away using the form on this page or email support@airhouse.co.za. We'll freeze pending payouts and walk you through recovery."
     },
     {
       "id": "trust-reporting",

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { Button, Card } from '../../components/ui'
+import SecuritySettings from '../../components/SecuritySettings'
 import { toast } from 'react-hot-toast'
 import { 
   Settings, Bell, Shield, Eye, Smartphone, Mail, Lock, 
@@ -175,6 +176,8 @@ const CreatorSettings = () => {
           />
         </div>
       </div>
+
+      <SecuritySettings required={false} />
 
       {/* Security */}
       <div className="bg-white rounded-2xl p-6 border border-gray-100">
