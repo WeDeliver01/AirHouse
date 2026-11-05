@@ -18,7 +18,7 @@ import { LoadingSpinner, ErrorState } from '../../components/ui'
 import { toast } from 'react-hot-toast'
 import { formatDate, formatCurrency, cn } from '../../lib/utils'
 import { getOrCreateTrackingLink } from '../../lib/tracking'
-import { getCampaignAssets, CONTENT_TYPES, CONTENT_STATUSES } from '../../lib/content'
+import { CONTENT_TYPES, CONTENT_STATUSES } from '../../lib/content'
 import CreatorTrackingLinks from '../../components/CreatorTrackingLinks'
 
 const ContentSubmission = () => {

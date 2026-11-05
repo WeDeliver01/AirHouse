@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Card, Button, Input, Badge } from '../../components/ui'
+import { Button, Input, Badge } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { toast } from 'react-hot-toast'
-import { Settings, Globe, Bell, Shield, Database, Palette, Save, UserPlus, Copy, Trash2, Clock, CreditCard, Landmark } from 'lucide-react'
+import { Settings, Globe, Bell, Shield, Database, Palette, Save, UserPlus, Copy, Trash2} from 'lucide-react'
 import PaymentModeCard from './PaymentModeCard'
 import SecuritySettings from '../../components/SecuritySettings'
 

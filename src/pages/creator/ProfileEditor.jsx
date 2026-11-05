@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { supabase, uploadAvatar } from '../../lib/supabase'
 import { 
-  Card, Button, Input, Textarea, Select, Badge, Avatar, ProgressBar 
+  Card, Button, Input, Textarea, Avatar, ProgressBar 
 } from '../../components/ui'
 import { toast } from 'react-hot-toast'
 import { 
   User, Camera, Instagram, Youtube, Link as LinkIcon, MapPin, 
-  Plus, X, Save, CheckCircle, AlertCircle, Briefcase
+  Plus, X, Save, Briefcase
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 

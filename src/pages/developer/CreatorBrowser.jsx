@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { Button, Badge, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
-import { formatCurrency } from '../../lib/utils'
+import { Button, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
 import { toast } from 'react-hot-toast'
 import { 
-  Users, Search, Filter, Star, MapPin, Instagram, TrendingUp,
-  Eye, Mail, CheckCircle, Heart, ArrowUpRight
+  Users, Search, Star, MapPin, Instagram, TrendingUp,
+  Mail, CheckCircle, Heart, ArrowUpRight
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 

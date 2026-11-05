@@ -2,15 +2,14 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
-import { Card, Badge, Button, Modal, ModalFooter, Textarea, Avatar, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
-import { formatCurrency, formatDate, formatRelativeTime } from '../../lib/utils'
+import { Card, Badge, Button, Modal, ModalFooter, Avatar, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
+import { formatCurrency, formatRelativeTime } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import { 
   Users, CheckCircle, XCircle, Eye, Instagram, Youtube, MapPin,
   Star, TrendingUp, Briefcase, MessageSquare, ArrowLeft, UserPlus, Flag
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { cn } from '../../lib/utils'
 import { notify } from '../../lib/notifications'
 
 const CampaignApplications = () => {

@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
-import { Button, Badge, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
-import { formatCurrency, formatRelativeTime } from '../../lib/utils'
+import { Button, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
+import { formatCurrency} from '../../lib/utils'
 import { 
-  Megaphone, Search, MapPin, DollarSign, Calendar, Building2,
-  ArrowRight, Filter, TrendingUp, Briefcase, Users, Sparkles
+  Megaphone, Search, MapPin, DollarSign, Building2,
+  ArrowRight, Briefcase, Sparkles
 } from 'lucide-react'
-import { cn } from '../../lib/utils'
 
 const Campaigns = () => {
   const { isAuthenticated, isCreator } = useAuth()

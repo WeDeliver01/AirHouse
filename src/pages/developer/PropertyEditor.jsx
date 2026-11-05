@@ -9,7 +9,7 @@ import {
 import { Button, Input, Textarea, Select, LoadingSpinner } from '../../components/ui'
 import { toast } from 'react-hot-toast'
 import {
-  ArrowLeft, Upload, X, GripVertical, ChevronUp, ChevronDown, Trash2, Save, Image as ImageIcon,
+  ArrowLeft, Upload, ChevronUp, ChevronDown, Trash2, Save,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 

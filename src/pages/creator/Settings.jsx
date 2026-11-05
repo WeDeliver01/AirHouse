@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState} from 'react'
 import { useAuth } from '../../context/AuthContext'
-import { supabase } from '../../lib/supabase'
-import { Button, Card } from '../../components/ui'
+import { Button} from '../../components/ui'
 import SecuritySettings from '../../components/SecuritySettings'
 import { toast } from 'react-hot-toast'
 import { 
-  Settings, Bell, Shield, Eye, Smartphone, Mail, Lock, 
+  Settings, Bell, Shield, Eye, Lock, 
   Trash2, Download, CheckCircle, AlertCircle
 } from 'lucide-react'
 import { cn } from '../../lib/utils'

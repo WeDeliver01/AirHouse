@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '../../lib/utils'
-import { ChevronDown } from 'lucide-react'
 
 export const Dropdown = ({
   trigger,

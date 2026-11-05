@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
-import { Button, Card, Badge, Modal, Input, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
+import { Button, Badge, Modal, Input, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
 import { formatRelativeTime } from '../../lib/utils'
 import { 
-  Shield, CheckCircle, Clock, XCircle, Upload, Instagram, 
-  Youtube, Twitter, Link2, Award, AlertCircle, FileText, Camera
+  Shield, CheckCircle, Clock, XCircle, Instagram, 
+  Award, AlertCircle, FileText, Camera
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 

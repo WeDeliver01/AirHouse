@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { Button, Modal, ModalFooter, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
-import { formatCurrency, formatRelativeTime, formatDate } from '../../lib/utils'
-import { toast } from 'react-hot-toast'
+import { Button, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
+import { formatCurrency} from '../../lib/utils'
 import { 
-  Megaphone, Search, Eye, MapPin, DollarSign, Users, TrendingUp,
-  Calendar, Download, CheckCircle, XCircle, Building2
+  Megaphone, Search, Eye, MapPin, DollarSign, TrendingUp,
+  Download, CheckCircle
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 

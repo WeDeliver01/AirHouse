@@ -4,7 +4,7 @@ import { Button, Modal, ModalFooter, LoadingSpinner, ErrorState, EmptyState } fr
 import { formatDate, formatRelativeTime } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import { 
-  Users, Search, Eye, CheckCircle, XCircle, Download, Mail, Shield
+  Users, Search, Eye, CheckCircle, XCircle, Download, Mail
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 

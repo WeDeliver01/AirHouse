@@ -28,7 +28,6 @@ export const generateTrackingCode = (creatorId, campaignId) => {
  */
 export const generateTrackingUrl = ({
   baseUrl,
-  campaignId,
   trackingCode,
 }) => {
   const url = new URL(baseUrl)

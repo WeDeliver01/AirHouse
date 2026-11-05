@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { cn } from '../../lib/utils'
 import Avatar from '../ui/Avatar'
 import NotificationBell from '../ui/NotificationBell'
 import { getDashboardPath } from '../../lib/navItems'

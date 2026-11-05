@@ -8,7 +8,6 @@
  */
 
 import { supabase } from './supabase'
-import { formatCurrency, formatDate } from './utils'
 import { PAYMENT_CONFIG } from './payments'
 import { CREATOR_HIDDEN_INVOICE_TYPES } from './creatorVisibility'
 

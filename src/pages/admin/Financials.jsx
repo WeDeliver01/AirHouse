@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
-import { Card, Badge, Button, Select, Modal, ModalFooter, LoadingSpinner, ErrorState } from '../../components/ui'
+import { Badge, Button, Modal, ModalFooter, LoadingSpinner, ErrorState } from '../../components/ui'
 import { formatCurrency, formatDate, formatRelativeTime } from '../../lib/utils'
 import { processPayoutRequest } from '../../lib/payments'
 import { toast } from 'react-hot-toast'
 import { 
-  DollarSign, Percent, Users, Lock, ArrowUpRight, Download, Search, 
-  Clock, Building2, Wallet, BarChart3, PieChart, Eye, CheckCircle, XCircle
+  DollarSign, Percent, Users, Lock, Download, Search, 
+  Clock, PieChart, Eye, CheckCircle, XCircle
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 

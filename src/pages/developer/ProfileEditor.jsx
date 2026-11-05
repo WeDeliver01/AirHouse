@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import { supabase, uploadAvatar } from '../../lib/supabase'
-import { Button, Input, Textarea, Avatar, LoadingSpinner } from '../../components/ui'
+import { uploadAvatar } from '../../lib/supabase'
+import { Button, Input, Textarea, Avatar} from '../../components/ui'
 import { toast } from 'react-hot-toast'
-import { User, Camera, Building2, Phone, Mail, Save } from 'lucide-react'
-import { cn } from '../../lib/utils'
+import { User, Camera, Building2, Phone, Save } from 'lucide-react'
 
 const DeveloperProfileEditor = () => {
   const { user, profile, updateProfile, refreshUserData } = useAuth()

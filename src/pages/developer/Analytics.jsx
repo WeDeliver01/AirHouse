@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { Button, LoadingSpinner, ErrorState } from '../../components/ui'
-import { formatCurrency, formatRelativeTime } from '../../lib/utils'
+import { formatCurrency} from '../../lib/utils'
 import { 
-  TrendingUp, Users, Eye, DollarSign, Megaphone, Target, ArrowUpRight, ArrowDownRight,
-  Calendar, Download, BarChart3, PieChart
+  TrendingUp, DollarSign, Megaphone, Target, ArrowUpRight, ArrowDownRight,
+  Download, BarChart3, PieChart
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 

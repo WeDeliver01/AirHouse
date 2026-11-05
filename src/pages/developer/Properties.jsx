@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
-import { Button, LoadingSpinner, ErrorState, EmptyState, Badge } from '../../components/ui'
+import { Button, LoadingSpinner, ErrorState, EmptyState} from '../../components/ui'
 import { formatCurrency } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import {

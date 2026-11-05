@@ -12,7 +12,6 @@ import {
   FilterX,
   ArrowRight,
   Users,
-  Tag,
   MapPin,
   LineChart as LineIcon,
   BarChart3,

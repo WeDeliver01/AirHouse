@@ -7,7 +7,7 @@ import { formatCurrency, formatRelativeTime } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import { 
   FileText, Clock, CheckCircle, XCircle, Eye, ArrowRight, 
-  Megaphone, MapPin, Calendar, DollarSign, Building2
+  Megaphone, MapPin, Calendar, Building2
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 

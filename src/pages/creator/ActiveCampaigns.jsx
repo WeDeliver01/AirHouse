@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
-import { Button, Badge, ProgressBar, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
-import { formatCurrency, formatRelativeTime, formatDate } from '../../lib/utils'
+import { Button, Badge, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
+import { formatCurrency, formatRelativeTime} from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import { 
   Briefcase, Copy, Eye, Upload, TrendingUp, DollarSign, Calendar,
-  MapPin, Building2, Link as LinkIcon, CheckCircle, Clock, Target, Flag
+  MapPin, Building2, Link as LinkIcon, CheckCircle, Flag
 } from 'lucide-react'
-import { cn } from '../../lib/utils'
 
 const CreatorActiveCampaigns = () => {
   const { user } = useAuth()

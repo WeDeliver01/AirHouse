@@ -4,8 +4,8 @@ import { supabase } from '../../lib/supabase'
 import { Card, Button, Input, Textarea, Select, LoadingSpinner, ErrorState } from '../../components/ui'
 import { toast } from 'react-hot-toast'
 import { 
-  Building2, User, Mail, Phone, MessageSquare, CheckCircle, 
-  MapPin, Calendar, Home, ChevronLeft, ChevronRight, X, Download, FileText, Image
+  Building2, User, Mail, Phone, CheckCircle, 
+  MapPin, ChevronLeft, ChevronRight, X, Download, FileText, Image
 } from 'lucide-react'
 import { notifyNewLead } from '../../lib/notifications'
 

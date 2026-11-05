@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Printer, ArrowUp, FileText } from 'lucide-react'
-import { COMPANY, formatLastUpdated } from '../../data/companyInfo'
+import { formatLastUpdated } from '../../data/companyInfo'
 import ContactCard from '../ContactCard'
 
 const POLICY_LINKS = [

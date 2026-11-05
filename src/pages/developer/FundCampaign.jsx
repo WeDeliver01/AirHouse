@@ -7,7 +7,7 @@ import {
   PLATFORM_BANK_DETAILS, bankDetailsConfigured, createPaymentIntent,
   getPaymentsMode, submitPaymentProof, uploadPaymentProof,
 } from '../../lib/manualPayments'
-import { generateInvoiceData, generateInvoiceHTML } from '../../lib/invoices'
+import { generateInvoiceHTML } from '../../lib/invoices'
 import {
   PageHeader, Button, Card, Chip, Modal, Icon, EmptyState, Skeleton,
 } from '../../components/stitch'

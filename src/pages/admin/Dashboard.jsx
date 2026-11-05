@@ -6,7 +6,7 @@ import { Button, LoadingSpinner, ErrorState } from '../../components/ui'
 import { formatCurrency, formatRelativeTime } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import {
-  ArrowRight, Download, Send, ChevronRight, AlertCircle,
+  ArrowRight, Download, Send, ChevronRight, 
   Wallet, Percent, Megaphone, ShieldCheck, Gavel, Activity,
   CheckCircle, TrendingUp,
 } from 'lucide-react'

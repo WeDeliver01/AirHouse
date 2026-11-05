@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { Card, Button, Badge, Avatar, Modal, ModalFooter, Textarea, EmptyState, StatCard, LoadingSpinner, ErrorState } from '../../components/ui'
 import { toast } from 'react-hot-toast'
 import { formatDate, formatCurrency } from '../../lib/utils'
-import { Building2, MapPin, Calendar, DollarSign, Users, TrendingUp, FileText, ArrowLeft, Edit, UserPlus, Eye, Copy, Image, Download, ChevronLeft, ChevronRight, X, Home, Bed, Bath, Car, Ruler } from 'lucide-react'
+import { Building2, MapPin, DollarSign, Users, TrendingUp, FileText, ArrowLeft, Edit, UserPlus, Copy, Image, Download, ChevronLeft, ChevronRight, X, Home, Bed, Bath, Car, Ruler } from 'lucide-react'
 
 const CampaignDetail = () => {
   const { campaignId } = useParams()

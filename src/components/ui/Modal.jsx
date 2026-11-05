@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '../../lib/utils'
 import { X } from 'lucide-react'
-import Button from './Button'
 
 const Modal = ({
   isOpen,

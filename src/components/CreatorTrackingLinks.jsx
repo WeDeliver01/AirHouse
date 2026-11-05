@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { supabase } from '../lib/supabase'
 import { getOrCreateTrackingLink } from '../lib/tracking'
-import { Card, Button, Badge } from '../components/ui'
+import { Card, Button} from '../components/ui'
 import { toast } from 'react-hot-toast'
 import { 
   Link, Copy, ExternalLink, MousePointer, Users, 
-  QrCode, CheckCircle, Share2
+  CheckCircle, Share2
 } from 'lucide-react'
 
 const CreatorTrackingLinks = ({ assignmentId }) => {

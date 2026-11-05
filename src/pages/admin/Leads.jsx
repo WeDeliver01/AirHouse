@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { Button, Modal, ModalFooter, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
-import { formatCurrency, formatRelativeTime, formatDate } from '../../lib/utils'
-import { toast } from 'react-hot-toast'
+import { formatRelativeTime, formatDate } from '../../lib/utils'
 import { 
   TrendingUp, Search, Eye, Mail, Phone, Download, Target,
-  UserCheck, Clock, CheckCircle, XCircle
+  UserCheck, Clock
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 

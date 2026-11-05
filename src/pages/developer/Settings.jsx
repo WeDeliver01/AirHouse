@@ -4,8 +4,8 @@ import { Button } from '../../components/ui'
 import SecuritySettings from '../../components/SecuritySettings'
 import { toast } from 'react-hot-toast'
 import { 
-  Settings, Bell, Shield, Building2, CreditCard, Mail, Lock, 
-  Trash2, Download, CheckCircle, AlertCircle, Users
+  Bell, Shield, Building2, Lock, 
+  Trash2, CheckCircle, AlertCircle
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import TermsAcceptanceCard from '../../components/TermsAcceptanceCard'
