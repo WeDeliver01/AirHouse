@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
-import { fundCampaign, PAYMENT_CONFIG, createCheckoutSession } from '../../lib/payments'
+import { PAYMENT_CONFIG, createCheckoutSession, isSimulatedGateway } from '../../lib/payments'
 import { generateInvoiceData, generateInvoiceHTML } from '../../lib/invoices'
 import {
   PageHeader, Button, Card, Chip, Modal, Icon, EmptyState, Skeleton,
@@ -63,14 +63,14 @@ const FundCampaign = () => {
   const handleFundCampaign = async () => {
     setProcessing(true)
     try {
-      if (PAYMENT_CONFIG.GATEWAY === 'test') {
-        const result = await fundCampaign(campaignId, user.id, total)
-        if (result.success) {
-          const invoice = await generateInvoiceData('campaign_funding', campaignId)
-          setInvoiceData(invoice)
-          setFundingComplete(true)
-          toast.success('Campaign funded successfully!')
-        }
+      if (isSimulatedGateway()) {
+        // Funding used to credit escrow straight from the browser with no
+        // payment taken, which made a campaign look funded when no money had
+        // moved. Escrow may only be credited server-side after a verified
+        // provider webhook, so there is nothing safe to do here yet.
+        throw new Error(
+          'Campaign funding is unavailable: no payment provider is configured yet.',
+        )
       } else {
         const session = await createCheckoutSession({
           amount: total,

@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { Card, Badge, Button, Select, Modal, ModalFooter, LoadingSpinner, ErrorState } from '../../components/ui'
 import { formatCurrency, formatDate, formatRelativeTime } from '../../lib/utils'
+import { processPayoutRequest } from '../../lib/payments'
 import { toast } from 'react-hot-toast'
 import { 
   DollarSign, Percent, Users, Lock, ArrowUpRight, Download, Search, 
@@ -86,24 +87,24 @@ const AdminFinancials = () => {
     }
   }
 
-  const processPayoutRequest = async (payoutId, action) => {
+  /**
+   * Action a payout request.
+   *
+   * This previously wrote `payout_requests.status` straight from the browser,
+   * which set the status without ever adjusting the wallet -- a rejected
+   * payout left the creator's funds stranded in `pending_balance`. It now goes
+   * through process_payout_request(), which moves the money, writes the
+   * ledger entries and enforces that nobody actions their own request.
+   */
+  const handlePayoutDecision = async (payoutId, action) => {
     setProcessing(true)
     try {
-      const { error } = await supabase
-        .from('payout_requests')
-        .update({ 
-          status: action, 
-          processed_by: user.id, 
-          processed_at: new Date().toISOString(),
-          ...(action === 'completed' ? { completed_at: new Date().toISOString() } : {}),
-        })
-        .eq('id', payoutId)
-      if (error) throw error
-      toast.success(`Payout ${action}`)
+      await processPayoutRequest(payoutId, user.id, action, '')
+      toast.success(action === 'approve' ? 'Payout approved for processing' : 'Payout rejected')
       setShowPayoutModal(false)
       fetchAllData()
     } catch (error) {
-      toast.error('Failed to process')
+      toast.error(error.message || 'Failed to process payout')
     } finally {
       setProcessing(false)
     }
@@ -389,8 +390,8 @@ const AdminFinancials = () => {
           </div>
         )}
         <ModalFooter>
-          <Button variant="danger" onClick={() => processPayoutRequest(selectedPayout.id, 'failed')} disabled={processing}><XCircle className="w-4 h-4 mr-1" />Reject</Button>
-          <Button variant="primary" onClick={() => processPayoutRequest(selectedPayout.id, 'completed')} isLoading={processing}><CheckCircle className="w-4 h-4 mr-1" />Mark Complete</Button>
+          <Button variant="danger" onClick={() => handlePayoutDecision(selectedPayout.id, 'reject')} disabled={processing}><XCircle className="w-4 h-4 mr-1" />Reject</Button>
+          <Button variant="primary" onClick={() => handlePayoutDecision(selectedPayout.id, 'approve')} isLoading={processing}><CheckCircle className="w-4 h-4 mr-1" />Mark Complete</Button>
         </ModalFooter>
       </Modal>
     </div>

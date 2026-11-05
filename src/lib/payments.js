@@ -1,11 +1,22 @@
 /**
- * Payment Gateway Service
- * Handles all payment processing with Yoco/BobPay integration
- * 
- * PAYMENT FLOW:
- * 1. Developer funds campaign → Money goes to Platform → 25% fee taken → 75% to Escrow
- * 2. Creator completes work → Admin approves → Escrow releases to Creator Wallet
- * 3. Creator requests payout → 3% fee taken → Net amount sent to bank
+ * Payment and wallet client.
+ *
+ * IMPORTANT -- read before changing anything here.
+ *
+ * This module no longer moves money. Every balance-changing operation is a
+ * call to a database function that runs in a single transaction, takes row
+ * locks, re-derives the amounts from stored data and enforces authorization
+ * itself (see supabase/migrations/016_financial_integrity.sql).
+ *
+ * The browser is not trusted to decide:
+ *   - how much a creator is paid,
+ *   - whether a payment succeeded,
+ *   - what a wallet balance becomes.
+ *
+ * If you need a new financial operation, add a function to migration 016 and
+ * call it from here. Do not write to `wallets`, `wallet_transactions` or
+ * `payout_requests` directly -- those grants have been revoked and the write
+ * will be refused.
  */
 
 import { supabase } from './supabase'
@@ -14,18 +25,61 @@ import { supabase } from './supabase'
 // CONFIGURATION
 // ============================================
 
+const GATEWAY_FROM_ENV = import.meta.env?.VITE_PAYMENT_GATEWAY || 'test'
+const IS_PRODUCTION = Boolean(import.meta.env?.PROD)
+
+/**
+ * Production builds refuse the simulated gateway.
+ *
+ * The previous default was a hard-coded 'test' gateway whose checkout and
+ * payout calls returned success without any money moving. Shipping that to
+ * production would show users confirmed payments and payouts that never
+ * happened (AH-010).
+ */
 export const PAYMENT_CONFIG = {
-  PLATFORM_FEE_RATE: 0.25,      // 25% platform commission
-  PAYOUT_FEE_RATE: 0.03,        // 3% payout fee
-  MIN_PAYOUT_AMOUNT: 100,       // Minimum R100 to withdraw
+  PLATFORM_FEE_RATE: 0.25, // 25% platform commission
+  PAYOUT_FEE_RATE: 0.03, // 3% payout fee
+  MIN_PAYOUT_AMOUNT: 100, // Minimum R100 to withdraw
   CURRENCY: 'ZAR',
-  
-  // Payment gateway (switch between 'yoco' | 'bobpay' | 'test')
-  GATEWAY: 'test',
-  
-  // Gateway API URLs (to be configured)
+
+  GATEWAY: GATEWAY_FROM_ENV,
+
   YOCO_API_URL: 'https://online.yoco.com/v1',
   BOBPAY_API_URL: 'https://api.bobpay.co.za/v1',
+}
+
+/** True when the configured gateway only simulates payments. */
+export const isSimulatedGateway = () => PAYMENT_CONFIG.GATEWAY === 'test'
+
+/**
+ * Throw if a real-money operation is attempted while no real gateway is
+ * configured. Called at the top of every entry point that would otherwise
+ * report a successful payment.
+ */
+function assertRealGatewayAvailable(operation) {
+  if (!isSimulatedGateway()) return
+
+  if (IS_PRODUCTION) {
+    throw new Error(
+      `${operation} is unavailable: no payment provider is configured. ` +
+        'The simulated gateway cannot be used in production.',
+    )
+  }
+}
+
+/** Idempotency keys make a retried request safe to replay. */
+export function newIdempotencyKey(prefix = 'op') {
+  const random =
+    globalThis.crypto?.randomUUID?.() ??
+    `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return `${prefix}-${random}`
+}
+
+/** Normalise a PostgREST RPC error into something a caller can show. */
+function rpcError(error, fallback) {
+  const message = error?.message || fallback
+  // Postgres RAISE EXCEPTION messages arrive prefixed; strip the noise.
+  return new Error(message.replace(/^.*?:\s*/, '') || fallback)
 }
 
 // ============================================
@@ -33,8 +87,10 @@ export const PAYMENT_CONFIG = {
 // ============================================
 
 /**
- * Initialize a payment checkout session
- * Returns a checkout URL or payment form data
+ * Initialise a payment checkout session.
+ *
+ * Neither provider integration is implemented. Until one is, this returns an
+ * explicit failure rather than a fake success.
  */
 export const createCheckoutSession = async ({
   amount,
@@ -43,185 +99,82 @@ export const createCheckoutSession = async ({
   metadata = {},
   successUrl,
   cancelUrl,
-  userId,
 }) => {
-  const gateway = PAYMENT_CONFIG.GATEWAY
+  assertRealGatewayAvailable('Checkout')
 
-  if (gateway === 'test') {
-    // TEST MODE - Simulate successful payment
+  if (isSimulatedGateway()) {
     return {
-      success: true,
-      checkoutUrl: null, // No redirect needed in test mode
-      sessionId: `test_session_${Date.now()}`,
-      testMode: true,
-      message: 'Test mode - payment will be simulated',
+      success: false,
+      simulated: true,
+      checkoutUrl: null,
+      error:
+        'Payments are running against the simulated gateway. No money will move. ' +
+        'Configure VITE_PAYMENT_GATEWAY and the provider integration before accepting payments.',
     }
   }
 
-  if (gateway === 'yoco') {
-    // YOCO INTEGRATION
-    // Documentation: https://developer.yoco.com/online/checkout
-    return await createYocoCheckout({
-      amount,
-      currency,
-      description,
-      metadata,
-      successUrl,
-      cancelUrl,
-    })
+  if (PAYMENT_CONFIG.GATEWAY === 'yoco') {
+    return createYocoCheckout({ amount, currency, description, metadata, successUrl, cancelUrl })
   }
 
-  if (gateway === 'bobpay') {
-    // BOBPAY INTEGRATION
-    // Documentation: https://bobpay.co.za/docs
-    return await createBobPayCheckout({
-      amount,
-      currency,
-      description,
-      metadata,
-      successUrl,
-      cancelUrl,
-    })
+  if (PAYMENT_CONFIG.GATEWAY === 'bobpay') {
+    return createBobPayCheckout({ amount, currency, description, metadata, successUrl, cancelUrl })
   }
 
-  throw new Error(`Unknown payment gateway: ${gateway}`)
+  throw new Error(`Unknown payment gateway: ${PAYMENT_CONFIG.GATEWAY}`)
 }
 
 /**
- * Yoco Checkout Integration (Placeholder)
+ * Yoco checkout -- NOT IMPLEMENTED.
+ *
+ * A real implementation must run server-side so the secret key is never in
+ * the browser bundle, and must confirm the payment from a signed webhook
+ * rather than from the redirect. See docs/FINANCIAL_ARCHITECTURE.md.
  */
-const createYocoCheckout = async ({ amount, currency, description, metadata, successUrl, cancelUrl }) => {
-  // TODO: Implement Yoco API integration
-  // const response = await fetch(`${PAYMENT_CONFIG.YOCO_API_URL}/checkouts`, {
-  //   method: 'POST',
-  //   headers: {
-  //     'Authorization': `Bearer ${process.env.YOCO_SECRET_KEY}`,
-  //     'Content-Type': 'application/json',
-  //   },
-  //   body: JSON.stringify({
-  //     amount: Math.round(amount * 100), // Yoco uses cents
-  //     currency,
-  //     successUrl,
-  //     cancelUrl,
-  //     metadata,
-  //   }),
-  // })
-  
-  console.log('YOCO CHECKOUT - Not yet implemented', { amount, description })
-  
-  return {
-    success: false,
-    error: 'Yoco integration not yet configured',
-    checkoutUrl: null,
-  }
-}
+const createYocoCheckout = async () => ({
+  success: false,
+  error: 'Yoco integration is not implemented.',
+  checkoutUrl: null,
+})
 
-/**
- * BobPay Checkout Integration (Placeholder)
- */
-const createBobPayCheckout = async ({ amount, currency, description, metadata, successUrl, cancelUrl }) => {
-  // TODO: Implement BobPay API integration
-  // Documentation: https://bobpay.co.za/docs
-  
-  console.log('BOBPAY CHECKOUT - Not yet implemented', { amount, description })
-  
-  return {
-    success: false,
-    error: 'BobPay integration not yet configured',
-    checkoutUrl: null,
-  }
-}
+/** BobPay checkout -- NOT IMPLEMENTED. Same constraints as Yoco above. */
+const createBobPayCheckout = async () => ({
+  success: false,
+  error: 'BobPay integration is not implemented.',
+  checkoutUrl: null,
+})
 
-/**
- * Process a payout to a bank account
- */
-export const processPayout = async ({
-  amount,
-  bankAccount,
-  reference,
-  userId,
-}) => {
-  const gateway = PAYMENT_CONFIG.GATEWAY
-
-  if (gateway === 'test') {
-    // TEST MODE - Simulate successful payout
-    return {
-      success: true,
-      payoutId: `test_payout_${Date.now()}`,
-      testMode: true,
-      message: 'Test mode - payout simulated',
-    }
-  }
-
-  // TODO: Implement actual payout via Yoco/BobPay
-  // Most SA payment gateways require manual payouts or bank integration
-  
-  return {
-    success: false,
-    error: 'Payout integration not yet configured',
-  }
-}
+/** Bank payout execution -- NOT IMPLEMENTED. */
+export const processPayout = async () => ({
+  success: false,
+  error: 'Payout integration is not implemented.',
+})
 
 // ============================================
-// WALLET OPERATIONS
+// WALLET READS
 // ============================================
 
 /**
- * Get or create wallet for a user
- */
-export const getOrCreateWallet = async (userId, walletType = 'creator') => {
-  // First try to get existing wallet
-  const { data: existing } = await supabase
-    .from('wallets')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('wallet_type', walletType)
-    .single()
-
-  if (existing) return existing
-
-  // Create new wallet
-  const { data, error } = await supabase
-    .from('wallets')
-    .insert({
-      user_id: userId,
-      wallet_type: walletType,
-      balance: 0,
-      pending_balance: 0,
-      total_earned: 0,
-      total_withdrawn: 0,
-      currency: PAYMENT_CONFIG.CURRENCY,
-    })
-    .select()
-    .single()
-
-  if (error) throw error
-  return data
-}
-
-/**
- * Get wallet balance for a user
+ * Read a user's wallet. Wallets are created by the signup trigger and by the
+ * database functions; the client no longer creates them.
  */
 export const getWalletBalance = async (userId) => {
   const { data, error } = await supabase
     .from('wallets')
     .select('*')
     .eq('user_id', userId)
-    .single()
+    .maybeSingle()
 
   if (error && error.code !== 'PGRST116') throw error
   return data
 }
 
-/**
- * Get wallet transactions
- */
 export const getWalletTransactions = async (userId, limit = 50) => {
   const { data: wallet } = await supabase
     .from('wallets')
     .select('id')
     .eq('user_id', userId)
-    .single()
+    .maybeSingle()
 
   if (!wallet) return []
 
@@ -241,540 +194,175 @@ export const getWalletTransactions = async (userId, limit = 50) => {
 // ============================================
 
 /**
- * Fund a campaign (Developer pays)
- * Flow: Developer → Platform Fee (25%) → Escrow (75%)
+ * Fund a campaign.
+ *
+ * DISABLED pending a real payment provider.
+ *
+ * The previous implementation credited a campaign's escrow wallet from the
+ * browser without any payment having been taken, and created a fresh escrow
+ * wallet on every call. Crediting escrow must happen server-side, only after
+ * a provider webhook has confirmed settlement, which is why this now refuses
+ * rather than silently creating funds (AH-010, AH-011).
  */
-export const fundCampaign = async (campaignId, developerId, amount) => {
-  const platformFee = amount * PAYMENT_CONFIG.PLATFORM_FEE_RATE
-  const escrowAmount = amount - platformFee
-
-  // Get developer wallet
-  const developerWallet = await getOrCreateWallet(developerId, 'developer')
-
-  // Get or create platform wallet (admin user or system)
-  const { data: platformWallet } = await supabase
-    .from('wallets')
-    .select('*')
-    .eq('wallet_type', 'platform')
-    .single()
-
-  // Create escrow wallet for this campaign
-  const { data: escrowWallet, error: escrowError } = await supabase
-    .from('wallets')
-    .insert({
-      user_id: developerId, // Owned by developer but locked
-      wallet_type: 'escrow',
-      balance: 0,
-      currency: PAYMENT_CONFIG.CURRENCY,
-      metadata: { campaign_id: campaignId },
-    })
-    .select()
-    .single()
-
-  if (escrowError) throw escrowError
-
-  const referenceNumber = `FUND-${campaignId.slice(0, 8)}-${Date.now()}`
-
-  // Record transactions
-  const transactions = [
-    // Developer deposit
-    {
-      wallet_id: developerWallet.id,
-      transaction_type: 'deposit',
-      amount: amount,
-      balance_before: developerWallet.balance,
-      balance_after: developerWallet.balance + amount,
-      description: `Campaign funding deposit`,
-      reference_number: `${referenceNumber}-DEP`,
-      metadata: { campaign_id: campaignId },
-    },
-    // Platform fee
-    {
-      wallet_id: developerWallet.id,
-      transaction_type: 'platform_fee',
-      amount: -platformFee,
-      balance_before: developerWallet.balance + amount,
-      balance_after: developerWallet.balance + amount - platformFee,
-      description: `Platform fee (25%)`,
-      reference_number: `${referenceNumber}-FEE`,
-      metadata: { campaign_id: campaignId, fee_rate: PAYMENT_CONFIG.PLATFORM_FEE_RATE },
-    },
-    // Escrow lock
-    {
-      wallet_id: developerWallet.id,
-      transaction_type: 'escrow_lock',
-      amount: -escrowAmount,
-      balance_before: developerWallet.balance + amount - platformFee,
-      balance_after: developerWallet.balance,
-      description: `Funds locked in escrow for campaign`,
-      reference_number: `${referenceNumber}-ESC`,
-      metadata: { campaign_id: campaignId, escrow_wallet_id: escrowWallet.id },
-    },
-    // Escrow receive
-    {
-      wallet_id: escrowWallet.id,
-      transaction_type: 'escrow_lock',
-      amount: escrowAmount,
-      balance_before: 0,
-      balance_after: escrowAmount,
-      description: `Campaign escrow funded`,
-      reference_number: `${referenceNumber}-ESC-IN`,
-      metadata: { campaign_id: campaignId },
-    },
-  ]
-
-  // Insert all transactions
-  const { error: txError } = await supabase
-    .from('wallet_transactions')
-    .insert(transactions)
-
-  if (txError) throw txError
-
-  // Update escrow wallet balance
-  await supabase
-    .from('wallets')
-    .update({ balance: escrowAmount })
-    .eq('id', escrowWallet.id)
-
-  // Update campaign with escrow info
-  await supabase
-    .from('campaigns')
-    .update({
-      escrow_amount: escrowAmount,
-      escrow_wallet_id: escrowWallet.id,
-      funded_at: new Date().toISOString(),
-      status: 'open',
-    })
-    .eq('id', campaignId)
-
-  return {
-    success: true,
-    platformFee,
-    escrowAmount,
-    escrowWalletId: escrowWallet.id,
-    referenceNumber,
-  }
+export const fundCampaign = async () => {
+  throw new Error(
+    'Campaign funding is disabled until a payment provider is integrated. ' +
+      'Escrow may only be credited by the server after a verified provider webhook.',
+  )
 }
 
 // ============================================
-// ESCROW RELEASE TRIGGERS
+// ESCROW RELEASE
 // ============================================
 
 /**
- * Release escrow to creator (triggered by content approval)
- * 
- * Triggers:
- * 1. Content approved by developer
- * 2. Milestone completed
- * 3. Campaign completed
- * 4. Admin manual release
+ * Release campaign escrow to a creator.
+ *
+ * Delegates to release_campaign_escrow(), which verifies that the caller owns
+ * the campaign (or is a super admin), that the creator is assigned to it, and
+ * that the escrow actually holds the amount -- then moves the money and
+ * writes both ledger sides in one transaction.
  */
 export const releaseEscrowToCreator = async ({
   campaignId,
   creatorId,
   amount,
   reason,
-  releasedBy,
-  metadata = {},
+  idempotencyKey,
 }) => {
-  // Get campaign with escrow info
-  const { data: campaign, error: campError } = await supabase
-    .from('campaigns')
-    .select('*, escrow_wallet:wallets!escrow_wallet_id(*)')
-    .eq('id', campaignId)
-    .single()
+  if (!campaignId || !creatorId) throw new Error('campaignId and creatorId are required')
+  if (!amount || amount <= 0) throw new Error('Release amount must be greater than zero')
 
-  if (campError) throw campError
-  if (!campaign.escrow_wallet_id) throw new Error('Campaign has no escrow wallet')
+  const { data, error } = await supabase.rpc('release_campaign_escrow', {
+    p_campaign_id: campaignId,
+    p_creator_id: creatorId,
+    p_amount: amount,
+    p_reason: reason || 'Content approved',
+    p_idempotency_key: idempotencyKey || newIdempotencyKey('release'),
+  })
 
-  const escrowWallet = campaign.escrow_wallet
-  if (escrowWallet.balance < amount) {
-    throw new Error(`Insufficient escrow balance. Available: R${escrowWallet.balance}, Requested: R${amount}`)
-  }
-
-  // Get creator wallet
-  const creatorWallet = await getOrCreateWallet(creatorId, 'creator')
-
-  const referenceNumber = `REL-${campaignId.slice(0, 8)}-${Date.now()}`
-
-  // Create transactions
-  const transactions = [
-    // Escrow release (debit)
-    {
-      wallet_id: escrowWallet.id,
-      transaction_type: 'escrow_release',
-      amount: -amount,
-      balance_before: escrowWallet.balance,
-      balance_after: escrowWallet.balance - amount,
-      description: `Escrow release: ${reason}`,
-      reference_number: `${referenceNumber}-OUT`,
-      metadata: { campaign_id: campaignId, creator_id: creatorId, reason, ...metadata },
-      created_by: releasedBy,
-    },
-    // Creator receive (credit)
-    {
-      wallet_id: creatorWallet.id,
-      transaction_type: 'escrow_release',
-      amount: amount,
-      balance_before: creatorWallet.balance,
-      balance_after: creatorWallet.balance + amount,
-      description: `Payment received: ${reason}`,
-      reference_number: `${referenceNumber}-IN`,
-      metadata: { campaign_id: campaignId, reason, ...metadata },
-      created_by: releasedBy,
-    },
-  ]
-
-  const { error: txError } = await supabase
-    .from('wallet_transactions')
-    .insert(transactions)
-
-  if (txError) throw txError
-
-  // Update wallet balances
-  await supabase
-    .from('wallets')
-    .update({ balance: escrowWallet.balance - amount })
-    .eq('id', escrowWallet.id)
-
-  await supabase
-    .from('wallets')
-    .update({ 
-      balance: creatorWallet.balance + amount,
-      total_earned: (creatorWallet.total_earned || 0) + amount,
-    })
-    .eq('id', creatorWallet.id)
-
-  // Update campaign escrow amount
-  await supabase
-    .from('campaigns')
-    .update({ 
-      escrow_amount: escrowWallet.balance - amount,
-      amount_paid_out: (campaign.amount_paid_out || 0) + amount,
-    })
-    .eq('id', campaignId)
-
-  return {
-    success: true,
-    amount,
-    referenceNumber,
-    newEscrowBalance: escrowWallet.balance - amount,
-    newCreatorBalance: creatorWallet.balance + amount,
-  }
+  if (error) throw rpcError(error, 'Escrow release failed')
+  return data
 }
 
 /**
- * Refund unspent campaign escrow back to the developer's wallet.
- *
- * Used by super admins when resolving a dispute in the developer's favour
- * (or for partial refunds): money is debited from the campaign escrow wallet
- * and credited to the developer's own wallet, with a wallet_transactions
- * record on each side and the campaign's escrow_amount adjusted.
+ * Refund unspent campaign escrow to the developer. Super admins only; the
+ * developer is derived from the campaign server-side.
  */
 export const refundEscrowToDeveloper = async ({
   campaignId,
-  developerId,
   amount,
   reason,
-  releasedBy,
-  metadata = {},
+  idempotencyKey,
 }) => {
+  if (!campaignId) throw new Error('campaignId is required')
   if (!amount || amount <= 0) throw new Error('Refund amount must be greater than zero')
 
-  const { data: campaign, error: campError } = await supabase
-    .from('campaigns')
-    .select('*, escrow_wallet:wallets!escrow_wallet_id(*)')
-    .eq('id', campaignId)
-    .single()
+  const { data, error } = await supabase.rpc('refund_campaign_escrow', {
+    p_campaign_id: campaignId,
+    p_amount: amount,
+    p_reason: reason || 'Dispute resolution',
+    p_idempotency_key: idempotencyKey || newIdempotencyKey('refund'),
+  })
 
-  if (campError) throw campError
-  if (!campaign.escrow_wallet_id) throw new Error('Campaign has no escrow wallet')
-
-  const escrowWallet = campaign.escrow_wallet
-  if (escrowWallet.balance < amount) {
-    throw new Error(
-      `Insufficient escrow balance. Available: R${escrowWallet.balance}, Requested: R${amount}`,
-    )
-  }
-
-  const developerWallet = await getOrCreateWallet(developerId, 'developer')
-  const referenceNumber = `REF-${campaignId.slice(0, 8)}-${Date.now()}`
-
-  const { error: txError } = await supabase.from('wallet_transactions').insert([
-    {
-      wallet_id: escrowWallet.id,
-      transaction_type: 'refund',
-      amount: -amount,
-      balance_before: escrowWallet.balance,
-      balance_after: escrowWallet.balance - amount,
-      description: `Escrow refund: ${reason}`,
-      reference_number: `${referenceNumber}-OUT`,
-      metadata: { campaign_id: campaignId, developer_id: developerId, reason, ...metadata },
-      created_by: releasedBy,
-    },
-    {
-      wallet_id: developerWallet.id,
-      transaction_type: 'refund',
-      amount: amount,
-      balance_before: developerWallet.balance,
-      balance_after: developerWallet.balance + amount,
-      description: `Refund received: ${reason}`,
-      reference_number: `${referenceNumber}-IN`,
-      metadata: { campaign_id: campaignId, reason, ...metadata },
-      created_by: releasedBy,
-    },
-  ])
-  if (txError) throw txError
-
-  await supabase
-    .from('wallets')
-    .update({ balance: escrowWallet.balance - amount })
-    .eq('id', escrowWallet.id)
-
-  await supabase
-    .from('wallets')
-    .update({ balance: developerWallet.balance + amount })
-    .eq('id', developerWallet.id)
-
-  await supabase
-    .from('campaigns')
-    .update({ escrow_amount: escrowWallet.balance - amount })
-    .eq('id', campaignId)
-
-  return {
-    success: true,
-    amount,
-    referenceNumber,
-    newEscrowBalance: escrowWallet.balance - amount,
-    newDeveloperBalance: developerWallet.balance + amount,
-  }
+  if (error) throw rpcError(error, 'Escrow refund failed')
+  return data
 }
 
 /**
- * Release payment for approved content
+ * Release payment for an approved content submission.
+ *
+ * The amount must be recorded against the submission. The previous code fell
+ * back to a hard-coded R500 when it was missing, which silently invented a
+ * payment amount nobody had agreed (AH-012).
  */
-export const releaseContentPayment = async (contentSubmissionId, approvedBy) => {
+export const releaseContentPayment = async (contentSubmissionId, _approvedBy, options = {}) => {
   const { data: submission, error } = await supabase
     .from('content_submissions')
-    .select(`
-      *,
+    .select(
+      `
+      id,
+      payment_amount,
+      content_type,
       assignment:campaign_assignments(
         id,
         creator_id,
-        campaign:campaigns(id, title, creator_budget)
+        campaign:campaigns(id, title)
       )
-    `)
+    `,
+    )
     .eq('id', contentSubmissionId)
     .single()
 
   if (error) throw error
   if (!submission) throw new Error('Content submission not found')
 
-  // Calculate payment based on content type or fixed rate
-  const paymentAmount = submission.payment_amount || 500 // Default R500 per content piece
+  const paymentAmount = Number(submission.payment_amount)
 
-  return await releaseEscrowToCreator({
-    campaignId: submission.assignment.campaign.id,
-    creatorId: submission.assignment.creator_id,
+  if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+    throw new Error(
+      'This submission has no agreed payment amount. Set the amount on the assignment ' +
+        'before approving, rather than relying on a default.',
+    )
+  }
+
+  const assignment = submission.assignment
+  if (!assignment?.creator_id || !assignment?.campaign?.id) {
+    throw new Error('Content submission is not linked to a campaign assignment')
+  }
+
+  return releaseEscrowToCreator({
+    campaignId: assignment.campaign.id,
+    creatorId: assignment.creator_id,
     amount: paymentAmount,
-    reason: `Content approved: ${submission.content_type}`,
-    releasedBy: approvedBy,
-    metadata: { content_submission_id: contentSubmissionId },
+    reason: `Content approved: ${submission.content_type || 'submission'}`,
+    // Keying on the submission makes a double-approval a no-op.
+    idempotencyKey: options.idempotencyKey || `content-${contentSubmissionId}`,
   })
 }
 
 // ============================================
-// PAYOUT SYSTEM
+// PAYOUTS
 // ============================================
 
 /**
- * Request a payout (Creator withdraws to bank)
+ * Request a payout. The fee, the minimum and the balance hold are all applied
+ * by request_creator_payout(); nothing here is authoritative.
  */
-export const requestPayout = async (userId, amount, bankAccountId) => {
-  if (amount < PAYMENT_CONFIG.MIN_PAYOUT_AMOUNT) {
-    throw new Error(`Minimum payout amount is R${PAYMENT_CONFIG.MIN_PAYOUT_AMOUNT}`)
-  }
+export const requestPayout = async (userId, amount, bankAccountId, options = {}) => {
+  if (!bankAccountId) throw new Error('A bank account is required')
 
-  // Get wallet
-  const wallet = await getWalletBalance(userId)
-  if (!wallet) throw new Error('Wallet not found')
-  if (wallet.balance < amount) {
-    throw new Error(`Insufficient balance. Available: R${wallet.balance}`)
-  }
+  const { data, error } = await supabase.rpc('request_creator_payout', {
+    p_amount: amount,
+    p_bank_account_id: bankAccountId,
+    p_idempotency_key: options.idempotencyKey || newIdempotencyKey('payout'),
+  })
 
-  // Get bank account
-  const { data: bankAccount, error: bankError } = await supabase
-    .from('bank_accounts')
-    .select('*')
-    .eq('id', bankAccountId)
-    .eq('user_id', userId)
-    .single()
-
-  if (bankError || !bankAccount) throw new Error('Bank account not found')
-
-  // Calculate fees
-  const payoutFee = amount * PAYMENT_CONFIG.PAYOUT_FEE_RATE
-  const netAmount = amount - payoutFee
-
-  // Create payout request
-  const { data: payout, error: payoutError } = await supabase
-    .from('payout_requests')
-    .insert({
-      user_id: userId,
-      wallet_id: wallet.id,
-      bank_account_id: bankAccountId,
-      amount: amount,
-      payout_fee: payoutFee,
-      net_amount: netAmount,
-      status: 'pending',
-    })
-    .select()
-    .single()
-
-  if (payoutError) throw payoutError
-
-  // Deduct from wallet (move to pending)
-  const referenceNumber = `PAY-${payout.id.slice(0, 8)}`
-
-  await supabase
-    .from('wallet_transactions')
-    .insert({
-      wallet_id: wallet.id,
-      transaction_type: 'payout_request',
-      amount: -amount,
-      balance_before: wallet.balance,
-      balance_after: wallet.balance - amount,
-      description: `Payout request to ${bankAccount.bank_name} ****${bankAccount.account_number.slice(-4)}`,
-      reference_number: referenceNumber,
-      metadata: { payout_id: payout.id, bank_account_id: bankAccountId },
-    })
-
-  await supabase
-    .from('wallets')
-    .update({ 
-      balance: wallet.balance - amount,
-      pending_balance: (wallet.pending_balance || 0) + amount,
-    })
-    .eq('id', wallet.id)
-
-  return {
-    success: true,
-    payoutId: payout.id,
-    amount,
-    payoutFee,
-    netAmount,
-    referenceNumber,
-    status: 'pending',
-  }
+  if (error) throw rpcError(error, 'Payout request failed')
+  return data
 }
 
 /**
- * Process a payout (Admin action)
+ * Approve or reject a payout request. Super admins only, and never one's own
+ * request -- both enforced by the database function.
  */
-export const processPayoutRequest = async (payoutId, adminId, action, notes = '') => {
-  const { data: payout, error } = await supabase
-    .from('payout_requests')
-    .select('*, wallet:wallets(*), bank_account:bank_accounts(*)')
-    .eq('id', payoutId)
-    .single()
-
-  if (error) throw error
-  if (payout.status !== 'pending') throw new Error('Payout is not pending')
-
-  if (action === 'approve') {
-    // Process the actual payout via payment gateway
-    const payoutResult = await processPayout({
-      amount: payout.net_amount,
-      bankAccount: payout.bank_account,
-      reference: `PAY-${payoutId.slice(0, 8)}`,
-      userId: payout.user_id,
-    })
-
-    // Update payout status
-    await supabase
-      .from('payout_requests')
-      .update({
-        status: payoutResult.success ? 'completed' : 'processing',
-        processed_by: adminId,
-        processed_at: new Date().toISOString(),
-        completed_at: payoutResult.success ? new Date().toISOString() : null,
-        payment_reference: payoutResult.payoutId,
-        notes,
-      })
-      .eq('id', payoutId)
-
-    // Update wallet
-    await supabase
-      .from('wallets')
-      .update({
-        pending_balance: payout.wallet.pending_balance - payout.amount,
-        total_withdrawn: (payout.wallet.total_withdrawn || 0) + payout.net_amount,
-      })
-      .eq('id', payout.wallet_id)
-
-    // Record payout fee transaction
-    await supabase
-      .from('wallet_transactions')
-      .insert({
-        wallet_id: payout.wallet_id,
-        transaction_type: 'payout_fee',
-        amount: -payout.payout_fee,
-        balance_before: payout.wallet.balance,
-        balance_after: payout.wallet.balance,
-        description: `Payout fee (${PAYMENT_CONFIG.PAYOUT_FEE_RATE * 100}%)`,
-        reference_number: `PAY-${payoutId.slice(0, 8)}-FEE`,
-        metadata: { payout_id: payoutId },
-        created_by: adminId,
-      })
-
-    return { success: true, status: 'completed' }
+export const processPayoutRequest = async (payoutId, _adminId, action, notes = '', options = {}) => {
+  if (!['approve', 'reject'].includes(action)) {
+    throw new Error('Action must be approve or reject')
   }
 
-  if (action === 'reject') {
-    // Refund to wallet
-    await supabase
-      .from('wallets')
-      .update({
-        balance: payout.wallet.balance + payout.amount,
-        pending_balance: payout.wallet.pending_balance - payout.amount,
-      })
-      .eq('id', payout.wallet_id)
+  const { data, error } = await supabase.rpc('process_payout_request', {
+    p_payout_id: payoutId,
+    p_action: action,
+    p_notes: notes,
+    p_idempotency_key: options.idempotencyKey || newIdempotencyKey('process-payout'),
+    p_provider_reference: options.providerReference || null,
+  })
 
-    // Record refund transaction
-    await supabase
-      .from('wallet_transactions')
-      .insert({
-        wallet_id: payout.wallet_id,
-        transaction_type: 'refund',
-        amount: payout.amount,
-        balance_before: payout.wallet.balance,
-        balance_after: payout.wallet.balance + payout.amount,
-        description: `Payout request rejected: ${notes}`,
-        reference_number: `PAY-${payoutId.slice(0, 8)}-REF`,
-        metadata: { payout_id: payoutId, reason: notes },
-        created_by: adminId,
-      })
-
-    await supabase
-      .from('payout_requests')
-      .update({
-        status: 'cancelled',
-        processed_by: adminId,
-        processed_at: new Date().toISOString(),
-        failure_reason: notes,
-        notes,
-      })
-      .eq('id', payoutId)
-
-    return { success: true, status: 'cancelled' }
-  }
-
-  throw new Error('Invalid action')
+  if (error) throw rpcError(error, 'Payout processing failed')
+  return data
 }
 
-/**
- * Get payout history for a user
- */
 export const getPayoutHistory = async (userId) => {
   const { data, error } = await supabase
     .from('payout_requests')
@@ -790,9 +378,6 @@ export const getPayoutHistory = async (userId) => {
 // BANK ACCOUNTS
 // ============================================
 
-/**
- * Add a bank account for payouts
- */
 export const addBankAccount = async (userId, bankDetails) => {
   const { data, error } = await supabase
     .from('bank_accounts')
@@ -812,9 +397,6 @@ export const addBankAccount = async (userId, bankDetails) => {
   return data
 }
 
-/**
- * Get user's bank accounts
- */
 export const getBankAccounts = async (userId) => {
   const { data, error } = await supabase
     .from('bank_accounts')
@@ -826,9 +408,6 @@ export const getBankAccounts = async (userId) => {
   return data || []
 }
 
-/**
- * Delete a bank account
- */
 export const deleteBankAccount = async (userId, bankAccountId) => {
   const { error } = await supabase
     .from('bank_accounts')
@@ -842,12 +421,14 @@ export const deleteBankAccount = async (userId, bankAccountId) => {
 
 export default {
   PAYMENT_CONFIG,
+  isSimulatedGateway,
+  newIdempotencyKey,
   createCheckoutSession,
-  getOrCreateWallet,
   getWalletBalance,
   getWalletTransactions,
   fundCampaign,
   releaseEscrowToCreator,
+  refundEscrowToDeveloper,
   releaseContentPayment,
   requestPayout,
   processPayoutRequest,
