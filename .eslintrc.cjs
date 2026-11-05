@@ -40,6 +40,15 @@ module.exports = {
       env: { node: true, browser: false },
     },
     {
+      files: ['load-tests/**/*.js'],
+      // k6 injects these at runtime; they are not Node or browser globals.
+      globals: { __ENV: 'readonly', __VU: 'readonly', __ITER: 'readonly' },
+    },
+    {
+      files: ['e2e/**/*.js', 'playwright.config.js'],
+      env: { node: true },
+    },
+    {
       files: ['**/__tests__/**/*.js'],
       env: { node: true },
       globals: { describe: 'readonly', it: 'readonly', expect: 'readonly', vi: 'readonly' },

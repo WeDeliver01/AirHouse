@@ -7,11 +7,18 @@ import { AuthProvider } from './context/AuthContext'
 import ScrollToTop from './components/ui/ScrollToTop'
 import CookieConsentBanner from './components/CookieConsentBanner'
 import PendingTermsAcceptanceFlush from './components/PendingTermsAcceptanceFlush'
+import ErrorBoundary from './components/ErrorBoundary'
+import { initMonitoring } from './lib/monitoring'
 import './styles/globals.css'
+
+// Start error reporting before anything renders, so a failure during the
+// first paint is still captured. Safe when no DSN is configured.
+initMonitoring()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
+      <ErrorBoundary>
       <AuthProvider>
         <ScrollToTop />
         <App />
@@ -44,6 +51,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           }}
         />
       </AuthProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   </React.StrictMode>,
 )

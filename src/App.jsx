@@ -1,7 +1,83 @@
+import { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { PageLoader } from './components/ui'
 import { PublicLayout, DashboardLayout, ProtectedRoute } from './components/layout'
+
+/**
+ * Everything behind authentication is loaded on demand.
+ *
+ * The application previously shipped as one bundle, so an anonymous visitor
+ * landing on a lead-capture page downloaded the admin dashboard, the charting
+ * library and the PDF generator before anything rendered. Splitting at the
+ * route boundary means a visitor fetches only what their page needs.
+ */
+const AcceptableUsePolicy = lazy(() => import('./pages/legal/AcceptableUsePolicy'))
+const AdminAnalytics = lazy(() => import('./pages/admin/Analytics'))
+const AdminCampaigns = lazy(() => import('./pages/admin/Campaigns'))
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
+const AdminFinancials = lazy(() => import('./pages/admin/Financials'))
+const AdminInvite = lazy(() => import('./pages/public/AdminInvite'))
+const AdminLeads = lazy(() => import('./pages/admin/Leads'))
+const AdminPaymentConfirmations = lazy(() => import('./pages/admin/PaymentConfirmations'))
+const AdminPayments = lazy(() => import('./pages/admin/Payments'))
+const AdminSettings = lazy(() => import('./pages/admin/Settings'))
+const AdminUsers = lazy(() => import('./pages/admin/Users'))
+const AdminVerification = lazy(() => import('./pages/admin/Verification'))
+const AssignmentDetail = lazy(() => import('./pages/developer/AssignmentDetail'))
+const CampaignApplications = lazy(() => import('./pages/developer/CampaignApplications'))
+const CampaignDetail = lazy(() => import('./pages/shared/CampaignDetail'))
+const CampaignWizard = lazy(() => import('./pages/developer/CampaignWizard'))
+const Campaigns = lazy(() => import('./pages/public/Campaigns'))
+const ContentReview = lazy(() => import('./pages/developer/ContentReview'))
+const ContentSubmission = lazy(() => import('./pages/creator/ContentSubmission'))
+const Contracts = lazy(() => import('./pages/shared/Contracts'))
+const CookiePolicy = lazy(() => import('./pages/legal/CookiePolicy'))
+const CostPerLead = lazy(() => import('./pages/developer/CostPerLead'))
+const CreatorAchievements = lazy(() => import('./pages/creator/Achievements'))
+const CreatorActiveCampaigns = lazy(() => import('./pages/creator/ActiveCampaigns'))
+const CreatorAgreement = lazy(() => import('./pages/legal/CreatorAgreement'))
+const CreatorApplications = lazy(() => import('./pages/creator/Applications'))
+const CreatorBrowser = lazy(() => import('./pages/developer/CreatorBrowser'))
+const CreatorDashboard = lazy(() => import('./pages/creator/Dashboard'))
+const CreatorEarnings = lazy(() => import('./pages/creator/Earnings'))
+const CreatorProfile = lazy(() => import('./pages/public/CreatorProfile'))
+const CreatorProfileEditor = lazy(() => import('./pages/creator/ProfileEditor'))
+const CreatorProperties = lazy(() => import('./pages/creator/Properties'))
+const CreatorPropertyDetail = lazy(() => import('./pages/creator/PropertyDetail'))
+const CreatorRankings = lazy(() => import('./pages/developer/CreatorRankings'))
+const CreatorScorecard = lazy(() => import('./pages/creator/Scorecard'))
+const CreatorSettings = lazy(() => import('./pages/creator/Settings'))
+const CreatorVerification = lazy(() => import('./pages/creator/Verification'))
+const CreatorWallet = lazy(() => import('./pages/creator/Wallet'))
+const DesignPreview = lazy(() => import('./pages/dev/DesignPreview'))
+const DeveloperAgreement = lazy(() => import('./pages/legal/DeveloperAgreement'))
+const DeveloperAnalytics = lazy(() => import('./pages/developer/Analytics'))
+const DeveloperAssignments = lazy(() => import('./pages/developer/Assignments'))
+const DeveloperDashboard = lazy(() => import('./pages/developer/Dashboard'))
+const DeveloperLeads = lazy(() => import('./pages/developer/Leads'))
+const DeveloperProfileEditor = lazy(() => import('./pages/developer/ProfileEditor'))
+const DeveloperReviews = lazy(() => import('./pages/developer/Reviews'))
+const DeveloperSettings = lazy(() => import('./pages/developer/Settings'))
+const DeveloperWallet = lazy(() => import('./pages/developer/Wallet'))
+const DisputeDetail = lazy(() => import('./pages/shared/DisputeDetail'))
+const Disputes = lazy(() => import('./pages/shared/Disputes'))
+const FundCampaign = lazy(() => import('./pages/developer/FundCampaign'))
+const Help = lazy(() => import('./pages/shared/Help'))
+const LegalIndex = lazy(() => import('./pages/legal/LegalIndex'))
+const Marketplace = lazy(() => import('./pages/public/Marketplace'))
+const Messages = lazy(() => import('./pages/shared/Messages'))
+const MyCampaigns = lazy(() => import('./pages/developer/MyCampaigns'))
+const MyFavorites = lazy(() => import('./pages/developer/MyFavorites'))
+const PAIAManual = lazy(() => import('./pages/legal/PAIAManual'))
+const PayoutRequest = lazy(() => import('./pages/creator/PayoutRequest'))
+const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'))
+const Properties = lazy(() => import('./pages/developer/Properties'))
+const PropertyEditor = lazy(() => import('./pages/developer/PropertyEditor'))
+const ROIDashboard = lazy(() => import('./pages/developer/ROIDashboard'))
+const RefundPolicy = lazy(() => import('./pages/legal/RefundPolicy'))
+const TermsOfService = lazy(() => import('./pages/legal/TermsOfService'))
+const TransactionInvoiceDetail = lazy(() => import('./pages/shared/TransactionInvoiceDetail'))
 
 // Public Pages
 import Home from './pages/public/Home'
@@ -10,91 +86,21 @@ import Register from './pages/public/Register'
 import ForgotPassword from './pages/public/ForgotPassword'
 import ResetPassword from './pages/public/ResetPassword'
 import AuthCallback from './pages/public/AuthCallback'
-import Campaigns from './pages/public/Campaigns'
-import CreatorProfile from './pages/public/CreatorProfile'
-import Marketplace from './pages/public/Marketplace'
 import LeadCapture from './pages/public/LeadCapture'
 
 // Creator Pages
-import CreatorDashboard from './pages/creator/Dashboard'
-import CreatorEarnings from './pages/creator/Earnings'
-import CreatorScorecard from './pages/creator/Scorecard'
-import CreatorProfileEditor from './pages/creator/ProfileEditor'
-import ContentSubmission from './pages/creator/ContentSubmission'
-import CreatorWallet from './pages/creator/Wallet'
-import CreatorApplications from './pages/creator/Applications'
-import CreatorActiveCampaigns from './pages/creator/ActiveCampaigns'
-import CreatorSettings from './pages/creator/Settings'
-import PayoutRequest from './pages/creator/PayoutRequest'
-import CreatorVerification from './pages/creator/Verification'
-import CreatorAchievements from './pages/creator/Achievements'
-import CreatorProperties from './pages/creator/Properties'
-import CreatorPropertyDetail from './pages/creator/PropertyDetail'
-
 // Developer Pages
-import DeveloperDashboard from './pages/developer/Dashboard'
-import DeveloperLeads from './pages/developer/Leads'
-import DeveloperAnalytics from './pages/developer/Analytics'
-import CampaignWizard from './pages/developer/CampaignWizard'
-import CreatorBrowser from './pages/developer/CreatorBrowser'
-import MyFavorites from './pages/developer/MyFavorites'
-import MyCampaigns from './pages/developer/MyCampaigns'
-import CampaignApplications from './pages/developer/CampaignApplications'
-import DeveloperWallet from './pages/developer/Wallet'
-import DeveloperSettings from './pages/developer/Settings'
-import DeveloperProfileEditor from './pages/developer/ProfileEditor'
-import FundCampaign from './pages/developer/FundCampaign'
-import ContentReview from './pages/developer/ContentReview'
-import CostPerLead from './pages/developer/CostPerLead'
-import CreatorRankings from './pages/developer/CreatorRankings'
-import ROIDashboard from './pages/developer/ROIDashboard'
-import DeveloperReviews from './pages/developer/Reviews'
-import Properties from './pages/developer/Properties'
-import PropertyEditor from './pages/developer/PropertyEditor'
-import DeveloperAssignments from './pages/developer/Assignments'
-import AssignmentDetail from './pages/developer/AssignmentDetail'
-
 // Shared Pages
-import CampaignDetail from './pages/shared/CampaignDetail'
-import Disputes from './pages/shared/Disputes'
-import DisputeDetail from './pages/shared/DisputeDetail'
-import Contracts from './pages/shared/Contracts'
-import Messages from './pages/shared/Messages'
-import Help from './pages/shared/Help'
-import TransactionInvoiceDetail from './pages/shared/TransactionInvoiceDetail'
-
 // Legal Pages
-import LegalIndex from './pages/legal/LegalIndex'
-import TermsOfService from './pages/legal/TermsOfService'
-import PrivacyPolicy from './pages/legal/PrivacyPolicy'
-import CookiePolicy from './pages/legal/CookiePolicy'
-import RefundPolicy from './pages/legal/RefundPolicy'
-import AcceptableUsePolicy from './pages/legal/AcceptableUsePolicy'
-import CreatorAgreement from './pages/legal/CreatorAgreement'
-import DeveloperAgreement from './pages/legal/DeveloperAgreement'
-import PAIAManual from './pages/legal/PAIAManual'
-
 // Dev-only Pages (gated behind import.meta.env.DEV at registration time)
-import DesignPreview from './pages/dev/DesignPreview'
-
 // Admin Pages
-import AdminDashboard from './pages/admin/Dashboard'
-import AdminUsers from './pages/admin/Users'
-import AdminVerification from './pages/admin/Verification'
-import AdminCampaigns from './pages/admin/Campaigns'
-import AdminLeads from './pages/admin/Leads'
-import AdminSettings from './pages/admin/Settings'
-import AdminFinancials from './pages/admin/Financials'
-import AdminPaymentConfirmations from './pages/admin/PaymentConfirmations'
-import AdminPayments from './pages/admin/Payments'
-import AdminAnalytics from './pages/admin/Analytics'
-import AdminInvite from './pages/public/AdminInvite'
-
 function App() {
   const { initialized } = useAuth()
   if (!initialized) return <PageLoader />
 
   return (
+    // Lazily loaded routes need a fallback while their chunk is fetched.
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* PUBLIC */}
       <Route element={<PublicLayout />}>
@@ -209,6 +215,7 @@ function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   )
 }
 

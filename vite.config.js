@@ -4,6 +4,28 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // The application shipped as a single 1.7 MB chunk, so every visitor --
+    // including an anonymous one landing on a lead-capture page -- downloaded
+    // the admin dashboard, the charting library and the PDF generator before
+    // anything rendered. Splitting the heavy, rarely-needed dependencies out
+    // means they are fetched only by the pages that use them.
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('recharts') || id.includes('d3-')) return 'charts'
+          if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('dompurify')) return 'pdf'
+          if (id.includes('@supabase')) return 'supabase'
+          if (id.includes('@sentry')) return 'monitoring'
+          if (id.includes('react-router')) return 'router'
+          if (id.includes('react-dom') || id.includes('/react/')) return 'react'
+          return 'vendor'
+        },
+      },
+    },
+    chunkSizeWarningLimit: 700,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

@@ -2,21 +2,37 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const isProduction = import.meta.env.PROD
 
-// Check for missing credentials
+/**
+ * Fail closed when the backend is not configured (AH-022).
+ *
+ * This previously fell back to 'https://placeholder.supabase.co', so a
+ * misconfigured production build started successfully and then failed on
+ * every request with errors that pointed nowhere near the real cause. A
+ * deployment missing its configuration should refuse to run, loudly.
+ */
 if (!supabaseUrl || !supabaseAnonKey) {
+  const message =
+    'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY ' +
+    'in the deployment environment.'
+
+  if (isProduction) {
+    throw new Error(message)
+  }
+
   console.error(
-    '⚠️ Supabase credentials missing!\n' +
-    'Please create a .env file with:\n' +
-    '  VITE_SUPABASE_URL=your-project-url\n' +
-    '  VITE_SUPABASE_ANON_KEY=your-anon-key\n\n' +
-    'Get these from: Supabase Dashboard > Settings > API'
+    `${message}\n\n` +
+      'For local development, copy .env.example to .env and fill in the values ' +
+      'from Supabase Dashboard > Settings > API.',
   )
 }
 
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key',
+  // In development the placeholders keep the module importable so the error
+  // above is what the developer sees, rather than a constructor throw.
+  supabaseUrl || 'https://unconfigured.invalid',
+  supabaseAnonKey || 'unconfigured',
   {
     auth: {
       autoRefreshToken: true,

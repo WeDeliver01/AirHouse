@@ -1,0 +1,186 @@
+name: Deploy
+
+# Staging deploys on every push to main. Production is a separate, manual
+# step that requires an environment approval, because a production deploy
+# also applies database migrations.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Where to deploy'
+        required: true
+        default: staging
+        type: choice
+        options: [staging, production]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx eslint . --ext js,jsx
+      - run: npm test
+      - run: npm run build
+
+  migration-check:
+    name: Migrations apply cleanly
+    runs-on: ubuntu-latest
+    needs: gate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-16
+
+      # Migrations are proved against a throwaway database before they are
+      # allowed anywhere near a real one.
+      - name: Apply migrations and run the integrity suite
+        env:
+          PGBIN: /usr/lib/postgresql/16/bin
+        run: |
+          sudo chmod -R a+rX "$GITHUB_WORKSPACE"
+          bash supabase/tests/run_tests.sh
+
+      - name: Check for duplicate migration numbers
+        run: |
+          set -euo pipefail
+          dupes="$(ls supabase/migrations/*.sql \
+            | xargs -n1 basename \
+            | grep -E '^[0-9]+_' \
+            | sed -E 's/^([0-9]+)_.*/\1/' \
+            | sort | uniq -d)"
+          if [ -n "$dupes" ]; then
+            echo "::error::Duplicate migration numbers: $dupes"
+            echo "Two migrations sharing a number cannot be ordered reliably."
+            exit 1
+          fi
+          echo "Migration numbering is unique."
+
+  deploy-staging:
+    name: Deploy to staging
+    runs-on: ubuntu-latest
+    needs: [gate, migration-check]
+    if: github.event_name == 'push' || inputs.target == 'staging'
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      - name: Build for staging
+        env:
+          VITE_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          VITE_ENVIRONMENT: staging
+          VITE_RELEASE: ${{ github.sha }}
+          # Staging never collects real card payments.
+          VITE_PAYMENT_GATEWAY: test
+        run: npm run build
+
+      - name: Apply migrations to staging
+        env:
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          if [ -z "${STAGING_DATABASE_URL:-}" ]; then
+            echo "::warning::STAGING_DATABASE_URL is not set; skipping migrations."
+            exit 0
+          fi
+          bash scripts/apply-migrations.sh "$STAGING_DATABASE_URL"
+
+      - name: Publish
+        run: |
+          echo "Built ${{ github.sha }} for staging."
+          echo "Add the hosting provider's deploy step here."
+
+  deploy-production:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    needs: [gate, migration-check]
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'production'
+    # This environment should require a reviewer in repository settings, so a
+    # production release is always a deliberate, approved act.
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      - name: Refuse to deploy without production configuration
+        env:
+          PROD_URL: ${{ vars.PRODUCTION_SUPABASE_URL }}
+          PROD_KEY: ${{ secrets.PRODUCTION_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -z "${PROD_URL:-}" ] && missing="$missing PRODUCTION_SUPABASE_URL"
+          [ -z "${PROD_KEY:-}" ] && missing="$missing PRODUCTION_SUPABASE_ANON_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing production configuration:$missing"
+            exit 1
+          fi
+
+      - name: Back up the production database before migrating
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PRODUCTION_DATABASE_URL:-}" ]; then
+            echo "::error::PRODUCTION_DATABASE_URL is required so a backup can be taken."
+            exit 1
+          fi
+          sudo apt-get update && sudo apt-get install -y postgresql-client-16
+          bash scripts/backup-database.sh "$PRODUCTION_DATABASE_URL" ./backup
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pre-deploy-backup-${{ github.sha }}
+          path: backup/
+          retention-days: 30
+
+      - name: Build for production
+        env:
+          VITE_SUPABASE_URL: ${{ vars.PRODUCTION_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.PRODUCTION_SUPABASE_ANON_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          VITE_ENVIRONMENT: production
+          VITE_RELEASE: ${{ github.sha }}
+          VITE_BANK_ACCOUNT_NAME: ${{ vars.BANK_ACCOUNT_NAME }}
+          VITE_BANK_NAME: ${{ vars.BANK_NAME }}
+          VITE_BANK_ACCOUNT_NUMBER: ${{ secrets.BANK_ACCOUNT_NUMBER }}
+          VITE_BANK_BRANCH_CODE: ${{ vars.BANK_BRANCH_CODE }}
+        run: npm run build
+
+      - name: Apply migrations to production
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: bash scripts/apply-migrations.sh "$PRODUCTION_DATABASE_URL"
+
+      - name: Publish
+        run: |
+          echo "Built ${{ github.sha }} for production."
+          echo "Add the hosting provider's deploy step here."
