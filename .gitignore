@@ -12,3 +12,7 @@ dist-ssr
 test-results/
 playwright-report/
 .playwright/
+
+# Production secrets live on the server, never in git
+deploy/.env.production
+deploy/.previous-release

@@ -291,8 +291,40 @@ if (config.isProduction) {
   });
 }
 
-app.listen(config.port, '0.0.0.0', () => {
+const server = app.listen(config.port, '0.0.0.0', () => {
   logEvent('info', 'server_started', { port: config.port, production: config.isProduction });
 });
 
-export { app };
+/**
+ * Shut down gracefully.
+ *
+ * Without this the process ignores SIGTERM, so `docker stop` waits out its
+ * ten-second grace period and then kills it: ten seconds of downtime on every
+ * deploy, and any request still in flight is dropped rather than finished.
+ *
+ * Stop accepting new connections, let the current ones complete, then exit.
+ * The timer is a backstop for a connection that never closes; `unref` keeps
+ * it from holding the process open by itself.
+ */
+function shutdown(signal) {
+  logEvent('info', 'server_stopping', { signal });
+
+  server.close((error) => {
+    if (error) {
+      logEvent('error', 'server_stop_failed', { error: error.message });
+      process.exit(1);
+    }
+    logEvent('info', 'server_stopped', {});
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    logEvent('warn', 'server_stop_forced', { afterMs: 10_000 });
+    process.exit(1);
+  }, 10_000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+export { app, server };

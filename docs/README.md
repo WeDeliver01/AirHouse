@@ -8,33 +8,36 @@ Produced during the Phase 0 enterprise-readiness review, 5 November 2026.
    checklist scored line by line with evidence: 29 of 33 criteria met, what
    was found along the way, and the one remaining step. **Start here.**
 
-2. **[PHASE_0_REPORT.md](PHASE_0_REPORT.md)** — what was found, what was
+2. **[DEPLOYMENT.md](DEPLOYMENT.md)** — getting airhouse.co.za live on a VPS
+   behind your existing Nginx, and what to check afterwards.
+
+3. **[PHASE_0_REPORT.md](PHASE_0_REPORT.md)** — what was found, what was
    fixed, the effort estimate and the recommended next five working days.
 
-3. **[SECURITY_AUDIT.md](SECURITY_AUDIT.md)** — every finding with an `AH-xxx`
+4. **[SECURITY_AUDIT.md](SECURITY_AUDIT.md)** — every finding with an `AH-xxx`
    reference, marked Confirmed or Unverified, including two corrections to the
    original audit and seven findings it did not identify.
 
-4. **[MIGRATION_HISTORY.md](MIGRATION_HISTORY.md)** — why the migration series
+5. **[MIGRATION_HISTORY.md](MIGRATION_HISTORY.md)** — why the migration series
    cannot be trusted as a record of the live database, and the read-only
    queries to establish the true state. **Read this before applying anything
    to production.**
 
-5. **[RISK_REGISTER.md](RISK_REGISTER.md)** — tracked risks with impact,
+6. **[RISK_REGISTER.md](RISK_REGISTER.md)** — tracked risks with impact,
    remediation, evidence, owner and what remains.
 
-6. **[RUNBOOK_OPERATIONS.md](RUNBOOK_OPERATIONS.md)** — the daily and weekly
+7. **[RUNBOOK_OPERATIONS.md](RUNBOOK_OPERATIONS.md)** — the daily and weekly
    work: confirming bank transfers, paying creators, reconciling, verifying
    backups.
 
-7. **[RUNBOOK_INCIDENTS.md](RUNBOOK_INCIDENTS.md)** — what to do when
+8. **[RUNBOOK_INCIDENTS.md](RUNBOOK_INCIDENTS.md)** — what to do when
    something is wrong in production.
 
-8. **[FINANCIAL_ARCHITECTURE.md](FINANCIAL_ARCHITECTURE.md)** — the integrity
+9. **[FINANCIAL_ARCHITECTURE.md](FINANCIAL_ARCHITECTURE.md)** — the integrity
    layer that exists, the provider integration that does not, and the
    reconciliation required before enabling payments.
 
-9. **[PERMISSIONS_MATRIX.md](PERMISSIONS_MATRIX.md)** — the intended access
+10. **[PERMISSIONS_MATRIX.md](PERMISSIONS_MATRIX.md)** — the intended access
    model, to test the live policies against.
 
 ## Running the checks

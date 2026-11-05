@@ -1,0 +1,100 @@
+# AirHouse — production compose file.
+#
+# Designed for a VPS that already serves other sites. The container binds to
+# 127.0.0.1 only, so it is unreachable from the internet directly and cannot
+# collide with whatever is already on ports 80 and 443. Your existing Nginx
+# proxies to it; see deploy/nginx/airhouse.co.za.conf.
+#
+#   docker compose --env-file deploy/.env.production up -d --build
+#
+# Server secrets come from that env file at runtime. The VITE_ values are
+# build arguments because Vite bakes them into the bundle at build time --
+# changing one means rebuilding the image, not restarting the container.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?set VITE_SUPABASE_URL in the env file}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:?set VITE_SUPABASE_ANON_KEY in the env file}
+        VITE_ENVIRONMENT: ${VITE_ENVIRONMENT:-production}
+        VITE_RELEASE: ${VITE_RELEASE:-unknown}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+        VITE_PAYMENT_GATEWAY: ${VITE_PAYMENT_GATEWAY:-test}
+        VITE_BANK_ACCOUNT_NAME: ${VITE_BANK_ACCOUNT_NAME:-}
+        VITE_BANK_NAME: ${VITE_BANK_NAME:-}
+        VITE_BANK_ACCOUNT_NUMBER: ${VITE_BANK_ACCOUNT_NUMBER:-}
+        VITE_BANK_BRANCH_CODE: ${VITE_BANK_BRANCH_CODE:-}
+
+    image: airhouse:${VITE_RELEASE:-latest}
+    container_name: airhouse
+
+    # Read back by deploy.sh to record what to roll back to.
+    labels:
+      app: airhouse
+      release: ${VITE_RELEASE:-latest}
+
+    # Loopback only. Nothing reaches this except the reverse proxy on the
+    # same host.
+    ports:
+      - "127.0.0.1:${APP_PORT:-5000}:5000"
+
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+
+      # The server refuses to start without these; that is deliberate.
+      SUPABASE_URL: ${SUPABASE_URL:?required}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?required}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?required}
+      RESEND_API_KEY: ${RESEND_API_KEY:?required}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?required}
+
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+      SUPPORT_INBOX_EMAILS: ${SUPPORT_INBOX_EMAILS:-}
+      APP_URL: ${APP_URL:-https://airhouse.co.za}
+
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      RATE_LIMIT_MAX_PER_USER: ${RATE_LIMIT_MAX_PER_USER:-20}
+      RATE_LIMIT_MAX_PER_IP: ${RATE_LIMIT_MAX_PER_IP:-60}
+      RATE_LIMIT_MAX_PUBLIC_LEAD: ${RATE_LIMIT_MAX_PUBLIC_LEAD:-5}
+      MAX_BATCH_SIZE: ${MAX_BATCH_SIZE:-50}
+      MAX_REQUEST_BODY: ${MAX_REQUEST_BODY:-64kb}
+
+    # Docker's own init, in place of tini: reaps zombies and forwards signals
+    # so `docker stop` is prompt rather than waiting out the timeout.
+    init: true
+
+    restart: unless-stopped
+
+    # On a shared VPS an unbounded log file is how you run out of disk and
+    # take the other sites down with you.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+    # Leave headroom for whatever else the box is running.
+    deploy:
+      resources:
+        limits:
+          cpus: ${APP_CPU_LIMIT:-1.0}
+          memory: ${APP_MEMORY_LIMIT:-512M}
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+    security_opt:
+      - no-new-privileges:true
+
+    # The application writes nothing to disk; everything persists in Supabase.
+    read_only: true
+    tmpfs:
+      - /tmp

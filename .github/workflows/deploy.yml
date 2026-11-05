@@ -107,10 +107,21 @@ jobs:
           fi
           bash scripts/apply-migrations.sh "$STAGING_DATABASE_URL"
 
-      - name: Publish
-        run: |
-          echo "Built ${{ github.sha }} for staging."
-          echo "Add the hosting provider's deploy step here."
+      - name: Deploy to staging
+        if: ${{ vars.STAGING_HOST != '' }}
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd ${{ vars.STAGING_APP_PATH || '/srv/airhouse-staging' }}
+            git fetch --all --prune
+            git checkout ${{ github.sha }}
+            ./deploy/deploy.sh
 
   deploy-production:
     name: Deploy to production
@@ -180,7 +191,33 @@ jobs:
           PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
         run: bash scripts/apply-migrations.sh "$PRODUCTION_DATABASE_URL"
 
-      - name: Publish
+      - name: Deploy to the VPS over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          # Fail the job if any step fails, rather than reporting a green
+          # deploy that did not happen.
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd ${{ vars.VPS_APP_PATH || '/srv/airhouse' }}
+            git fetch --all --prune
+            git checkout ${{ github.sha }}
+            ./deploy/deploy.sh
+
+      - name: Confirm the site is answering
         run: |
-          echo "Built ${{ github.sha }} for production."
-          echo "Add the hosting provider's deploy step here."
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            if curl -fsS --max-time 10 https://airhouse.co.za/api/health; then
+              echo "\nProduction is healthy."
+              exit 0
+            fi
+            echo "Attempt $attempt failed; retrying..."
+            sleep 10
+          done
+          echo "::error::airhouse.co.za did not answer after the deploy."
+          exit 1
