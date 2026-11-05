@@ -20,3 +20,42 @@ DO $$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object T
 DO $$ BEGIN CREATE ROLE service_role NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- Storage emulation, so storage policies can be exercised locally.
+-- ---------------------------------------------------------------------------
+CREATE SCHEMA IF NOT EXISTS storage;
+
+CREATE TABLE IF NOT EXISTS storage.buckets (
+  id TEXT PRIMARY KEY,
+  name TEXT,
+  public BOOLEAN DEFAULT FALSE,
+  file_size_limit BIGINT,
+  allowed_mime_types TEXT[]
+);
+
+CREATE TABLE IF NOT EXISTS storage.objects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  bucket_id TEXT REFERENCES storage.buckets(id),
+  name TEXT,
+  owner UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- Supabase's helper: split an object path into its segments.
+CREATE OR REPLACE FUNCTION storage.foldername(name TEXT)
+RETURNS TEXT[] LANGUAGE sql IMMUTABLE AS $$
+  SELECT string_to_array(name, '/');
+$$;
+
+GRANT USAGE ON SCHEMA storage TO anon, authenticated;
+
+INSERT INTO storage.buckets (id, name, public) VALUES
+  ('avatars','avatars',TRUE),
+  ('campaign-media','campaign-media',TRUE),
+  ('property-photos','property-photos',TRUE),
+  ('verification-documents','verification-documents',FALSE),
+  ('dispute-evidence','dispute-evidence',FALSE)
+ON CONFLICT (id) DO NOTHING;

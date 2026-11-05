@@ -69,7 +69,7 @@ const LeadCaptureForm = () => {
             property_images,
             brochure_urls,
             key_selling_points,
-            developer:profiles!developer_id (full_name, company_name, avatar_url, email)
+            developer:profiles!developer_id (full_name, company_name, avatar_url)
           `)
           .eq('id', campaignId)
           .single()

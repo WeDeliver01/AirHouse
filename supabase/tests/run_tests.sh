@@ -52,9 +52,10 @@ echo "==> Applying migration 016_financial_integrity.sql"
 "${PSQL[@]}" -f "$REPO_ROOT/supabase/migrations/016_financial_integrity.sql" 2>&1 \
   | grep -v '^psql:.*NOTICE' || true
 
-echo "==> Applying migration 017_access_control_hardening.sql"
-"${PSQL[@]}" -f "$REPO_ROOT/supabase/migrations/017_access_control_hardening.sql" 2>&1 \
-  | grep -v '^psql:.*NOTICE' || true
+for m in 017_access_control_hardening 018_tenant_isolation 019_storage_hardening 020_campaign_lifecycle; do
+  echo "==> Applying migration $m.sql"
+  "${PSQL[@]}" -f "$REPO_ROOT/supabase/migrations/$m.sql" 2>&1 | grep -v '^psql:.*NOTICE' || true
+done
 
 echo "==> Seeding test data"
 "${PSQL[@]}" -f "$HERE/02_seed.sql"
@@ -64,7 +65,8 @@ OUTPUT="$(
   "$PGBIN/psql" -h "$SOCKET" -p "$PGPORT" -d "$DBNAME" \
     -f "$HERE/03_financial_integrity_tests.sql" \
     -f "$HERE/04_payout_tests.sql" \
-    -f "$HERE/05_access_control_tests.sql" 2>&1
+    -f "$HERE/05_access_control_tests.sql" \
+    -f "$HERE/06_tenant_isolation_tests.sql" 2>&1
 )"
 
 echo "$OUTPUT" | grep -E 'PASS|FAIL|NOTICE:  ---' | sed 's/^psql:[^ ]* //'

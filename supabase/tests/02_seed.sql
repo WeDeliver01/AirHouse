@@ -22,9 +22,16 @@ INSERT INTO wallets (id, user_id, wallet_type, balance) VALUES
   ('aaaaaaaa-0000-4000-8000-000000000002','22222222-2222-4222-8222-222222222222','creator',0.00),
   ('aaaaaaaa-0000-4000-8000-000000000003','11111111-1111-4111-8111-111111111111','developer',0.00);
 
-INSERT INTO campaigns (id, developer_id, title, escrow_amount, escrow_wallet_id)
+-- Funded and running, so assignments and releases are valid against it.
+INSERT INTO campaigns (id, developer_id, title, status, escrow_amount, escrow_wallet_id)
 VALUES ('cccccccc-0000-4000-8000-000000000001','11111111-1111-4111-8111-111111111111',
-        'Test Campaign', 1000.00, 'aaaaaaaa-0000-4000-8000-000000000001');
+        'Test Campaign', 'active', 1000.00, 'aaaaaaaa-0000-4000-8000-000000000001');
+
+-- A separate draft campaign, used by the lifecycle assertions so they can walk
+-- the state machine from the beginning without disturbing the funded one.
+INSERT INTO campaigns (id, developer_id, title, status)
+VALUES ('cccccccc-0000-4000-8000-000000000002','11111111-1111-4111-8111-111111111111',
+        'Lifecycle Campaign', 'draft');
 
 INSERT INTO campaign_assignments (campaign_id, creator_id)
 VALUES ('cccccccc-0000-4000-8000-000000000001','22222222-2222-4222-8222-222222222222');
