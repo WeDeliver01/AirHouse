@@ -29,7 +29,26 @@ import process from 'process';
 const recipient = process.argv[2];
 
 if (!recipient || !recipient.includes('@')) {
-  console.error('Usage: node scripts/test-email.mjs <recipient@example.com>');
+  console.error('Usage: node scripts/test-email.mjs <your-own-address>');
+  console.error('Use a real inbox you can open. Before a sending domain is');
+  console.error('verified, Resend only delivers to the address that owns the');
+  console.error('Resend account.');
+  process.exit(2);
+}
+
+// example.com and friends are reserved by IANA and every provider refuses
+// them, so a placeholder copied out of documentation fails for a reason that
+// has nothing to do with this deployment. Catch it here rather than spending a
+// send and reporting a misleading cause.
+const RESERVED_DOMAINS = ['example.com', 'example.org', 'example.net', 'example.edu', 'test', 'invalid', 'localhost'];
+const recipientDomain = recipient.split('@').pop().toLowerCase();
+
+if (RESERVED_DOMAINS.includes(recipientDomain)) {
+  console.error(`\n${recipient} is a documentation placeholder, not a real address.`);
+  console.error(`${recipientDomain} is reserved by IANA and every email provider refuses it.\n`);
+  console.error('Use a real inbox you can open. Before a sending domain is');
+  console.error('verified, Resend only delivers to the address that owns the');
+  console.error('Resend account.\n');
   process.exit(2);
 }
 
@@ -69,16 +88,35 @@ const sent = await sendNotification('welcome', recipient, { userName: 'Email tes
 if (!sent.success) {
   console.log('failed.\n');
   console.error(`  ${sent.error}\n`);
-  console.error('The usual causes:');
-  console.error('  - the sending domain is not verified in Resend, so the');
-  console.error('    From address is refused. Resend → Domains → Add Domain,');
-  console.error('    then add the DKIM and SPF records it gives you.');
-  console.error('  - the API key was revoked, or is a restricted key without');
-  console.error('    sending permission.');
-  console.error('  - the monthly quota is exhausted.\n');
-  console.error('To send before the domain is verified, set');
-  console.error('RESEND_FROM_EMAIL=onboarding@resend.dev -- note that only');
-  console.error('reaches the address that owns the Resend account.\n');
+
+  // Advise on what actually went wrong, rather than listing every
+  // possibility and leaving the operator to guess which one applies.
+  const reason = sent.error.toLowerCase();
+
+  if (reason.includes('`to`') || reason.includes('to field') || reason.includes('testing email')) {
+    console.error('The recipient was refused, not the sender. Until a sending');
+    console.error('domain is verified, Resend delivers only to the address that');
+    console.error('owns the Resend account. Try that address.\n');
+  } else if (reason.includes('domain') || reason.includes('from')) {
+    console.error(`The sending address ${from} was refused.`);
+    console.error('Verify the domain under Resend → Domains, then add the DKIM');
+    console.error('and SPF records it gives you. To send in the meantime, set');
+    console.error('RESEND_FROM_EMAIL=onboarding@resend.dev -- that reaches only');
+    console.error('the address that owns the Resend account.\n');
+  } else if (reason.includes('api key') || reason.includes('unauthorized') || reason.includes('restricted')) {
+    console.error('The API key was refused. It may have been revoked, or it may');
+    console.error('be a restricted key without sending permission. Create a new');
+    console.error('one under Resend → API Keys with sending access.\n');
+  } else if (reason.includes('quota') || reason.includes('rate limit')) {
+    console.error('The account has hit a sending limit. Check the usage and plan');
+    console.error('under Resend → Settings.\n');
+  } else if (reason.includes('could not be resolved') || reason.includes('fetch')) {
+    console.error('The provider could not be reached at all. Check that outbound');
+    console.error('HTTPS to api.resend.com is permitted from this host.\n');
+  } else {
+    console.error('Check the message above against the Resend dashboard logs.\n');
+  }
+
   process.exit(1);
 }
 

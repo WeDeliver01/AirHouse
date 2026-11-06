@@ -173,8 +173,13 @@ dependencies:
 
 ```bash
 docker compose --env-file deploy/.env.production \
-  exec app node scripts/test-email.mjs you@example.com
+  exec app node scripts/test-email.mjs <your-own-inbox>
 ```
+
+Use a real inbox you can open, not a placeholder: `example.com` and friends
+are reserved by IANA and every provider refuses them. **Before a sending
+domain is verified, Resend delivers only to the address that owns the Resend
+account**, so that is the address to test with first.
 
 **Do not load the env file into your shell to run this on the host** (`. deploy/.env.production`).
 That hands the configuration file to bash, so an ordinary value such as
