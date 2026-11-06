@@ -206,10 +206,28 @@ records. Email will "work" without them and be filtered anyway.
 ## 7. Check it
 
 ```bash
-curl -s https://airhouse.co.za/api/health
+./scripts/verify-deployment.sh
 ```
 
-Then in a browser, as a signed-out visitor:
+That checks the things a user would notice: the proxy reaches the container,
+the home page and deep links are served, the certificate is valid and how long
+it has left, http and www redirect to the canonical host, the security headers
+and CSP are present, the notification endpoint refuses an unauthenticated
+caller, a foreign origin gets no CORS grant, fingerprinted assets are cached
+immutably and `index.html` is not. It exits non-zero if any of that is wrong,
+so it can be used after every deploy.
+
+Point it at the container to separate a proxy problem from an app problem:
+
+```bash
+./scripts/verify-deployment.sh http://127.0.0.1:5000
+```
+
+The TLS, header and caching checks are Nginx's work, so they are skipped for
+that target rather than reported as failures.
+
+The script cannot judge whether the product works, so then, in a browser, as
+a signed-out visitor:
 
 - The home page loads
 - Register, and confirm the email link points at `airhouse.co.za`
