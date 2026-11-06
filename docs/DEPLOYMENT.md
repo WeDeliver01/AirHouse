@@ -260,6 +260,13 @@ docker image prune -a -f
 memory, so running two replicas doubles the effective limit (AH-019 in the
 risk register). Before scaling out, move those counters to a shared store.
 
+**The app trusts exactly one proxy: Nginx on this machine.** That is what
+`TRUST_PROXY=loopback` means, and it is why per-IP rate limiting sees real
+visitor addresses rather than `127.0.0.1`. If you ever put Cloudflare or
+another CDN in front of Nginx, `$remote_addr` becomes the CDN's edge and this
+has to name the CDN's address ranges instead -- otherwise every visitor
+arriving through the CDN shares one rate-limit bucket (AH-028).
+
 **Image size is about 480MB.** The runtime carries all production
 dependencies, including ones only the frontend bundle needs (charting, PDF
 generation). Splitting server dependencies out of `package.json` would cut

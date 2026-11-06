@@ -22,6 +22,20 @@ const app = express();
 
 app.disable('x-powered-by');
 
+/**
+ * Believe the reverse proxy about who the client is.
+ *
+ * Without this, Express reports the socket's peer -- which behind Nginx is
+ * always 127.0.0.1. Both IP rate limiters keyed on `req.ip`, so every visitor
+ * on the internet shared one bucket: the public lead endpoint's budget of a
+ * handful of submissions a minute was the budget for the entire platform, and
+ * one noisy source locked out every genuine enquiry. `req.secure` was false
+ * on HTTPS for the same reason.
+ *
+ * See config.trustProxy for why this is the loopback hop and not `true`.
+ */
+app.set('trust proxy', config.trustProxy);
+
 /** Attach a correlation id so a request can be traced across logs. */
 app.use((req, res, next) => {
   req.requestId = req.headers['x-request-id'] || crypto.randomUUID();

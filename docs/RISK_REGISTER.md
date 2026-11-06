@@ -151,6 +151,15 @@ because the deployed database has not been inspected.
 | **Owner** | Senior engineer |
 | **Remaining** | Move audit writes server-side, as `financial_operations` already does for money movements, and revoke client `INSERT` on `audit_logs`. |
 
+### AH-028 — Rate limiting saw the proxy, not the visitor
+| | |
+|---|---|
+| **Impact** | Found while deploying. Express was not configured to trust the reverse proxy, so `req.ip` was `127.0.0.1` on every request behind Nginx. Both IP limiters key on `req.ip`, so the entire internet shared one bucket: the public lead endpoint's budget of five submissions a minute was the budget for the whole platform, and a single noisy source locked out every genuine enquiry. `req.secure` was also false on HTTPS. |
+| **Status** | **Fixed** — `app.set('trust proxy', config.trustProxy)`, defaulting to `loopback`. |
+| **Owner** | Senior engineer |
+| **Evidence** | `server/__tests__/trustProxy.test.js`. Proves the real address is used, and that a caller sending its own `X-Forwarded-For` cannot shift the bucket — Nginx's `$proxy_add_x_forwarded_for` appends the true peer last and Express reads from the right. A test also pins why the value is not `true`, which would take the attacker-controlled left-most entry. |
+| **Remaining** | If a CDN is ever placed in front of Nginx, `TRUST_PROXY` must name its address ranges, or every visitor through the CDN shares a bucket again. |
+
 ### AH-019 — Rate limits are per process
 | | |
 |---|---|

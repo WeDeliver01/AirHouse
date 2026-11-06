@@ -51,6 +51,25 @@ export const config = {
   supportInboxes: parseList(process.env.SUPPORT_INBOX_EMAILS),
 
   appUrl: process.env.APP_URL || 'https://airhouse.co.za',
+
+  /**
+   * Which upstream proxies may be believed about the client's address.
+   *
+   * The container listens on 127.0.0.1 and Nginx is the only thing in front
+   * of it, so the single trusted hop is loopback. Express then walks
+   * X-Forwarded-For from the right, skipping trusted addresses, and Nginx's
+   * `$proxy_add_x_forwarded_for` always appends the true peer last -- so a
+   * client that sends its own X-Forwarded-For cannot shift the answer.
+   *
+   * Do NOT set this to `true`. That takes the left-most entry, which is
+   * whatever the caller put there, and hands every request a rate-limit
+   * bucket of its own choosing.
+   *
+   * Override only when another proxy is genuinely in front of Nginx -- a CDN,
+   * for example -- in which case this must name that proxy's addresses, since
+   * $remote_addr will then be the CDN's edge rather than the visitor.
+   */
+  trustProxy: process.env.TRUST_PROXY || 'loopback',
 };
 
 /**
