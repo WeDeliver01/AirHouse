@@ -86,20 +86,35 @@ curl -s http://127.0.0.1:5000/api/health
 sudo cp deploy/nginx/airhouse.co.za.conf /etc/nginx/sites-available/airhouse.co.za
 ```
 
-**Get the certificate before enabling the TLS blocks.** Nginx will not start
-if it is pointed at a certificate that does not exist yet, and that is the
-usual reason a first deploy appears to break the other sites on the box.
+**Use `certbot certonly`, not `certbot --nginx`.** The config file already
+names the certificate paths certbot writes, so certbot's nginx *installer*
+has nothing to add -- and on a host already serving other sites it may pick a
+different server block and rewrite that site's TLS configuration instead. See
+"certbot edited the wrong site" below for what that looks like. `certonly`
+only writes to `/etc/letsencrypt`.
 
-Comment out both `listen 443` server blocks, then:
+**And get the certificate before enabling the TLS blocks.** Nginx will not
+start if it is pointed at a certificate that does not exist yet.
+
+So, in order. Comment out both `listen 443` server blocks, leaving only the
+port 80 block:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/airhouse.co.za /etc/nginx/sites-enabled/
+sudo ln -sfn /etc/nginx/sites-available/airhouse.co.za /etc/nginx/sites-enabled/airhouse.co.za
 sudo nginx -t && sudo systemctl reload nginx
-
-sudo certbot --nginx -d airhouse.co.za -d www.airhouse.co.za
 ```
 
-Uncomment the 443 blocks (or let certbot write its own), then:
+```bash
+sudo certbot certonly --webroot -w /var/www/html \
+  -d airhouse.co.za -d www.airhouse.co.za \
+  --deploy-hook "systemctl reload nginx"
+```
+
+The deploy hook is what reloads nginx when the certificate renews in sixty
+days. Without it the renewal succeeds and nginx carries on serving the expired
+certificate until something restarts it.
+
+Then uncomment the 443 blocks:
 
 ```bash
 sudo nginx -t && sudo systemctl reload nginx
@@ -107,6 +122,9 @@ sudo nginx -t && sudo systemctl reload nginx
 
 `nginx -t` before every reload. It is the difference between catching a typo
 and taking every site on the server down.
+
+Note `ln -sfn` rather than `ln -s`: re-running the plain form fails with
+`File exists`, which is harmless but looks like an error mid-sequence.
 
 ## 5. Tell Supabase about the domain
 
@@ -217,6 +235,41 @@ see this, you are on an older checkout: `git pull`.
 An unquoted value with a trailing `# comment` means two different things to
 the shell and to docker compose, so the script refuses rather than guess. Move
 the comment to its own line, or quote the value.
+
+**certbot edited the wrong site, and now nginx will not start.**
+
+Symptom, after `certbot --nginx` on a host with other sites:
+
+```
+Successfully deployed certificate for airhouse.co.za to /etc/nginx/sites-enabled/default.conf
+We were unable to restart web server
+nginx: [emerg] no "ssl_certificate" is defined for the "listen ... quic" directive in ...
+```
+
+Certbot chose another server block -- often the catch-all in `default.conf` --
+and rewrote it. A failed *reload* leaves the previously loaded configuration
+serving, so the other sites are still up; a *restart* or a reboot will read
+the broken file and take all of them down. So do not restart nginx until
+`nginx -t` passes.
+
+The certificate itself is fine and already at the path this config expects.
+Only the nginx edits need undoing:
+
+```bash
+sudo nginx -t                      # confirm it is still failing, and where
+ls -t /var/lib/letsencrypt/backups # certbot's own backup of what it changed
+```
+
+Restore the edited file from that backup, or revert its server block by hand,
+then check what else certbot touched -- it may have repointed another domain
+at the AirHouse certificate:
+
+```bash
+sudo grep -n 'server_name\|ssl_certificate' /etc/nginx/sites-enabled/default.conf
+```
+
+Every site should still name its own certificate. Then uncomment the 443
+blocks in the AirHouse config, `sudo nginx -t`, and reload.
 
 **502 Bad Gateway from Nginx.**
 
