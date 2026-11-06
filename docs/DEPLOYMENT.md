@@ -368,6 +368,25 @@ sudo ss -ltnp | grep 5000
 be the exact origin, `https://airhouse.co.za`, with no trailing slash. There
 is no wildcard fallback by design.
 
+**The page is blank and the console shows `Cannot read properties of
+undefined (reading 'memo')`.**
+
+The built chunks import each other in a cycle, so one evaluates before the
+other's exports exist. Every server-side check passes, because the failure is
+entirely in the browser. `npm run build` now refuses to produce such a bundle,
+so the fix is to rebuild on a current checkout:
+
+```bash
+cd /srv/airhouse && git pull && ./deploy/deploy.sh
+```
+
+To check a build without deploying it:
+
+```bash
+node scripts/check-bundle.mjs    # static: chunk cycles and missing files
+npm run test:smoke               # opens the built app in a browser
+```
+
 **The page is served but stays blank, and the console shows a thrown error
 about Supabase not being configured.**
 

@@ -12,14 +12,42 @@ export default defineConfig({
     // means they are fetched only by the pages that use them.
     rollupOptions: {
       output: {
+        // Splitting by hand is easy to get wrong, and getting it wrong is not
+        // a size regression -- it is a blank page.
+        //
+        // The previous rules matched React with `id.includes('/react/')`,
+        // which left React's own dependencies (scheduler, and anything else
+        // it reaches) in `vendor`. That made `react` import `vendor` while
+        // `vendor` imported `react`: a cycle. ES modules in a cycle evaluate
+        // one side before the other's exports are initialised, so a library
+        // in `vendor` calling `React.memo` at module scope got `undefined`:
+        //
+        //   Uncaught TypeError: Cannot read properties of undefined (reading 'memo')
+        //
+        // and nothing rendered at all.
+        //
+        // Two rules keep that from recurring:
+        //
+        //   1. React, react-dom and scheduler ship together, so the React
+        //      chunk depends on nothing outside itself.
+        //   2. Only leaves get their own chunk -- heavy libraries the app
+        //      imports but which nothing else here imports. Edges then point
+        //      one way, from the leaf to React, and a cycle cannot form.
+        //
+        // scripts/check-bundle.mjs enforces this on every build.
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined
+
+          // The React runtime and everything it needs, in one chunk.
+          if (/[\\/]node_modules[\\/](react|react-dom|scheduler|react-is)[\\/]/.test(id)) return 'react'
+
+          // Leaves: imported by the app, importing only React.
           if (id.includes('recharts') || id.includes('d3-')) return 'charts'
           if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('dompurify')) return 'pdf'
           if (id.includes('@supabase')) return 'supabase'
           if (id.includes('@sentry')) return 'monitoring'
           if (id.includes('react-router')) return 'router'
-          if (id.includes('react-dom') || id.includes('/react/')) return 'react'
+
           return 'vendor'
         },
       },

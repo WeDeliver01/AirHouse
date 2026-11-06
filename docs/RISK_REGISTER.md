@@ -151,6 +151,15 @@ because the deployed database has not been inspected.
 | **Owner** | Senior engineer |
 | **Remaining** | Move audit writes server-side, as `financial_operations` already does for money movements, and revoke client `INSERT` on `audit_logs`. |
 
+### AH-030 — The production bundle rendered nothing
+| | |
+|---|---|
+| **Impact** | The deployed site served a blank page. The `manualChunks` configuration added for AH-023 matched React with `id.includes('/react/')`, leaving React's own dependencies in `vendor`, so `react` imported `vendor` while `vendor` imported `react`. ES modules in a cycle evaluate one side before the other's exports exist, so a library calling `React.memo` at module scope got `undefined` and nothing mounted. Every server-side signal was green throughout: the HTML and assets returned 200, TLS, the proxy and the health check were all correct, and `verify-deployment.sh` passed 15 of 16. |
+| **Status** | **Fixed** — React, react-dom, scheduler and react-is ship in one chunk; only leaf libraries get their own. |
+| **Owner** | Senior engineer |
+| **Evidence** | Reproduced in Chromium against the built output (`#root` empty, `Cannot read properties of undefined (reading 'memo')`), and confirmed fixed (20,604 characters rendered, no console errors). `scripts/check-bundle.mjs` and `scripts/smoke-built-app.mjs` were both run against the broken build and both fail on it. |
+| **Remaining** | None for this defect. The wider lesson is recorded in AH-015: the journey suite runs against the Vite dev server, which serves unbundled modules, so no test had ever opened the production build. The smoke test now does, in CI. |
+
 ### AH-029 — Vulnerable dependencies shipped in the production image
 | | |
 |---|---|

@@ -72,6 +72,53 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# The single most deceptive failure this stack can produce. The server falls
+# back to index.html for any GET that is not an existing file, with a 200 and
+# a text/html content type. So a missing or mis-hashed bundle returns the HTML
+# page, the browser refuses it -- "Expected a JavaScript module script but the
+# server responded with a MIME type of text/html" -- and nothing renders,
+# while the status code, the proxy, TLS and the health check all look right.
+head_ "The page's own assets"
+
+fetch "$BASE/" >/dev/null
+scripts_found=0
+assets_bad=0
+
+for src in $(grep -oE 'src="[^"]*\.js"' /tmp/ah-body.$$ | sed 's/src="//; s/"$//'); do
+  case "$src" in http*) continue ;; esac
+  scripts_found=$((scripts_found+1))
+  url="$BASE${src#.}"
+  code="$(fetch "$url")"
+  ctype="$(header content-type)"
+
+  if [ "$code" != "200" ]; then
+    no "$src returned $code"; assets_bad=$((assets_bad+1))
+  elif printf '%s' "$ctype" | grep -qiE 'javascript|ecmascript'; then
+    ok "$src is served as $ctype"
+  else
+    no "$src came back as '$ctype', not JavaScript" \
+       "The file is missing, so the SPA fallback returned index.html with a 200. The browser refuses it as a module and the page stays blank. Rebuild: ./deploy/deploy.sh"
+    assets_bad=$((assets_bad+1))
+  fi
+done
+
+for href in $(grep -oE 'href="[^"]*\.css"' /tmp/ah-body.$$ | sed 's/href="//; s/"$//'); do
+  case "$href" in http*) continue ;; esac
+  url="$BASE${href#.}"
+  code="$(fetch "$url")"
+  ctype="$(header content-type)"
+  if [ "$code" = "200" ] && printf '%s' "$ctype" | grep -qi 'css'; then
+    ok "$href is served as $ctype"
+  else
+    no "$href returned $code as '$ctype'"; assets_bad=$((assets_bad+1))
+  fi
+done
+
+if [ "$scripts_found" -eq 0 ]; then
+  no "the page references no JavaScript bundle" "index.html may be a stale or placeholder build."
+fi
+
+# ---------------------------------------------------------------------------
 head_ "Transport"
 
 if [ "$SCHEME" != "https" ]; then
@@ -202,14 +249,14 @@ else
   meh "found no fingerprinted asset to check"
 fi
 
+fi
+
 fetch "$BASE/" >/dev/null
 case "$(header cache-control)" in
   *no-cache*|*no-store*|*max-age=0*) ok "index.html is not cached" ;;
   "") no "no Cache-Control on index.html" "A cached index.html serves a stale app after a deploy." ;;
   *) no "index.html Cache-Control is '$(header cache-control)'" "It must not be cached, or a deploy does not reach returning visitors." ;;
 esac
-
-fi
 
 # ---------------------------------------------------------------------------
 printf '\n\033[1m%d passed, %d failed, %d skipped\033[0m\n\n' "$pass" "$fail" "$skip"

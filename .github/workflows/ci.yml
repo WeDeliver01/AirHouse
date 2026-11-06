@@ -68,6 +68,18 @@ jobs:
 
       - run: npm ci
 
+      # The dev server does not bundle, so the journey suite below cannot see
+      # a broken production build. This opens the built output in a browser
+      # and fails if nothing renders (AH-030).
+      - name: Build and smoke-test the production bundle
+        env:
+          VITE_SUPABASE_URL: https://smoke.supabase.co
+          VITE_SUPABASE_ANON_KEY: smoke-anon-key
+        run: |
+          npm run build
+          npx playwright install --with-deps chromium
+          node scripts/smoke-built-app.mjs
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
