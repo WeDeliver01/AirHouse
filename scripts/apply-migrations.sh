@@ -42,6 +42,32 @@ fi
 psql_exec() { psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q "$@"; }
 psql_value() { psql "$DATABASE_URL" -tAc "$1"; }
 
+# Which tables does a migration create? Used to check whether a historical
+# migration is genuinely already applied before adopting it.
+tables_created_by() {
+  grep -ioE 'CREATE TABLE (IF NOT EXISTS )?(public\.)?"?[a-z_]+' "$1" \
+    | sed -E 's/.*[ .]"?//' | sort -u
+}
+
+# "present", "absent" or "partial" -- whether this migration's tables exist.
+historical_state() {
+  local file="$1" found=0 missing=0 table
+  for table in $(tables_created_by "$file"); do
+    if [ "$(psql_value "SELECT to_regclass('public.$table') IS NOT NULL")" = "t" ]; then
+      found=$((found + 1))
+    else
+      missing=$((missing + 1))
+    fi
+  done
+
+  # A migration that creates no table (policies, functions, grants only)
+  # cannot be checked this way; assume the operator's inspection was right.
+  if [ "$found" -eq 0 ] && [ "$missing" -eq 0 ]; then echo "present"; return; fi
+  if [ "$missing" -eq 0 ]; then echo "present"; return; fi
+  if [ "$found" -eq 0 ]; then echo "absent"; return; fi
+  echo "partial"
+}
+
 echo "==> Ensuring the migration ledger exists"
 psql_exec <<'SQL'
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -77,10 +103,41 @@ for file in $(ls "$MIGRATIONS_DIR"/[0-9]*.sql | sort); do
   # Historical migrations are recorded, not executed.
   if [ "$number" \< "$HISTORICAL_THROUGH" ] || [ "$number" = "$HISTORICAL_THROUGH" ]; then
     if [ "$MODE" = "--adopt" ]; then
-      echo "==> Adopting $version (recorded, not executed)"
-      psql_exec -c "INSERT INTO schema_migrations (version, checksum, adopted)
-                    VALUES ('$version', 'adopted', TRUE)"
-      adopted=$((adopted + 1))
+      # Adopting means "this is already applied, record it and move on". That
+      # is only true if its objects are actually there. Adopting one whose
+      # tables are missing marks it done forever and the tables are never
+      # created -- found on the live project, where 015_terms_acceptances had
+      # never been applied while everything around it had.
+      state="$(historical_state "$file")"
+
+      case "$state" in
+        present)
+          echo "==> Adopting $version (objects present; recorded, not executed)"
+          psql_exec -c "INSERT INTO schema_migrations (version, checksum, adopted)
+                        VALUES ('$version', 'adopted', TRUE)"
+          adopted=$((adopted + 1))
+          ;;
+        absent)
+          # Nothing it creates exists, so there is nothing for it to collide
+          # with: running it is both safe and necessary.
+          echo "==> Applying $version (historical, but its objects are missing here)"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$file"
+          psql_exec -c "INSERT INTO schema_migrations (version, checksum) VALUES ('$version', '$checksum')"
+          applied=$((applied + 1))
+          ;;
+        partial)
+          echo "::error::$version is partially applied: some of its tables exist and some do not."
+          echo "Adopting it would record work that was never done; replaying it would"
+          echo "collide with what is there. Reconcile this migration by hand, then"
+          echo "record it with:"
+          echo "  INSERT INTO schema_migrations (version, checksum, adopted) VALUES ('$version', 'adopted', TRUE);"
+          echo "Tables it creates:"
+          for t in $(tables_created_by "$file"); do
+            echo "  $t: $(psql_value "SELECT CASE WHEN to_regclass('public.$t') IS NULL THEN 'MISSING' ELSE 'present' END")"
+          done
+          exit 1
+          ;;
+      esac
     else
       echo "::warning::$version is historical and not in the ledger."
       echo "            Run once with --adopt if this database already has it."

@@ -151,6 +151,15 @@ because the deployed database has not been inspected.
 | **Owner** | Senior engineer |
 | **Remaining** | Move audit writes server-side, as `financial_operations` already does for money movements, and revoke client `INSERT` on `audit_logs`. |
 
+### AH-031 — The row-level policies were never tested, and three were broken
+| | |
+|---|---|
+| **Impact** | Found by rehearsing 016–025 against the live schema. Every test in the database suite ran as the database owner, who bypasses RLS, and no table sets `FORCE ROW LEVEL SECURITY` — so 123 assertions passed without the policies behind AH-001, AH-008 and AH-009 ever being evaluated. Three defects survived: **(a)** 018's blanket `REVOKE ALL` removed the column-level UPDATE grants 017 places on `profiles` and re-granted only SELECT and INSERT, so no user could edit their own profile; **(b)** neither migration dropped the pre-existing `allow_all_profiles` / `allow_all_creator_profiles` policies, and because PostgreSQL combines permissive policies with OR, one surviving `USING (true)` granted everything — any signed-in user could read every profile and edit any creator profile; **(c)** 016 revoked `EXECUTE` on `fin_is_super_admin` from `authenticated` while 018 used it in eight policies, so those policies raised *permission denied* for the very users they were written for. |
+| **Status** | **Fixed** — migration `026_profile_policy_repair.sql`. |
+| **Owner** | Senior engineer |
+| **Evidence** | `supabase/tests/10_rls_as_client_tests.sql` — 14 assertions that `SET ROLE` to `authenticated` and `anon`, covering profile ownership, role escalation, wallet writes, payout approval, `super_admins` insertion, audit-log deletion and anonymous access. Suite is now 137 passing. Verified against a local PostgreSQL 16 carrying the same object set as the live project. |
+| **Remaining** | The other tables' policies now have client-role coverage only where these tests reach. Extend `10_rls_as_client_tests.sql` as each area is touched. |
+
 ### AH-030 — The production bundle rendered nothing
 | | |
 |---|---|

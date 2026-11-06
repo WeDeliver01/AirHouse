@@ -141,15 +141,26 @@ FROM (VALUES
   ('025 data_protection',      to_regclass('public.data_subject_requests') IS NOT NULL)
 ) AS m(name, present);"
 
-run "3. Permissive policies — every row here is a hole" "
+# Only genuinely unrestricted policies. An earlier version also flagged every
+# FOR ALL / FOR UPDATE policy with no WITH CHECK, which is wrong: PostgreSQL
+# applies the USING expression as the write check when WITH CHECK is omitted,
+# so `FOR ALL USING (user_id = auth.uid())` is correctly restricted. Flagging
+# ~30 sound policies alongside the real ones buries the real ones.
+run "3. Unrestricted policies — these grant access to everyone" "
 SELECT tablename, policyname, cmd,
        COALESCE(qual, '(none)') AS using_clause,
-       COALESCE(with_check, '(none)') AS with_check
+       COALESCE(with_check, '(none)') AS with_check,
+       CASE
+         WHEN policyname LIKE 'allow_all%' THEN 'quick_setup.sql signature — read AND write, unrestricted'
+         WHEN qual = 'true' AND cmd IN ('ALL','UPDATE','DELETE') THEN 'any caller may write every row'
+         WHEN qual = 'true' THEN 'any caller may read every row'
+         WHEN with_check = 'true' AND cmd = 'INSERT' THEN 'any caller may insert any row'
+         ELSE 'unrestricted'
+       END AS meaning
 FROM pg_policies
 WHERE schemaname = 'public'
-  AND (qual = 'true' OR with_check = 'true' OR policyname LIKE 'allow_all%'
-       OR (cmd IN ('UPDATE','ALL') AND with_check IS NULL))
-ORDER BY tablename, policyname;"
+  AND (qual = 'true' OR with_check = 'true' OR policyname LIKE 'allow_all%')
+ORDER BY (policyname LIKE 'allow_all%') DESC, tablename, policyname;"
 
 run "4. Direct write access granted to browser clients" "
 SELECT table_name, grantee, string_agg(privilege_type, ', ' ORDER BY privilege_type) AS privileges
