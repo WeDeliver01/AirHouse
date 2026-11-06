@@ -20,7 +20,10 @@ You need:
 - DNS: `airhouse.co.za` and `www.airhouse.co.za` pointing at the VPS
 - From Supabase → Settings → API: the project URL, the anon key, and the
   **service role key**
-- A Resend API key
+- SMTP details for sending email: host, port, username and password. Any
+  relay works -- Google Workspace, Microsoft 365, Zoho, a provider's SMTP
+  endpoint, or a mail server on this host. For Google Workspace and Microsoft
+  365 you need an **app password**, not the account password.
 
 **Is port 5000 free?**
 
@@ -162,7 +165,26 @@ In the Supabase dashboard → **Authentication → URL Configuration**:
 
 Remove any `localhost` entries once you are live.
 
-## 6. Check it
+## 6. Prove email works
+
+The platform tells developers about new leads by email, so this is worth
+checking explicitly rather than discovering from a developer who never heard
+about an enquiry.
+
+```bash
+cd /srv/airhouse
+set -a; . deploy/.env.production; set +a
+node scripts/test-email.mjs you@example.com
+```
+
+It prints the relay, TLS mode and sender it resolved, checks the relay accepts
+the credentials, then sends one real message through the same code path the
+server uses. A failure reports the mail server's own words.
+
+If the mail arrives only in spam, the sending domain needs SPF and DKIM
+records at your DNS host. Email will "work" without them and still be filtered.
+
+## 7. Check it
 
 ```bash
 curl -s https://airhouse.co.za/api/health

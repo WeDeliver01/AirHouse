@@ -143,7 +143,8 @@ The notification service is authenticated and rate limited, but check:
 grep -E 'recipient_rejected|Rate limit' <log-source>
 ```
 
-If abuse is confirmed, rotate `RESEND_API_KEY` immediately and tighten
+If abuse is confirmed, rotate `SMTP_PASSWORD` at the mail provider
+immediately and tighten
 `RATE_LIMIT_MAX_PER_USER`. Both take effect on restart.
 
 ### The site is down

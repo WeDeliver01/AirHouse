@@ -48,11 +48,11 @@ because the deployed database has not been inspected.
 ### AH-004 — Notification service is an open email relay
 | | |
 |---|---|
-| **Impact** | Anyone can send mail from AirHouse's Resend account to any address. Domain reputation loss, phishing in AirHouse's name, provider suspension. |
+| **Impact** | Anyone can send mail through AirHouse's mail relay to any address. Domain reputation loss, phishing in AirHouse's name, provider suspension. |
 | **Remediation** | Auth, recipient authorization, CORS allowlist, rate limits, batch and body caps. |
 | **Status** | Code fixed |
 | **Owner** | Senior engineer |
-| **Remaining** | Set `ALLOWED_ORIGINS`, `SUPPORT_INBOX_EMAILS`, `SUPABASE_SERVICE_ROLE_KEY` in the deployment. Check Resend logs for prior abuse. |
+| **Remaining** | Set `ALLOWED_ORIGINS`, `SUPPORT_INBOX_EMAILS`, `SUPABASE_SERVICE_ROLE_KEY` in the deployment. Check the mail relay's sending logs for prior abuse. |
 
 ### AH-009 — Blanket `GRANT ALL` to `anon` and `authenticated`
 | | |
@@ -103,7 +103,7 @@ because the deployed database has not been inspected.
 | | |
 |---|---|
 | **Status** | Code fixed |
-| **Remaining** | Move `RESEND_API_KEY` into the host's secret manager and remove any Replit connector reliance. |
+| **Remaining** | None. The Replit connector and the provider SDK are both removed; email is plain SMTP, configured in `deploy/.env.production` at mode 600. |
 
 ### AH-015 — Testing and CI
 | | |
@@ -150,6 +150,15 @@ because the deployed database has not been inspected.
 | **Status** | **Open** |
 | **Owner** | Senior engineer |
 | **Remaining** | Move audit writes server-side, as `financial_operations` already does for money movements, and revoke client `INSERT` on `audit_logs`. |
+
+### AH-029 — Vulnerable dependencies shipped in the production image
+| | |
+|---|---|
+| **Impact** | Found while adding the SMTP transport. The production dependency tree carried 11 advisories, one critical: `proxy-addr` was vulnerable to IP spoofing via an IPv4-mapped IPv6 trust subnet — directly on the `trust proxy` path AH-028 had just enabled, so the rate-limit key could be forged after all. Also `body-parser` (size enforcement silently disabled by an invalid limit), `qs`, `lodash`, `dompurify` and `ws`. |
+| **Status** | **Fixed** — `proxy-addr` 2.0.8, `body-parser` 1.20.9, `qs` pinned to 6.17.1 through an override because Express pins a vulnerable range. Production tree down to 2 moderate from 11 including 1 critical. |
+| **Owner** | Senior engineer |
+| **Evidence** | `npm audit --omit=dev`. |
+| **Remaining** | `react-router` 6 has an open-redirect advisory (backslash in `<Link>` and `useNavigate`) fixed only in 7.x, which is a breaking migration and deliberately not done mid-deploy. Audit every `navigate()` call that takes a user-supplied value, then schedule the upgrade. No automated check runs this yet — `npm audit --omit=dev` belongs in CI. |
 
 ### AH-028 — Rate limiting saw the proxy, not the visitor
 | | |

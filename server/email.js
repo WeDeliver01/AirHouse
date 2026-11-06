@@ -1,66 +1,102 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 import { config } from './config.js';
 
 /**
- * Resolve Resend credentials.
+ * SMTP transport.
  *
- * Credentials come from the hosting provider's secret manager
- * (RESEND_API_KEY / RESEND_FROM_EMAIL). The Replit connector lookup is kept
- * only as an opt-in fallback for legacy Replit deployments so that the
- * application is not coupled to that platform (AH-005).
+ * Deliberately a plain SMTP relay rather than a provider SDK: the same
+ * configuration works with Google Workspace, Microsoft 365, Zoho, a mail
+ * server on this host, or the SMTP endpoint of any transactional provider, so
+ * changing provider is a change to deploy/.env.production and nothing else.
+ *
+ * Built once and reused. Each `sendMail` on a fresh transport would otherwise
+ * pay a TCP connect, a TLS handshake and an AUTH round trip; with pooling, a
+ * burst of lead notifications reuses one authenticated connection.
  */
-async function getCredentials() {
-  if (config.resendApiKey) {
-    return { apiKey: config.resendApiKey, fromEmail: config.resendFromEmail };
+let transport = null;
+
+/** Reset the cached transport. Tests only. */
+export function resetTransport() {
+  transport = null;
+}
+
+/**
+ * Describe the SMTP settings, or explain what is missing.
+ *
+ * Separated from transport construction so it can be unit tested without
+ * opening a socket.
+ */
+export function describeSmtp(settings = config.smtp, from = config.emailFrom) {
+  const missing = [];
+  if (!settings.host) missing.push('SMTP_HOST');
+  if (!from) missing.push('EMAIL_FROM');
+
+  // Half-configured authentication is a configuration error, not a reason to
+  // silently connect anonymously to a relay that will reject the message.
+  if (settings.user && !settings.password) missing.push('SMTP_PASSWORD');
+  if (settings.password && !settings.user) missing.push('SMTP_USER');
+
+  if (missing.length) {
+    return {
+      ok: false,
+      error:
+        `Email is not configured. Set ${missing.join(', ')} in the environment. ` +
+        'See deploy/.env.production.example.',
+    };
   }
 
-  const credentials = await getReplitConnectorCredentials();
-  if (credentials) return credentials;
-
-  throw new Error(
-    'Email is not configured. Set RESEND_API_KEY (and RESEND_FROM_EMAIL) in the environment.',
-  );
-}
-
-/** Legacy Replit connector lookup. Returns null when not running on Replit. */
-async function getReplitConnectorCredentials() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY
-    ? 'repl ' + process.env.REPL_IDENTITY
-    : process.env.WEB_REPL_RENEWAL
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL
-    : null;
-
-  if (!hostname || !xReplitToken) return null;
-
-  const settings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
-    {
-      headers: {
-        Accept: 'application/json',
-        X_REPLIT_TOKEN: xReplitToken,
-      },
+  return {
+    ok: true,
+    options: {
+      host: settings.host,
+      port: settings.port,
+      // Port 465 is implicit TLS from the first byte. 587 and 25 begin in the
+      // clear and upgrade with STARTTLS, which `requireTLS` makes mandatory
+      // rather than opportunistic -- without it a relay that simply does not
+      // advertise STARTTLS would receive the password in plaintext.
+      secure: settings.secure,
+      requireTLS: !settings.secure && settings.requireTls,
+      auth: settings.user ? { user: settings.user, pass: settings.password } : undefined,
+      pool: true,
+      maxConnections: 3,
+      maxMessages: 50,
+      // A mail server that accepts the connection and then stops talking must
+      // not hold a request open indefinitely.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
     },
-  )
-    .then((res) => res.json())
-    .then((data) => data.items?.[0])
-    .catch(() => null);
-
-  if (!settings?.settings?.api_key) return null;
-
-  return {
-    apiKey: settings.settings.api_key,
-    fromEmail: settings.settings.from_email,
   };
 }
 
-async function getResendClient() {
-  const { apiKey, fromEmail } = await getCredentials();
-  return {
-    client: new Resend(apiKey),
-    fromEmail,
-  };
+function getTransport() {
+  if (transport) return transport;
+
+  const described = describeSmtp();
+  if (!described.ok) throw new Error(described.error);
+
+  transport = nodemailer.createTransport(described.options);
+  return transport;
+}
+
+/**
+ * Check the relay accepts our credentials, at startup.
+ *
+ * Non-fatal: a mail server that is briefly unreachable should not stop the
+ * platform from serving pages. It is logged loudly instead, because the
+ * alternative is discovering it from a developer who never got their lead.
+ */
+export async function verifyEmailTransport() {
+  const described = describeSmtp();
+  if (!described.ok) return { ok: false, error: described.error };
+
+  try {
+    await getTransport().verify();
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
 }
 
 const BRAND = {
@@ -424,20 +460,26 @@ export async function sendNotification(type, to, data) {
       throw new Error(`Unknown email template: ${type}`);
     }
 
-    const { client, fromEmail } = await getResendClient();
     const template = TEMPLATES[type](sanitizeTemplateData(data));
 
-    const result = await client.emails.send({
-      from: fromEmail || `${BRAND.name} <notifications@${BRAND.name.toLowerCase()}.co.za>`,
-      to: [to],
+    const result = await getTransport().sendMail({
+      from: config.emailFrom,
+      to,
       subject: template.subject,
       html: template.html,
     });
 
+    // A relay can accept the session and still refuse a recipient, which is
+    // not an exception. Treat that as a failed send rather than reporting
+    // success for a message nobody received.
+    if (result.rejected?.length) {
+      throw new Error('The mail server rejected the recipient.');
+    }
+
     // Recipient addresses are personal data: log the template type and the
-    // provider's message id, not the address or the rendered body (AH-016).
-    console.log(JSON.stringify({ level: 'info', msg: 'email_sent', type, id: result.data?.id }));
-    return { success: true, id: result.data?.id };
+    // message id, not the address or the rendered body (AH-016).
+    console.log(JSON.stringify({ level: 'info', msg: 'email_sent', type, id: result.messageId }));
+    return { success: true, id: result.messageId };
   } catch (error) {
     console.error(JSON.stringify({ level: 'error', msg: 'email_failed', type, error: error.message }));
     return { success: false, error: error.message };

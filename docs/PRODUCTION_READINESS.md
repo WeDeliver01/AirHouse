@@ -2,7 +2,7 @@
 
 **Date:** 5 November 2026
 **Assessed against:** the production readiness checklist in *Enterprise Readiness: Technical Audit & Engineering Handover*
-**Basis:** the remediation in this branch, verified by 159 unit tests, 123 database assertions against PostgreSQL, 38 end-to-end journeys, and a proven backup/restore cycle.
+**Basis:** the remediation in this branch, verified by 168 unit tests, 123 database assertions against PostgreSQL, 38 end-to-end journeys, and a proven backup/restore cycle.
 
 ---
 

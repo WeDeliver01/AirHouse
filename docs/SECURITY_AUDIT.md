@@ -232,9 +232,10 @@ dumped and compared.** See `docs/MIGRATION_HISTORY.md`.
 
 ### AH-005 — Email credentials coupled to Replit
 `server/email.js` fetched the Resend key from a Replit connector endpoint and
-threw *"Authentication token not available"* anywhere else. **Fixed:**
-`RESEND_API_KEY` is the primary source; the Replit lookup is an opt-in
-fallback.
+threw *"Authentication token not available"* anywhere else. **Fixed:** the
+Replit lookup and the provider SDK are both gone. Email now goes over plain
+SMTP (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM`), which works
+with any relay and couples the platform to no hosting provider at all.
 
 ### AH-006 — Server starts without required configuration
 The server came up regardless of missing secrets and failed at request time.

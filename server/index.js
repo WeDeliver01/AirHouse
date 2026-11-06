@@ -10,7 +10,7 @@ import { isAuthorizedRecipient, requireAuth } from './auth.js';
 import { RateLimiter, rateLimitMiddleware } from './rateLimit.js';
 import { validateBatch, validateNotification } from './validation.js';
 import { isUuid, resolveLeadNotification } from './leads.js';
-import { EMAIL_TYPES, sendNotification } from './email.js';
+import { EMAIL_TYPES, sendNotification, verifyEmailTransport } from './email.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -307,6 +307,15 @@ if (config.isProduction) {
 
 const server = app.listen(config.port, '0.0.0.0', () => {
   logEvent('info', 'server_started', { port: config.port, production: config.isProduction });
+
+  // Prove the mail relay accepts our credentials now, rather than finding out
+  // from a developer who never received their lead notification. Deliberately
+  // not fatal: a relay that is briefly unreachable should not stop the
+  // platform serving pages.
+  verifyEmailTransport().then((result) => {
+    if (result.ok) logEvent('info', 'email_transport_ready', { host: config.smtp.host });
+    else logEvent('error', 'email_transport_unavailable', { host: config.smtp.host, error: result.error });
+  });
 });
 
 /**

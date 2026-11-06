@@ -123,9 +123,17 @@ jobs:
 
       - run: npm ci
 
-      - name: npm audit
-        # Reported, not gated: a transitive advisory should not block an
-        # unrelated fix. Review the output on every run (AH-015).
+      # Anything in the production tree ships inside the image, so a high or
+      # critical advisory there fails the build. This was `|| true` for the
+      # whole tree, and as a result 11 production advisories -- one of them a
+      # critical IP-spoofing bug in proxy-addr, directly on the `trust proxy`
+      # path -- sat in CI output unnoticed (AH-029).
+      - name: Vulnerabilities in shipped dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Vulnerabilities in build and test tooling
+        # Advisory only. These never reach the image, and a transitive
+        # advisory in a test runner should not block an unrelated fix.
         run: npm audit --audit-level=high || true
 
   production-safety:
