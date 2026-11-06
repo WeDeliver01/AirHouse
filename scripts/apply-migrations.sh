@@ -34,6 +34,12 @@ MIGRATIONS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../supabase/migrations" && 
 # rather than replayed. Everything above it is managed normally.
 HISTORICAL_THROUGH="015"
 
+# --strict refuses to adopt a historical migration unless every table it
+# creates is present. Off by default because 001-004 supersede one another,
+# so missing tables are normal there.
+STRICT="no"
+for arg in "$@"; do [ "$arg" = "--strict" ] && STRICT="yes"; done
+
 if [ -z "$DATABASE_URL" ]; then
   echo "Usage: $0 <database-url> [--adopt|--dry-run]" >&2
   exit 1
@@ -126,16 +132,30 @@ for file in $(ls "$MIGRATIONS_DIR"/[0-9]*.sql | sort); do
           applied=$((applied + 1))
           ;;
         partial)
-          echo "::error::$version is partially applied: some of its tables exist and some do not."
-          echo "Adopting it would record work that was never done; replaying it would"
-          echo "collide with what is there. Reconcile this migration by hand, then"
-          echo "record it with:"
-          echo "  INSERT INTO schema_migrations (version, checksum, adopted) VALUES ('$version', 'adopted', TRUE);"
-          echo "Tables it creates:"
+          # Some of its tables are there and some are not. In this series that
+          # is usually not a half-applied migration: 001-004 supersede each
+          # other, so 001 creates `payments`, which a later migration replaced
+          # with `payment_transactions`. Treating that as an inconsistency
+          # stops the run on a table that was meant to disappear.
+          #
+          # So adopt, and say exactly which tables are absent, because the
+          # distinction between "superseded" and "never applied" is one only
+          # the operator can draw. --strict turns this back into a stop.
+          echo "==> Adopting $version (recorded, not executed)"
           for t in $(tables_created_by "$file"); do
-            echo "  $t: $(psql_value "SELECT CASE WHEN to_regclass('public.$t') IS NULL THEN 'MISSING' ELSE 'present' END")"
+            if [ "$(psql_value "SELECT to_regclass('public.$t') IS NULL")" = "t" ]; then
+              echo "    note: $t does not exist — superseded by a later migration, or never applied"
+            fi
           done
-          exit 1
+
+          if [ "$STRICT" = "yes" ]; then
+            echo "::error::--strict: refusing to adopt $version while some of its tables are missing."
+            exit 1
+          fi
+
+          psql_exec -c "INSERT INTO schema_migrations (version, checksum, adopted)
+                        VALUES ('$version', 'adopted', TRUE)"
+          adopted=$((adopted + 1))
           ;;
       esac
     else

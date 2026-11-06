@@ -52,7 +52,7 @@ echo "==> Applying migration 016_financial_integrity.sql"
 "${PSQL[@]}" -f "$REPO_ROOT/supabase/migrations/016_financial_integrity.sql" 2>&1 \
   | grep -v '^psql:.*NOTICE' || true
 
-for m in 017_access_control_hardening 018_tenant_isolation 019_storage_hardening 020_campaign_lifecycle 021_audit_and_settings 022_double_entry_ledger 023_ledger_integration 024_lead_integrity 025_data_protection 026_profile_policy_repair; do
+for m in 017_access_control_hardening 018_tenant_isolation 019_storage_hardening 020_campaign_lifecycle 021_audit_and_settings 022_double_entry_ledger 023_ledger_integration 024_lead_integrity 025_data_protection 026_profile_policy_repair 027_super_admin_continuity; do
   echo "==> Applying migration $m.sql"
   "${PSQL[@]}" -f "$REPO_ROOT/supabase/migrations/$m.sql" 2>&1 | grep -v '^psql:.*NOTICE' || true
 done

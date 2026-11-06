@@ -151,6 +151,15 @@ because the deployed database has not been inspected.
 | **Owner** | Senior engineer |
 | **Remaining** | Move audit writes server-side, as `financial_operations` already does for money movements, and revoke client `INSERT` on `audit_logs`. |
 
+### AH-033 — Migrating would have locked the only administrator out
+| | |
+|---|---|
+| **Impact** | Before this work, "is this user an admin?" was answered from `profiles.role` or `profiles.is_super_admin` — fields on a row the user owns, which is AH-003. 016 replaced that with `fin_is_super_admin()`, reading the separate `super_admins` table, and 018 and 026 use it in every policy granting staff access. Nothing carried the existing administrators across. On the live project the single admin holds `role = 'admin'` and `is_super_admin = true` on its profile and has **no row in `super_admins`**, so after migrating it would have lost payout processing, manual payment confirmation, the `payments_mode` setting and every staff read — with no way back, because 018 also revokes the client write grant on `super_admins`. Recovery would have required the database password. |
+| **Status** | **Fixed** — migration `027_super_admin_continuity.sql` back-fills `super_admins` from the old markers, names every account it promotes, and raises rather than finish with zero active super admins. |
+| **Owner** | Senior engineer |
+| **Evidence** | Reproduced on a local database carrying the live project's exact state: after 016–026, `fin_is_super_admin()` returned **false** for the admin account; after 027 it returns **true**. Re-running 027 promotes nothing and leaves one row, so it is idempotent. |
+| **Remaining** | Anyone the migration names was able to set `is_super_admin` on their own profile while AH-001 and AH-003 were live. Review the list; deactivate with `UPDATE super_admins SET is_active = FALSE WHERE ...`. For this project the single account was confirmed as the owner's. |
+
 ### AH-032 — A browser could file a settled invoice for any amount
 | | |
 |---|---|
