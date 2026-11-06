@@ -72,7 +72,27 @@ live schema is reconciled.
 
 ## Procedure: establishing the true state
 
-Run these against production **read-only** first. None of them modify anything.
+**Start here, and run one command.** `scripts/inspect-database.sh` performs
+every check in this section in a single read-only pass and prints a report:
+
+```bash
+./scripts/inspect-database.sh "postgresql://postgres:PASSWORD@HOST:5432/postgres" \
+  | tee inspection-$(date -u +%Y%m%d).txt
+```
+
+The session is opened with `default_transaction_read_only=on`, so the server
+itself rejects any write — the guarantee is PostgreSQL's, not the script's.
+Use the **direct** connection on port 5432; the transaction pooler on 6543
+does not keep session settings.
+
+The report answers, in order: whether this database has ever been managed by
+`apply-migrations.sh`; which of the hardening migrations are already present;
+every permissive policy; every table a browser client can write to directly;
+any table with RLS off; which `wallets` lineage is deployed; how many rows are
+in each table that matters; who holds admin or super-admin; and the total
+balance recorded.
+
+The individual queries are below, for running by hand or adapting.
 
 ### 1. Capture the schema
 
