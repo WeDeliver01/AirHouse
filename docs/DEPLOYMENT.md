@@ -168,11 +168,20 @@ The platform tells developers about new leads by email, so this is worth
 checking explicitly rather than discovering from a developer who never heard
 about an enquiry.
 
+Run it inside the container, which already has the settings and the
+dependencies:
+
 ```bash
-cd /srv/airhouse
-set -a; . deploy/.env.production; set +a
-node scripts/test-email.mjs you@example.com
+docker compose --env-file deploy/.env.production \
+  exec app node scripts/test-email.mjs you@example.com
 ```
+
+**Do not load the env file into your shell to run this on the host** (`. deploy/.env.production`).
+That hands the configuration file to bash, so an ordinary value such as
+`RESEND_FROM_EMAIL=AirHouse <admin@airhouse.co.za>` is a syntax error on the
+`<`. `deploy.sh` parses the file properly and compose passes the settings to
+the container, so neither has that problem -- but a shell `source` does, and
+the host has no `node_modules` either.
 
 It sends one real message through the same code path the server uses, and
 reports the provider's own words on failure.

@@ -9,10 +9,20 @@
  * success here means a lead notification will arrive, and a failure reports
  * the provider's own words rather than a generic 500.
  *
- * On the server, load the production settings first:
+ * On the server, run it inside the container, which already holds the
+ * production settings and the dependencies:
  *
- *   set -a; . deploy/.env.production; set +a
- *   node scripts/test-email.mjs you@example.com
+ *   docker compose --env-file deploy/.env.production \
+ *     exec app node scripts/test-email.mjs you@example.com
+ *
+ * Do NOT load the env file into your shell with `. deploy/.env.production` to
+ * run this on the host. That treats the configuration file as a shell script,
+ * so an ordinary value such as
+ *
+ *   RESEND_FROM_EMAIL=AirHouse <admin@airhouse.co.za>
+ *
+ * is a syntax error. The container is given the settings by compose, which
+ * does not have that problem.
  */
 import process from 'process';
 
@@ -23,8 +33,23 @@ if (!recipient || !recipient.includes('@')) {
   process.exit(2);
 }
 
-const { config } = await import('../server/config.js');
-const { sendNotification } = await import('../server/email.js');
+let config;
+let sendNotification;
+
+try {
+  ({ config } = await import('../server/config.js'));
+  ({ sendNotification } = await import('../server/email.js'));
+} catch (error) {
+  if (error.code === 'ERR_MODULE_NOT_FOUND') {
+    console.error('\nThe application dependencies are not installed here.\n');
+    console.error('This runs inside the container, which already has them and');
+    console.error('the production settings:\n');
+    console.error('  docker compose --env-file deploy/.env.production \\');
+    console.error('    exec app node scripts/test-email.mjs <recipient@example.com>\n');
+    process.exit(1);
+  }
+  throw error;
+}
 
 if (!config.resendApiKey) {
   console.error('\nRESEND_API_KEY is not set in this environment.\n');

@@ -83,6 +83,12 @@ COPY --from=build /app/node_modules ./node_modules
 COPY server ./server
 COPY --from=build /app/dist ./dist
 
+# Operational scripts, so they can be run against the live configuration with
+# `docker compose exec app node scripts/<name>.mjs`. The container already has
+# the settings in its environment, which avoids anyone having to re-load the
+# env file by hand in a shell.
+COPY scripts ./scripts
+
 # Run unprivileged. The node image already provides this user.
 USER node
 
