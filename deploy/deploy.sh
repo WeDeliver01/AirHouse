@@ -120,7 +120,7 @@ docker compose version >/dev/null 2>&1 || die "the docker compose plugin is not 
 missing=""
 load_env
 for key in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY SUPABASE_URL SUPABASE_ANON_KEY \
-           SUPABASE_SERVICE_ROLE_KEY SMTP_HOST EMAIL_FROM ALLOWED_ORIGINS; do
+           SUPABASE_SERVICE_ROLE_KEY RESEND_API_KEY ALLOWED_ORIGINS; do
   [ -z "${!key:-}" ] && missing="$missing $key"
 done
 [ -n "$missing" ] && die "Missing required settings in $ENV_FILE:$missing"

@@ -5,9 +5,9 @@
  *   node scripts/test-email.mjs you@example.com
  *
  * Use this before trusting the platform's notifications. It exercises the same
- * code path the server uses -- the same settings, transport and template --
- * so a success here means a lead notification will arrive, and a failure
- * reports the relay's own words rather than a generic 500.
+ * code path the server uses -- the same credentials and template -- so a
+ * success here means a lead notification will arrive, and a failure reports
+ * the provider's own words rather than a generic 500.
  *
  * On the server, load the production settings first:
  *
@@ -24,38 +24,36 @@ if (!recipient || !recipient.includes('@')) {
 }
 
 const { config } = await import('../server/config.js');
-const { describeSmtp, sendNotification, verifyEmailTransport } = await import('../server/email.js');
+const { sendNotification } = await import('../server/email.js');
 
-const described = describeSmtp();
-if (!described.ok) {
-  console.error(`\nNot configured: ${described.error}\n`);
+if (!config.resendApiKey) {
+  console.error('\nRESEND_API_KEY is not set in this environment.\n');
   process.exit(1);
 }
 
-console.log(`\nRelay   ${config.smtp.host}:${config.smtp.port}`);
-console.log(`TLS     ${described.options.secure ? 'implicit (465-style)' : described.options.requireTLS ? 'STARTTLS, required' : 'STARTTLS, optional'}`);
-console.log(`Auth    ${config.smtp.user ? config.smtp.user : 'none (unauthenticated relay)'}`);
-console.log(`From    ${config.emailFrom}`);
-console.log(`To      ${recipient}\n`);
+const from = config.resendFromEmail || '(default sender)';
 
-process.stdout.write('Checking the relay accepts us... ');
-const verified = await verifyEmailTransport();
-if (!verified.ok) {
-  console.log('no.\n');
-  console.error(`  ${verified.error}\n`);
-  console.error('Common causes: wrong port for the TLS mode, an account password');
-  console.error('where an app password is required, or SMTP sending not enabled');
-  console.error('on the mailbox.\n');
-  process.exit(1);
-}
-console.log('yes.');
+console.log(`\nProvider  Resend`);
+console.log(`Key       ${config.resendApiKey.slice(0, 6)}… (${config.resendApiKey.length} chars)`);
+console.log(`From      ${from}`);
+console.log(`To        ${recipient}\n`);
 
-process.stdout.write('Sending a welcome template...      ');
-const sent = await sendNotification('welcome', recipient, { userName: 'SMTP test', role: 'creator' });
+process.stdout.write('Sending a welcome template... ');
+const sent = await sendNotification('welcome', recipient, { userName: 'Email test', role: 'creator' });
 
 if (!sent.success) {
   console.log('failed.\n');
   console.error(`  ${sent.error}\n`);
+  console.error('The usual causes:');
+  console.error('  - the sending domain is not verified in Resend, so the');
+  console.error('    From address is refused. Resend → Domains → Add Domain,');
+  console.error('    then add the DKIM and SPF records it gives you.');
+  console.error('  - the API key was revoked, or is a restricted key without');
+  console.error('    sending permission.');
+  console.error('  - the monthly quota is exhausted.\n');
+  console.error('To send before the domain is verified, set');
+  console.error('RESEND_FROM_EMAIL=onboarding@resend.dev -- note that only');
+  console.error('reaches the address that owns the Resend account.\n');
   process.exit(1);
 }
 

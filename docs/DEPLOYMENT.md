@@ -20,10 +20,7 @@ You need:
 - DNS: `airhouse.co.za` and `www.airhouse.co.za` pointing at the VPS
 - From Supabase → Settings → API: the project URL, the anon key, and the
   **service role key**
-- SMTP details for sending email: host, port, username and password. Any
-  relay works -- Google Workspace, Microsoft 365, Zoho, a provider's SMTP
-  endpoint, or a mail server on this host. For Google Workspace and Microsoft
-  365 you need an **app password**, not the account password.
+- A Resend API key, from resend.com → API Keys
 
 **Is port 5000 free?**
 
@@ -177,12 +174,20 @@ set -a; . deploy/.env.production; set +a
 node scripts/test-email.mjs you@example.com
 ```
 
-It prints the relay, TLS mode and sender it resolved, checks the relay accepts
-the credentials, then sends one real message through the same code path the
-server uses. A failure reports the mail server's own words.
+It sends one real message through the same code path the server uses, and
+reports the provider's own words on failure.
 
-If the mail arrives only in spam, the sending domain needs SPF and DKIM
-records at your DNS host. Email will "work" without them and still be filtered.
+**A valid key is not enough.** Resend refuses to send from a domain you have
+not verified, so until `airhouse.co.za` is verified under Resend → Domains
+every send is rejected -- the site looks fine and `notification_failed`
+appears in the container logs. Add the DKIM and SPF records Resend gives you.
+
+To send before that is done, set `RESEND_FROM_EMAIL=onboarding@resend.dev`.
+That works immediately but only reaches the address that owns the Resend
+account, so it is for your own testing and nothing else.
+
+If mail arrives only in spam, the domain still needs those SPF and DKIM
+records. Email will "work" without them and be filtered anyway.
 
 ## 7. Check it
 

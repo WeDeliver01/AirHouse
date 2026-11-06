@@ -61,7 +61,7 @@ function loadEnv(contents) {
 
 describe('deploy/.env.production.example', () => {
   // The shipped example contained `VITE_BANK_ACCOUNT_NAME=AirHouse (Pty) Ltd`
-  // and `EMAIL_FROM=AirHouse <notifications@airhouse.co.za>`. The
+  // and `RESEND_FROM_EMAIL=AirHouse <notifications@airhouse.co.za>`. The
   // deploy script sourced the file as shell, so both were syntax errors and
   // every first deploy died on line 43 with a message naming no setting.
   it('loads without error', () => {
@@ -71,7 +71,7 @@ describe('deploy/.env.production.example', () => {
   it('reads display names and addresses as literal text', () => {
     const env = loadEnv(exampleSource);
     expect(env.VITE_BANK_ACCOUNT_NAME).toBe('AirHouse (Pty) Ltd');
-    expect(env.EMAIL_FROM).toBe('AirHouse <notifications@airhouse.co.za>');
+    expect(env.RESEND_FROM_EMAIL).toBe('AirHouse <notifications@airhouse.co.za>');
   });
 
   // If the example omits a key the script demands, a correctly filled-in copy

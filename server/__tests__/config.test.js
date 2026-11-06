@@ -7,7 +7,7 @@ describe('missingProductionConfig', () => {
     expect(
       missingProductionConfig([
         ['SUPABASE_URL', 'https://x.supabase.co'],
-        ['SMTP_HOST', 'smtp.example.com'],
+        ['RESEND_API_KEY', 're_123'],
       ]),
     ).toEqual([]);
   });
@@ -16,10 +16,10 @@ describe('missingProductionConfig', () => {
     expect(
       missingProductionConfig([
         ['SUPABASE_URL', ''],
-        ['SMTP_HOST', undefined],
+        ['RESEND_API_KEY', undefined],
         ['ALLOWED_ORIGINS', 'set'],
       ]),
-    ).toEqual(['SUPABASE_URL', 'SMTP_HOST']);
+    ).toEqual(['SUPABASE_URL', 'RESEND_API_KEY']);
   });
 });
 

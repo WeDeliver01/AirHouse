@@ -17,16 +17,6 @@ function parseList(value) {
     .filter(Boolean);
 }
 
-/**
- * Parse a boolean env var. Anything unset falls back; 'false'/'0'/'no' are
- * false, so that SMTP_SECURE=false means what it says rather than being a
- * non-empty truthy string.
- */
-function parseBoolean(value, fallback) {
-  if (value === undefined || value === '') return fallback;
-  return !['false', '0', 'no', 'off'].includes(String(value).trim().toLowerCase());
-}
-
 function parseInteger(value, fallback) {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -41,31 +31,9 @@ export const config = {
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '',
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
 
-  /**
-   * Email delivery over SMTP.
-   *
-   * Plain SMTP rather than a provider SDK, so the same settings work with
-   * Google Workspace, Microsoft 365, Zoho, a relay on this host, or any
-   * transactional provider's SMTP endpoint. Changing provider is a change to
-   * these values and nothing else.
-   */
-  smtp: {
-    host: process.env.SMTP_HOST || '',
-    port: parseInteger(process.env.SMTP_PORT, 587),
-    user: process.env.SMTP_USER || '',
-    password: process.env.SMTP_PASSWORD || '',
-    // 465 is implicit TLS; 587 and 25 start in the clear and upgrade with
-    // STARTTLS. Default by port rather than making everyone set a flag, but
-    // allow it to be stated explicitly.
-    secure: parseBoolean(process.env.SMTP_SECURE, parseInteger(process.env.SMTP_PORT, 587) === 465),
-    // Refuse to fall back to an unencrypted session. Only turn this off for a
-    // relay on this same host that does not offer STARTTLS.
-    requireTls: parseBoolean(process.env.SMTP_REQUIRE_TLS, true),
-  },
-
-  // The envelope sender. Most relays require this to match the authenticated
-  // mailbox or its domain, so there is no sensible default to guess.
-  emailFrom: process.env.EMAIL_FROM || '',
+  // Email delivery.
+  resendApiKey: process.env.RESEND_API_KEY || '',
+  resendFromEmail: process.env.RESEND_FROM_EMAIL || '',
 
   // CORS: explicit allowlist. Never wildcard in production.
   allowedOrigins: parseList(process.env.ALLOWED_ORIGINS),
@@ -112,8 +80,7 @@ const REQUIRED_IN_PRODUCTION = [
   ['SUPABASE_URL', config.supabaseUrl],
   ['SUPABASE_ANON_KEY', config.supabaseAnonKey],
   ['SUPABASE_SERVICE_ROLE_KEY', config.supabaseServiceRoleKey],
-  ['SMTP_HOST', config.smtp.host],
-  ['EMAIL_FROM', config.emailFrom],
+  ['RESEND_API_KEY', config.resendApiKey],
   ['ALLOWED_ORIGINS', config.allowedOrigins.length ? 'set' : ''],
 ];
 
