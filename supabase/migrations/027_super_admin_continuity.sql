@@ -117,12 +117,18 @@ BEGIN
 
   RAISE NOTICE '027: % account(s) carried across, % active super admin(s) in total', v_promoted, v_active;
 
-  -- A platform nobody can administer is a worse outcome than the problem
-  -- this series set out to fix, so stop rather than leave it that way.
+  -- A populated platform nobody can administer is a worse outcome than the
+  -- problem this series set out to fix, so stop rather than leave it that
+  -- way. An empty database is a fresh install, where having no administrator
+  -- yet is simply the starting state -- failing there would block every new
+  -- environment, including CI.
   IF v_active = 0 THEN
-    RAISE EXCEPTION
-      'No active super admin would remain. Add one before migrating: '
-      'INSERT INTO super_admins (email, user_id, is_active) VALUES (''you@example.com'', ''<auth user id>'', TRUE);';
+    IF EXISTS (SELECT 1 FROM profiles) THEN
+      RAISE EXCEPTION
+        'This database has accounts but would have no active super admin, so nobody could run the platform. '
+        'Add one first: INSERT INTO super_admins (user_id, is_active) VALUES (''<auth user id>'', TRUE);';
+    END IF;
+    RAISE NOTICE '027: no accounts yet, so no administrator to carry across. Add one after the first sign-up.';
   END IF;
 END $$;
 

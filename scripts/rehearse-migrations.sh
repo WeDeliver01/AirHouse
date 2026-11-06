@@ -114,12 +114,27 @@ done
 PGPASSWORD=rehearsal psql "$LOCAL" -X -qtA -c 'SELECT 1' >/dev/null 2>&1 || die "the throwaway database did not start"
 
 # ---------------------------------------------------------------------------
+log "Counting what should come across"
+
+SOURCE_TABLES="$(psql "$URL" -X -qtA -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'" 2>/dev/null || echo 0)"
+echo "    $SOURCE_TABLES tables in the live public schema"
+
 log "Recreating what Supabase provides but a dump does not"
 
 # A Supabase dump of `public` references auth.users, the anon/authenticated/
 # service_role roles, and auth.uid(). Those live outside the dump, so the
 # restore needs them to exist first. supabase/tests/00_supabase_shim.sql is
 # the same shim the integrity suite uses.
+# Supabase keeps uuid-ossp and pgcrypto in an `extensions` schema that a
+# --schema=public dump does not carry, while the dumped tables default their
+# ids to uuid_generate_v4(). Without these every CREATE TABLE that uses it
+# fails, and the copy silently comes up missing a third of its tables.
+PGPASSWORD=rehearsal psql "$LOCAL" -X -q -v ON_ERROR_STOP=1 -c '
+  CREATE SCHEMA IF NOT EXISTS extensions;
+  CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
+  CREATE EXTENSION IF NOT EXISTS pgcrypto  WITH SCHEMA public;
+' >/dev/null || die "could not create the extensions the dump relies on"
+
 PGPASSWORD=rehearsal psql "$LOCAL" -X -q -v ON_ERROR_STOP=1 \
   -f supabase/tests/00_supabase_shim.sql >/dev/null || die "could not install the Supabase shim"
 
@@ -131,15 +146,31 @@ log "Restoring the copy"
 # Those are counted and shown rather than aborting the rehearsal.
 PGPASSWORD=rehearsal psql "$LOCAL" -X -q -f "$DUMP" > "$WORKDIR/restore.log" 2>&1 || true
 
-restore_errors=$(grep -c '^ERROR:' "$WORKDIR/restore.log" || true)
-echo "    $restore_errors statement(s) did not apply"
+# psql prefixes its diagnostics with "psql:<file>:<line>: ", so an anchored
+# ^ERROR: matches nothing and every failure is counted as a success. That
+# reported "0 statements did not apply" over a restore that had dropped a
+# third of the schema.
+# A dump always re-creates the public schema the target already has. That is
+# noise, not a failure, and counting it trains the reader to ignore the line.
+BENIGN='schema "public" already exists|extension "[^"]+" already exists|role "[^"]+" (already exists|does not exist)'
+restore_errors=$(grep 'ERROR:' "$WORKDIR/restore.log" | grep -cvE "$BENIGN" || true)
+benign_errors=$(grep 'ERROR:' "$WORKDIR/restore.log" | grep -cE "$BENIGN" || true)
+echo "    $restore_errors statement(s) did not apply${benign_errors:+ (plus $benign_errors harmless)}"
 if [ "${restore_errors:-0}" -gt 0 ]; then
-  grep '^ERROR:' "$WORKDIR/restore.log" | sort | uniq -c | sort -rn | head -15 | sed 's/^/      /'
+  sed -E 's/^psql:[^:]*:[0-9]+: //' "$WORKDIR/restore.log" \
+    | grep 'ERROR:' | grep -vE "$BENIGN" | cut -c1-110 | sort | uniq -c | sort -rn | head -10 | sed 's/^/      /'
 fi
 
 tables=$(PGPASSWORD=rehearsal psql "$LOCAL" -X -qtA -c \
   "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")
-echo "    $tables tables restored"
+echo "    $tables of $SOURCE_TABLES tables restored"
+
+# A copy that is missing tables is not a copy, and migrating it proves
+# nothing about the real database.
+if [ "${SOURCE_TABLES:-0}" -gt 0 ] && [ "${tables:-0}" -lt "${SOURCE_TABLES:-0}" ]; then
+  die "the copy is missing $(( SOURCE_TABLES - tables )) table(s). Full log: $WORKDIR/restore.log
+Migrating an incomplete copy would tell you nothing about production."
+fi
 [ "${tables:-0}" -gt 5 ] || die "the restore produced almost nothing; see $WORKDIR/restore.log"
 
 # ---------------------------------------------------------------------------
