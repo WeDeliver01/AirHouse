@@ -32,8 +32,25 @@ command -v psql >/dev/null 2>&1 || {
 }
 
 case "$URL" in
-  *:6543/*) echo "WARNING: port 6543 is the transaction pooler. Use the direct connection on 5432." >&2 ;;
+  *:6543/*)
+    echo "WARNING: port 6543 is Supabase's TRANSACTION pooler. It does not keep" >&2
+    echo "session settings, so the read-only guarantee below does not hold there." >&2
+    echo "Use the direct connection, or the SESSION pooler, both on port 5432." >&2
+    ;;
 esac
+
+# Supabase's direct host (db.<ref>.supabase.co) resolves to IPv6 only on
+# projects created after early 2024. On a host without IPv6 it fails with
+# "could not translate host name" or "network is unreachable", which looks
+# like a wrong password but is not.
+if ! getent hosts "$(printf '%s' "$URL" | sed -E 's#.*@##; s#[:/].*##')" >/dev/null 2>&1; then
+  echo "NOTE: $(printf '%s' "$URL" | sed -E 's#.*@##; s#[:/].*##') does not resolve from this host." >&2
+  echo "If this is db.<ref>.supabase.co, it is probably IPv6-only. Use the" >&2
+  echo "Session Pooler string instead -- Supabase dashboard, Connect, Session" >&2
+  echo "pooler -- which is IPv4 and also on port 5432. Not the Transaction" >&2
+  echo "pooler on 6543." >&2
+  echo >&2
+fi
 
 # Enforced read-only, plus a timeout so a slow query cannot hang a session.
 export PGOPTIONS="-c default_transaction_read_only=on -c statement_timeout=30000"

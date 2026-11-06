@@ -82,8 +82,24 @@ every check in this section in a single read-only pass and prints a report:
 
 The session is opened with `default_transaction_read_only=on`, so the server
 itself rejects any write — the guarantee is PostgreSQL's, not the script's.
-Use the **direct** connection on port 5432; the transaction pooler on 6543
-does not keep session settings.
+
+**Which connection string.** Supabase offers three, and only two work here:
+
+| | Port | Use it? |
+|---|---|---|
+| Direct, `db.<ref>.supabase.co` | 5432 | Yes — but IPv6-only on projects created since early 2024 |
+| Session pooler, `aws-*.pooler.supabase.com` | 5432 | Yes — IPv4, keeps session settings |
+| Transaction pooler | 6543 | **No** — drops session settings, so the read-only guarantee does not hold, and `pg_dump` is unreliable |
+
+If the direct host fails with *could not translate host name* or *network is
+unreachable*, the host has no IPv6. That is not a wrong password — switch to
+the session pooler string from the dashboard's **Connect** dialog.
+
+**Never paste a database password into a chat, an issue or a commit.** If one
+is exposed, rotate it immediately: Project Settings → Database → Reset
+database password. Nothing in this application uses it — the frontend uses the
+anon key and the server uses the service role key — so rotating it costs
+nothing.
 
 The report answers, in order: whether this database has ever been managed by
 `apply-migrations.sh`; which of the hardening migrations are already present;
