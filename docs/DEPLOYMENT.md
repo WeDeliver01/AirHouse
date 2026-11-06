@@ -83,7 +83,17 @@ curl -s http://127.0.0.1:5000/api/health
 ## 4. Point Nginx at it
 
 ```bash
-sudo cp deploy/nginx/airhouse.co.za.conf /etc/nginx/sites-available/airhouse.co.za
+sudo cp deploy/nginx/airhouse.co.za.conf /etc/nginx/sites-available/
+```
+
+**Keep the `.conf` suffix.** Debian's stock `nginx.conf` includes
+`sites-enabled/*`, but many hosts include `sites-enabled/*.conf` instead, and
+a file named `airhouse.co.za` is then silently ignored -- `nginx -t` passes,
+the symlink looks correct, and the site just does not exist. `.conf` matches
+both globs. Check which one your host uses:
+
+```bash
+sudo grep -rn 'sites-enabled' /etc/nginx/nginx.conf
 ```
 
 **Use `certbot certonly`, not `certbot --nginx`.** The config file already
@@ -100,9 +110,21 @@ So, in order. Comment out both `listen 443` server blocks, leaving only the
 port 80 block:
 
 ```bash
-sudo ln -sfn /etc/nginx/sites-available/airhouse.co.za /etc/nginx/sites-enabled/airhouse.co.za
+sudo ln -sfn /etc/nginx/sites-available/airhouse.co.za.conf \
+             /etc/nginx/sites-enabled/airhouse.co.za.conf
 sudo nginx -t && sudo systemctl reload nginx
 ```
+
+Confirm Nginx actually loaded it, rather than trusting the symlink. `nginx -T`
+dumps the configuration as Nginx sees it:
+
+```bash
+sudo nginx -T | grep -c airhouse_app
+```
+
+Zero means the file is not being included, and you should fix that before
+requesting a certificate -- certbot will otherwise find no vhost for the name
+and edit another site's file instead.
 
 ```bash
 sudo certbot certonly --webroot -w /var/www/html \
