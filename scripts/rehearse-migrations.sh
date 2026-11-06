@@ -168,6 +168,30 @@ if [ "${restore_errors:-0}" -gt 0 ]; then
     | grep 'ERROR:' | grep -vE "$BENIGN" | cut -c1-110 | sort | uniq -c | sort -rn | head -10 | sed 's/^/      /'
 fi
 
+# A Supabase dump of `public` carries rows whose ids reference auth.users,
+# which lives outside the dump, so the foreign key back to it cannot be
+# created: "violates foreign key constraint profiles_id_fkey". The rows load,
+# the constraint does not, and the copy is subtly less faithful than the
+# original. Seed the shim's auth.users from what arrived and put the
+# constraint back.
+PGPASSWORD=rehearsal psql "$LOCAL" -X -q -c "
+  INSERT INTO auth.users (id)
+  SELECT id FROM public.profiles
+  ON CONFLICT DO NOTHING;
+" >/dev/null 2>&1 || true
+
+PGPASSWORD=rehearsal psql "$LOCAL" -X -q -c "
+  DO \$\$
+  BEGIN
+    IF to_regclass('public.profiles') IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_id_fkey') THEN
+      ALTER TABLE public.profiles
+        ADD CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+      RAISE NOTICE 'restored the profiles -> auth.users foreign key';
+    END IF;
+  END \$\$;
+" 2>&1 | grep -E 'NOTICE' | sed 's/^psql:[^ ]* //; s/^/    /' || true
+
 tables=$(PGPASSWORD=rehearsal psql "$LOCAL" -X -qtA -c \
   "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")
 echo "    $tables of $SOURCE_TABLES tables restored"

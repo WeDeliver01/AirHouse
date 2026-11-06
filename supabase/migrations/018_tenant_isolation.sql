@@ -63,69 +63,129 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authen
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 
 -- ----------------------------------------------------------------------------
+-- 1b. Fail early, and by name, if a table this migration shapes is absent.
+--
+--     The grant list and the `payments` section below tolerate a missing
+--     table. The policy sections that follow do not: they name their table
+--     inline, so an absent one aborts the migration partway, after the
+--     REVOKE has already run. That leaves a database with privileges removed
+--     and policies half-installed, which is worse than not starting.
+--
+--     Checking up front turns that into one clear message naming exactly
+--     what is missing.
+-- ----------------------------------------------------------------------------
+
+DO $$
+DECLARE
+  v_missing TEXT;
+BEGIN
+  SELECT string_agg(t, ', ' ORDER BY t) INTO v_missing
+  FROM unnest(ARRAY[
+    'campaigns', 'campaign_assets', 'content_activities', 'escrow_release_rules',
+    'escrow_releases', 'invoices', 'lead_activities', 'leads',
+    'payment_methods', 'payment_transactions'
+  ]) AS t
+  WHERE to_regclass('public.' || t) IS NULL;
+
+  IF v_missing IS NOT NULL THEN
+    RAISE EXCEPTION
+      'Migration 018 shapes policies on tables this database does not have: %. '
+      'Create them, or guard their sections the way `payments` is guarded.', v_missing;
+  END IF;
+END $$;
+
+-- ----------------------------------------------------------------------------
 -- 2. Re-grant precisely.
 --
 --    Read-only for everything the client only displays; write only where the
 --    client genuinely creates or edits rows. RLS still decides *which* rows.
 -- ----------------------------------------------------------------------------
 
--- --- Identity ---------------------------------------------------------------
-GRANT SELECT                   ON public.profiles                     TO authenticated;
-GRANT INSERT                   ON public.profiles                     TO authenticated;
--- UPDATE on profiles is column-scoped by migration 017; do not widen it here.
-GRANT SELECT, INSERT, UPDATE   ON public.creator_profiles             TO authenticated;
-GRANT SELECT                   ON public.super_admins                 TO authenticated;
-GRANT SELECT, INSERT           ON public.terms_acceptances            TO authenticated;
+-- --- Granted table by table, skipping what this database does not have -----
+--
+--    These were plain GRANT statements. Any table absent from a given
+--    database aborted the whole migration, which is exactly the situation
+--    this series exists to handle: the live schema is NOT guaranteed to match
+--    the repository. `payments`, for instance, was created by 001 and later
+--    superseded by `payment_transactions`, so a GRANT on it stops a migration
+--    that would otherwise be correct.
+--
+--    Skipping is safe. A table that is not here cannot be exposed, and the
+--    blanket REVOKE above has already removed whatever privileges existed.
+--    Every skip is announced, so a table missing for the wrong reason is
+--    visible rather than silent.
+-- ----------------------------------------------------------------------------
 
--- --- Campaigns and delivery -------------------------------------------------
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.campaigns              TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.properties             TO authenticated;
-GRANT SELECT, INSERT, DELETE         ON public.campaign_assets        TO authenticated;
-GRANT SELECT, UPDATE, DELETE         ON public.campaign_applications  TO authenticated;
-GRANT SELECT, INSERT, UPDATE         ON public.campaign_assignments   TO authenticated;
-GRANT SELECT, INSERT, UPDATE         ON public.content_submissions    TO authenticated;
-GRANT INSERT                         ON public.content_activities     TO authenticated;
-GRANT SELECT                         ON public.escrow_release_rules   TO authenticated;
+DO $$
+DECLARE
+  r RECORD;
+  v_skipped INT := 0;
+BEGIN
+  FOR r IN
+    SELECT * FROM (VALUES
+    ('profiles', 'SELECT', 'authenticated'),
+    ('profiles', 'INSERT', 'authenticated'),
+    ('creator_profiles', 'SELECT, INSERT, UPDATE', 'authenticated'),
+    ('super_admins', 'SELECT', 'authenticated'),
+    ('terms_acceptances', 'SELECT, INSERT', 'authenticated'),
+    ('campaigns', 'SELECT, INSERT, UPDATE, DELETE', 'authenticated'),
+    ('properties', 'SELECT, INSERT, UPDATE, DELETE', 'authenticated'),
+    ('campaign_assets', 'SELECT, INSERT, DELETE', 'authenticated'),
+    ('campaign_applications', 'SELECT, UPDATE, DELETE', 'authenticated'),
+    ('campaign_assignments', 'SELECT, INSERT, UPDATE', 'authenticated'),
+    ('content_submissions', 'SELECT, INSERT, UPDATE', 'authenticated'),
+    ('content_activities', 'INSERT', 'authenticated'),
+    ('escrow_release_rules', 'SELECT', 'authenticated'),
+    ('leads', 'SELECT, INSERT, UPDATE, DELETE', 'authenticated'),
+    ('lead_activities', 'INSERT', 'authenticated'),
+    ('creator_tracking_links', 'SELECT, INSERT, UPDATE', 'authenticated'),
+    ('wallets', 'SELECT', 'authenticated'),
+    ('wallet_transactions', 'SELECT', 'authenticated'),
+    ('payout_requests', 'SELECT', 'authenticated'),
+    ('financial_operations', 'SELECT', 'authenticated'),
+    ('bank_accounts', 'SELECT, INSERT, DELETE', 'authenticated'),
+    ('invoices', 'SELECT, INSERT', 'authenticated'),
+    ('payments', 'SELECT', 'authenticated'),
+    ('payment_transactions', 'SELECT', 'authenticated'),
+    ('payment_methods', 'SELECT', 'authenticated'),
+    ('escrow_releases', 'SELECT', 'authenticated'),
+    ('creator_verifications', 'SELECT, INSERT', 'authenticated'),
+    ('verification_requests', 'SELECT, INSERT, UPDATE', 'authenticated'),
+    ('messages', 'SELECT, INSERT, UPDATE', 'authenticated'),
+    ('disputes', 'SELECT, INSERT, UPDATE', 'authenticated'),
+    ('dispute_messages', 'SELECT, INSERT', 'authenticated'),
+    ('contracts', 'SELECT', 'authenticated'),
+    ('creator_reviews', 'SELECT, INSERT, DELETE', 'authenticated'),
+    ('developer_creator_favorites', 'SELECT, INSERT, DELETE', 'authenticated'),
+    ('notifications', 'SELECT', 'authenticated'),
+    ('support_tickets', 'INSERT', 'authenticated'),
+    ('campaigns', 'SELECT', 'anon'),
+    ('properties', 'SELECT', 'anon'),
+    ('leads', 'INSERT', 'anon')
+    ) AS g(table_name, privileges, role_name)
+  LOOP
+    IF to_regclass('public.' || r.table_name) IS NULL THEN
+      RAISE NOTICE 'skipping grants on %: not present in this database', r.table_name;
+      v_skipped := v_skipped + 1;
+      CONTINUE;
+    END IF;
 
--- --- Leads ------------------------------------------------------------------
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.leads                  TO authenticated;
-GRANT INSERT                         ON public.lead_activities        TO authenticated;
-GRANT SELECT, INSERT, UPDATE         ON public.creator_tracking_links TO authenticated;
+    EXECUTE format('GRANT %s ON public.%I TO %I', r.privileges, r.table_name, r.role_name);
+  END LOOP;
 
--- --- Money (read-only; all writes go through the functions in 016) ----------
-GRANT SELECT                   ON public.wallets                      TO authenticated;
-GRANT SELECT                   ON public.wallet_transactions          TO authenticated;
-GRANT SELECT                   ON public.payout_requests              TO authenticated;
-GRANT SELECT                   ON public.financial_operations         TO authenticated;
-GRANT SELECT, INSERT, DELETE   ON public.bank_accounts                TO authenticated;
-GRANT SELECT, INSERT           ON public.invoices                     TO authenticated;
-GRANT SELECT                   ON public.payments                     TO authenticated;
-GRANT SELECT                   ON public.payment_transactions         TO authenticated;
-GRANT SELECT                   ON public.payment_methods              TO authenticated;
-GRANT SELECT                   ON public.escrow_releases              TO authenticated;
+  IF v_skipped > 0 THEN
+    RAISE NOTICE '018: % table(s) in the grant list are not in this database', v_skipped;
+  END IF;
+END $$;
 
--- --- Trust, safety and communication ----------------------------------------
-GRANT SELECT, INSERT           ON public.creator_verifications        TO authenticated;
-GRANT SELECT, INSERT, UPDATE   ON public.verification_requests        TO authenticated;
-GRANT SELECT, INSERT, UPDATE   ON public.messages                     TO authenticated;
-GRANT SELECT, INSERT, UPDATE   ON public.disputes                     TO authenticated;
-GRANT SELECT, INSERT           ON public.dispute_messages             TO authenticated;
-GRANT SELECT                   ON public.contracts                    TO authenticated;
-GRANT SELECT, INSERT, DELETE   ON public.creator_reviews              TO authenticated;
-GRANT SELECT, INSERT, DELETE   ON public.developer_creator_favorites  TO authenticated;
-GRANT SELECT                   ON public.notifications                TO authenticated;
-GRANT INSERT                   ON public.support_tickets              TO authenticated;
+-- UPDATE on profiles is column-scoped by migration 017 and re-established by
+-- 026; it is deliberately absent from the list above.
 
 -- `admin_invites` is reached only through validate_admin_invite() and
 -- redeem_admin_invite(); no direct table privilege is required.
 -- `audit_logs` is written by the server (migration 021); clients may read
 -- nothing and write nothing.
 -- `auth_rate_limits` is internal to the database.
-
--- --- Anonymous: the four things the public pages need -----------------------
-GRANT SELECT ON public.campaigns  TO anon;
-GRANT SELECT ON public.properties TO anon;
-GRANT INSERT ON public.leads      TO anon;   -- write-only; no SELECT
 
 DO $$
 BEGIN
@@ -265,18 +325,33 @@ CREATE POLICY "invoices_insert_own" ON invoices
   WITH CHECK (customer_id = auth.uid());
 
 -- Milestone payments follow the assignment.
-ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "payments_select" ON payments;
-CREATE POLICY "payments_select" ON payments
-  FOR SELECT TO authenticated
-  USING (
-    assignment_id IN (
-      SELECT ca.id FROM campaign_assignments ca
-      JOIN campaigns c ON c.id = ca.campaign_id
-      WHERE ca.creator_id = auth.uid() OR c.developer_id = auth.uid()
-    )
-    OR fin_is_super_admin(auth.uid())
-  );
+--
+-- `payments` is guarded because it does not exist everywhere: 001 created it
+-- and a later migration superseded it with `payment_transactions`, so a
+-- database on the newer lineage has no such table and the unguarded
+-- statements below aborted the whole migration.
+DO $$
+BEGIN
+  IF to_regclass('public.payments') IS NULL THEN
+    RAISE NOTICE 'payments table not present (superseded by payment_transactions); skipping its policies';
+    RETURN;
+  END IF;
+
+  EXECUTE 'ALTER TABLE payments ENABLE ROW LEVEL SECURITY';
+  EXECUTE 'DROP POLICY IF EXISTS "payments_select" ON payments';
+  EXECUTE $policy$
+    CREATE POLICY "payments_select" ON payments
+      FOR SELECT TO authenticated
+      USING (
+        assignment_id IN (
+          SELECT ca.id FROM campaign_assignments ca
+          JOIN campaigns c ON c.id = ca.campaign_id
+          WHERE ca.creator_id = auth.uid() OR c.developer_id = auth.uid()
+        )
+        OR fin_is_super_admin(auth.uid())
+      )
+  $policy$;
+END $$;
 
 -- ----------------------------------------------------------------------------
 -- 4. Leads are write-only for anonymous visitors.

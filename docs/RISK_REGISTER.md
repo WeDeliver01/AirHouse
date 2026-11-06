@@ -151,6 +151,15 @@ because the deployed database has not been inspected.
 | **Owner** | Senior engineer |
 | **Remaining** | Move audit writes server-side, as `financial_operations` already does for money movements, and revoke client `INSERT` on `audit_logs`. |
 
+### AH-034 — The hardening migration assumed the repository's schema
+| | |
+|---|---|
+| **Impact** | 018 named forty tables in hard-coded `GRANT` statements and eleven more in policy sections. Any table absent from a given database aborted the migration — and aborted it *after* the blanket `REVOKE ALL`, leaving privileges stripped and policies half-installed, which is worse than not starting. On the live project this fired on `payments`, created by 001 and later superseded by `payment_transactions`. The test baseline has `payments`, so 137 assertions passed against a schema the live database does not have. This is AH-017 in practice: the migration series is not a description of what is deployed. |
+| **Status** | **Fixed** — grants are applied table by table, skipping and announcing anything absent; the `payments` policy section is guarded; and a pre-flight names every other missing table before the first `REVOKE`. |
+| **Owner** | Senior engineer |
+| **Evidence** | Verified against a database with `payments` dropped: 018 completes, reporting the skipped grants and the skipped policy section, and every other grant lands. With `escrow_releases` and `invoices` dropped the pre-flight refuses up front, naming both. Suite still 137 passing. |
+| **Remaining** | The ten tables in the pre-flight list are treated as required. If a future lineage drops one, guard its section rather than widening the list. |
+
 ### AH-033 — Migrating would have locked the only administrator out
 | | |
 |---|---|
