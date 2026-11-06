@@ -75,8 +75,13 @@ live schema is reconciled.
 **Start here, and run one command.** `scripts/inspect-database.sh` performs
 every check in this section in a single read-only pass and prints a report:
 
+Leave the password out of the URL. The script prompts for it without echoing,
+and passes it to `psql` through the environment — a password in a command-line
+argument is visible to every user on the machine through `ps`, and stays in
+your shell history afterwards.
+
 ```bash
-./scripts/inspect-database.sh "postgresql://postgres:PASSWORD@HOST:5432/postgres" \
+./scripts/inspect-database.sh 'postgresql://postgres@db.<ref>.supabase.co:5432/postgres' \
   | tee inspection-$(date -u +%Y%m%d).txt
 ```
 

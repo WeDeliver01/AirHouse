@@ -22,8 +22,39 @@ URL="${1:-${DATABASE_URL:-}}"
 
 if [ -z "$URL" ]; then
   echo "Usage: $0 <postgres-connection-url>" >&2
-  echo "Supabase: Project Settings -> Database -> Connection string -> URI (direct, port 5432)." >&2
+  echo >&2
+  echo "Supabase: Connect -> Session pooler (IPv4) or Direct connection (IPv6)," >&2
+  echo "both port 5432. Not the Transaction pooler on 6543." >&2
+  echo >&2
+  echo "To keep the password out of your shell history and out of ps, pass the" >&2
+  echo "URL with the password left out and you will be prompted for it:" >&2
+  echo >&2
+  echo "  $0 'postgresql://postgres@db.<ref>.supabase.co:5432/postgres'" >&2
   exit 2
+fi
+
+# Catch the template being pasted verbatim, which otherwise fails as
+# "password authentication failed" and looks like a wrong password.
+case "$URL" in
+  *:PASSWORD@*|*:password@*|*'<password>'*|*'[PASSWORD]'*|*YOUR_PASSWORD*)
+    echo "That is the placeholder from the documentation, not your password." >&2
+    echo "Either substitute the real one, or leave the password out of the URL" >&2
+    echo "entirely and you will be prompted for it without it reaching your" >&2
+    echo "shell history." >&2
+    exit 2
+    ;;
+esac
+
+# No password in the URL? Ask for it, with echo off, and hand it to psql
+# through the environment rather than the command line -- an argument is
+# visible to every user on the machine via ps.
+if ! printf '%s' "$URL" | grep -qE '://[^/@]*:[^/@]*@'; then
+  if [ -z "${PGPASSWORD:-}" ]; then
+    printf 'Database password (not echoed): ' >&2
+    read -rs PGPASSWORD
+    printf '\n' >&2
+    export PGPASSWORD
+  fi
 fi
 
 command -v psql >/dev/null 2>&1 || {
