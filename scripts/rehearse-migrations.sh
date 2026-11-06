@@ -127,12 +127,19 @@ log "Recreating what Supabase provides but a dump does not"
 # the same shim the integrity suite uses.
 # Supabase keeps uuid-ossp and pgcrypto in an `extensions` schema that a
 # --schema=public dump does not carry, while the dumped tables default their
-# ids to uuid_generate_v4(). Without these every CREATE TABLE that uses it
-# fails, and the copy silently comes up missing a third of its tables.
+# ids to extensions.uuid_generate_v4(). The schema name matters: creating the
+# extension in `public` leaves the qualified call unresolvable, every CREATE
+# TABLE using it fails, and the copy comes up missing a quarter of its tables
+# behind a wall of cascading "relation does not exist" errors.
+#
+# So mirror Supabase's layout, and put `extensions` on the search path as
+# well, so an unqualified call resolves too.
 PGPASSWORD=rehearsal psql "$LOCAL" -X -q -v ON_ERROR_STOP=1 -c '
   CREATE SCHEMA IF NOT EXISTS extensions;
-  CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
-  CREATE EXTENSION IF NOT EXISTS pgcrypto  WITH SCHEMA public;
+  CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
+  CREATE EXTENSION IF NOT EXISTS pgcrypto  WITH SCHEMA extensions;
+  GRANT USAGE ON SCHEMA extensions TO PUBLIC;
+  ALTER DATABASE airhouse SET search_path TO public, extensions;
 ' >/dev/null || die "could not create the extensions the dump relies on"
 
 PGPASSWORD=rehearsal psql "$LOCAL" -X -q -v ON_ERROR_STOP=1 \
