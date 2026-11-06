@@ -368,6 +368,36 @@ sudo ss -ltnp | grep 5000
 be the exact origin, `https://airhouse.co.za`, with no trailing slash. There
 is no wildcard fallback by design.
 
+**The page is served but stays blank, and the console shows a thrown error
+about Supabase not being configured.**
+
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are baked into the bundle at
+build time, and `src/lib/supabase.js` throws on purpose when they are absent
+in a production build rather than falling back to a placeholder. A throw at
+module scope means nothing renders at all — the HTML and the assets still
+serve with a 200, so the proxy, TLS and health checks all look correct.
+
+Confirm what actually went into the bundle:
+
+```bash
+docker compose --env-file deploy/.env.production \
+  exec app sh -c 'grep -oE "https://[a-z0-9]+\.supabase\.co" dist/assets/*.js | head -3'
+```
+
+Nothing back means the build args were empty. Rebuild — a restart will not
+pick them up:
+
+```bash
+./deploy/deploy.sh
+```
+
+**The page is served but stays blank, and the console shows a Content
+Security Policy violation.**
+
+The CSP allows `connect-src` to `https://*.supabase.co` only. A Supabase
+custom domain, or any other API the app talks to, has to be added to the
+`Content-Security-Policy` line in `deploy/nginx/airhouse.co.za.conf`.
+
 **Auth emails link to localhost.**
 
 Step 5 was skipped. Fix the Site URL in Supabase.
