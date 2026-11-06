@@ -151,6 +151,15 @@ because the deployed database has not been inspected.
 | **Owner** | Senior engineer |
 | **Remaining** | Move audit writes server-side, as `financial_operations` already does for money movements, and revoke client `INSERT` on `audit_logs`. |
 
+### AH-032 — A browser could file a settled invoice for any amount
+| | |
+|---|---|
+| **Impact** | 018 granted `INSERT` on `invoices` to `authenticated`. The only caller, `saveInvoice()` in `src/lib/invoices.js`, takes the total, VAT, customer and a status of `paid` from its argument, so a signed-in user could have filed a settled invoice for any amount against any customer. It is dead code — nothing in the application calls it — so nothing was exploited, but the grant was live and the function was one import away from being used. |
+| **Status** | **Fixed** — `026` revokes `INSERT` on `invoices` from both browser roles and refuses to finish if any client role still holds a write grant on a money or privilege table. The function carries a comment saying why it fails and not to restore the grant. |
+| **Owner** | Senior engineer |
+| **Evidence** | `scripts/rehearse-migrations.sh` found it: the rehearsal asserts zero client write grants across `wallets`, `wallet_transactions`, `payout_requests`, `super_admins`, `audit_logs`, `admin_invites`, `escrow_holds`, `escrow_releases`, `invoices`, `payment_transactions` and `ledger_entries`, and failed on this one. |
+| **Remaining** | Invoices should be generated server-side from the ledger entry they describe. Until then the product has no invoice-creation path at all. |
+
 ### AH-031 — The row-level policies were never tested, and three were broken
 | | |
 |---|---|

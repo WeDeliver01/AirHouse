@@ -484,7 +484,19 @@ export const generateInvoiceHTML = (invoiceData) => {
 }
 
 /**
- * Save invoice to database
+ * Save invoice to database.
+ *
+ * NOT USED, AND IT NO LONGER WORKS. Nothing in the application calls this,
+ * and migration 026 revokes INSERT on `invoices` from browser roles, so it
+ * now fails rather than succeeding quietly.
+ *
+ * That is deliberate. As written it takes the total, the VAT, the customer
+ * and a status of 'paid' from the caller, so wiring it up would let any
+ * signed-in user file a settled invoice for any amount against anyone.
+ *
+ * An invoice describes a payment the ledger has already recorded, so it
+ * should be produced server-side from that record. Do not re-enable this by
+ * restoring the grant.
  */
 export const saveInvoice = async (invoiceData) => {
   const { data, error } = await supabase

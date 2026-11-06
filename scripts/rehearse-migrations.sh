@@ -27,8 +27,8 @@ if [ -z "$URL" ]; then
   exit 2
 fi
 
-command -v pg_dump >/dev/null 2>&1 || { echo "pg_dump is missing: sudo apt-get install -y postgresql-client-16" >&2; exit 2; }
-command -v docker  >/dev/null 2>&1 || { echo "docker is required to run the throwaway database." >&2; exit 2; }
+command -v psql   >/dev/null 2>&1 || { echo "psql is missing: sudo apt-get install -y postgresql-client-16" >&2; exit 2; }
+command -v docker >/dev/null 2>&1 || { echo "docker is required to run the throwaway database." >&2; exit 2; }
 
 if ! printf '%s' "$URL" | grep -qE '://[^/@]*:[^/@]*@'; then
   if [ -z "${PGPASSWORD:-}" ]; then
@@ -49,28 +49,61 @@ cleanup() {
 trap cleanup EXIT
 
 # ---------------------------------------------------------------------------
+log "Checking versions"
+
+# pg_dump refuses to dump a server newer than itself, and Supabase runs a
+# newer PostgreSQL than Ubuntu packages. Rather than add the PGDG apt
+# repository, borrow pg_dump from the same image this script already runs the
+# copy in -- which also guarantees the dump and the restore are the same
+# major version.
+server_num="$(psql "$URL" -X -qtA -c 'SHOW server_version_num' 2>/dev/null || true)"
+[ -n "$server_num" ] || die "could not connect. For an IPv6-only host, use the Session pooler string."
+SERVER_MAJOR=$(( server_num / 10000 ))
+
+if command -v pg_dump >/dev/null 2>&1; then
+  LOCAL_MAJOR="$(pg_dump --version | grep -oE '[0-9]+' | head -1)"
+else
+  LOCAL_MAJOR=0
+fi
+
+echo "    server PostgreSQL $SERVER_MAJOR, local pg_dump ${LOCAL_MAJOR:-none}"
+
+PG_IMAGE="postgres:${SERVER_MAJOR}-alpine"
+
 log "Dumping the live public schema and data (read-only)"
 
 # Read-only for the dump session too: pg_dump never writes, but saying so
 # means a mistake here cannot become a production change.
-PGOPTIONS="-c default_transaction_read_only=on" \
-pg_dump "$URL" \
-  --schema=public \
-  --no-owner --no-privileges --no-publications --no-subscriptions \
-  --quote-all-identifiers \
-  > "$DUMP" || die "pg_dump failed. For an IPv6-only host use the Session pooler string."
+DUMP_ARGS=(--schema=public --no-owner --no-privileges --no-publications --no-subscriptions --quote-all-identifiers)
 
+if [ "${LOCAL_MAJOR:-0}" -ge "$SERVER_MAJOR" ]; then
+  PGOPTIONS="-c default_transaction_read_only=on" \
+    pg_dump "$URL" "${DUMP_ARGS[@]}" > "$DUMP" 2> "$WORKDIR/dump.err" \
+    || die "pg_dump failed: $(tail -2 "$WORKDIR/dump.err")"
+else
+  echo "    local pg_dump is too old; using $PG_IMAGE instead"
+  docker pull -q "$PG_IMAGE" >/dev/null 2>&1 || true
+  # --network host so the container inherits the host's routing, including
+  # IPv6, which Supabase's direct endpoint needs.
+  docker run --rm --network host \
+    -e PGPASSWORD="${PGPASSWORD:-}" \
+    -e PGOPTIONS="-c default_transaction_read_only=on" \
+    "$PG_IMAGE" pg_dump "$URL" "${DUMP_ARGS[@]}" > "$DUMP" 2> "$WORKDIR/dump.err" \
+    || die "pg_dump failed: $(tail -3 "$WORKDIR/dump.err")"
+fi
+
+[ -s "$DUMP" ] || die "the dump is empty; see $WORKDIR/dump.err"
 echo "    $(wc -l < "$DUMP") lines, $(du -h "$DUMP" | cut -f1)"
 
 # ---------------------------------------------------------------------------
-log "Starting a throwaway PostgreSQL 17"
+log "Starting a throwaway PostgreSQL $SERVER_MAJOR"
 
 docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
 docker run -d --name "$CONTAINER" \
   -e POSTGRES_PASSWORD=rehearsal \
   -e POSTGRES_DB=airhouse \
   -p "127.0.0.1:$PGPORT_LOCAL:5432" \
-  postgres:17-alpine >/dev/null
+  "$PG_IMAGE" >/dev/null
 
 LOCAL="postgresql://postgres:rehearsal@127.0.0.1:$PGPORT_LOCAL/airhouse"
 
@@ -110,16 +143,22 @@ echo "    $tables tables restored"
 [ "${tables:-0}" -gt 5 ] || die "the restore produced almost nothing; see $WORKDIR/restore.log"
 
 # ---------------------------------------------------------------------------
-log "Before: what the copy looks like"
+# The three measures that matter, plus the row counts, so the "after" can be
+# compared against something rather than judged on its own.
+measure() {
+  PGPASSWORD=rehearsal psql "$LOCAL" -X -qtA -c "$1"
+}
 
-PGPASSWORD=rehearsal psql "$LOCAL" -X -q -c "
-SELECT
-  (SELECT count(*) FROM pg_policies WHERE schemaname='public' AND (qual='true' OR with_check='true')) AS unrestricted_policies,
-  (SELECT count(*) FROM information_schema.role_table_grants
-     WHERE table_schema='public' AND grantee IN ('anon','authenticated')
-       AND privilege_type IN ('INSERT','UPDATE','DELETE','TRUNCATE')) AS client_write_grants,
-  (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-     WHERE n.nspname='public' AND c.relkind='r' AND NOT c.relrowsecurity) AS tables_without_rls;"
+BEFORE_MONEY_GRANTS="$(measure "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema='public' AND grantee IN ('anon','authenticated') AND privilege_type IN ('INSERT','UPDATE','DELETE','TRUNCATE') AND table_name IN ('wallets','wallet_transactions','payout_requests','super_admins','audit_logs','admin_invites','escrow_holds','escrow_releases','invoices','payment_transactions')")"
+BEFORE_OPEN_POLICIES="$(measure "SELECT count(*) FROM pg_policies WHERE schemaname='public' AND tablename IN ('profiles','creator_profiles','wallets') AND (qual='true' OR with_check='true')")"
+BEFORE_ANON_WRITES="$(measure "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema='public' AND grantee='anon' AND privilege_type IN ('INSERT','UPDATE','DELETE','TRUNCATE')")"
+BEFORE_ROWS="$(measure "SELECT string_agg(t || '=' || n, ' ') FROM (SELECT 'profiles' AS t, count(*) AS n FROM profiles UNION ALL SELECT 'wallets', count(*) FROM wallets UNION ALL SELECT 'campaigns', count(*) FROM campaigns UNION ALL SELECT 'leads', count(*) FROM leads ORDER BY 1) q")"
+
+log "Before the migrations"
+printf '    write grants on money and privilege tables: %s\n' "$BEFORE_MONEY_GRANTS"
+printf '    unrestricted policies on profiles/creator_profiles/wallets: %s\n' "$BEFORE_OPEN_POLICIES"
+printf '    tables anonymous visitors may write: %s\n' "$BEFORE_ANON_WRITES"
+printf '    rows: %s\n' "$BEFORE_ROWS"
 
 # ---------------------------------------------------------------------------
 log "Applying the migrations to the copy"
@@ -129,38 +168,56 @@ if ! PGPASSWORD=rehearsal bash scripts/apply-migrations.sh "$LOCAL" --adopt 2>&1
 fi
 
 # ---------------------------------------------------------------------------
-log "After: the same three measures"
+AFTER_MONEY_GRANTS="$(measure "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema='public' AND grantee IN ('anon','authenticated') AND privilege_type IN ('INSERT','UPDATE','DELETE','TRUNCATE') AND table_name IN ('wallets','wallet_transactions','payout_requests','super_admins','audit_logs','admin_invites','escrow_holds','escrow_releases','invoices','payment_transactions')")"
+AFTER_OPEN_POLICIES="$(measure "SELECT count(*) FROM pg_policies WHERE schemaname='public' AND tablename IN ('profiles','creator_profiles','wallets') AND (qual='true' OR with_check='true') AND policyname <> 'creator_profiles_select_authenticated'")"
+AFTER_ANON_WRITES="$(measure "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema='public' AND grantee='anon' AND privilege_type IN ('INSERT','UPDATE','DELETE','TRUNCATE')")"
+AFTER_ANON_DETAIL="$(measure "SELECT COALESCE(string_agg(table_name || ':' || privilege_type, ' '), 'none') FROM information_schema.role_table_grants WHERE table_schema='public' AND grantee='anon' AND privilege_type IN ('INSERT','UPDATE','DELETE','TRUNCATE')")"
+AFTER_ROWS="$(measure "SELECT string_agg(t || '=' || n, ' ') FROM (SELECT 'profiles' AS t, count(*) AS n FROM profiles UNION ALL SELECT 'wallets', count(*) FROM wallets UNION ALL SELECT 'campaigns', count(*) FROM campaigns UNION ALL SELECT 'leads', count(*) FROM leads ORDER BY 1) q")"
+LEDGER_OK="$(measure "SELECT ledger_is_balanced()" 2>/dev/null || echo "?")"
 
-PGPASSWORD=rehearsal psql "$LOCAL" -X -q -c "
-SELECT
-  (SELECT count(*) FROM pg_policies WHERE schemaname='public' AND (qual='true' OR with_check='true')) AS unrestricted_policies,
-  (SELECT count(*) FROM information_schema.role_table_grants
-     WHERE table_schema='public' AND grantee IN ('anon','authenticated')
-       AND privilege_type IN ('INSERT','UPDATE','DELETE','TRUNCATE')) AS client_write_grants,
-  (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-     WHERE n.nspname='public' AND c.relkind='r' AND NOT c.relrowsecurity) AS tables_without_rls;"
+log "After the migrations"
 
-log "Nothing was lost"
+verdict=0
+check() {
+  if [ "$2" = "pass" ]; then printf '    \033[32m✓\033[0m %s\n' "$1"
+  else printf '    \033[31m✗\033[0m %s\n' "$1"; verdict=1; fi
+}
 
-PGPASSWORD=rehearsal psql "$LOCAL" -X -q -c "
-SELECT 'profiles' AS t, count(*) FROM profiles
-UNION ALL SELECT 'wallets', count(*) FROM wallets
-UNION ALL SELECT 'campaigns', count(*) FROM campaigns
-UNION ALL SELECT 'leads', count(*) FROM leads
-ORDER BY 1;"
+check "money and privilege tables: $BEFORE_MONEY_GRANTS client write grants -> $AFTER_MONEY_GRANTS" \
+      "$([ "${AFTER_MONEY_GRANTS:-1}" -eq 0 ] && echo pass || echo fail)"
+check "profiles / creator_profiles / wallets: $BEFORE_OPEN_POLICIES unrestricted policies -> $AFTER_OPEN_POLICIES" \
+      "$([ "${AFTER_OPEN_POLICIES:-1}" -eq 0 ] && echo pass || echo fail)"
+# Anonymous visitors keep exactly one write: submitting a lead.
+check "anonymous writes: $BEFORE_ANON_WRITES -> $AFTER_ANON_WRITES ($AFTER_ANON_DETAIL)" \
+      "$([ "${AFTER_ANON_WRITES:-9}" -le 1 ] && echo pass || echo fail)"
+check "financial ledger balances: $LEDGER_OK" \
+      "$([ "$LEDGER_OK" = "t" ] && echo pass || echo fail)"
+check "rows unchanged: $BEFORE_ROWS -> $AFTER_ROWS" \
+      "$([ "$BEFORE_ROWS" = "$AFTER_ROWS" ] && echo pass || echo fail)"
 
-cp "$DUMP" "./production-dump-$STAMP.sql" 2>/dev/null && echo "
-The dump has been kept at ./production-dump-$STAMP.sql -- it contains real
-user data, so move it somewhere safe or delete it when you are done."
+if cp "$DUMP" "./production-dump-$STAMP.sql" 2>/dev/null; then
+  chmod 600 "./production-dump-$STAMP.sql"
+  echo
+  echo "The dump is at ./production-dump-$STAMP.sql (mode 600). It holds real"
+  echo "user data -- it is a backup until you delete it, and a liability after."
+fi
+
+if [ "$verdict" -ne 0 ]; then
+  log "The rehearsal FAILED"
+  echo "Something above is not as it should be. Do not apply this to production."
+  echo "The copy is still running as container $CONTAINER until this script exits."
+  exit 1
+fi
 
 log "The rehearsal succeeded"
-cat <<'NEXT'
-The migrations applied to a copy of your production data without losing
-anything. The two counts above should both have fallen to near zero.
+cat <<NEXT
+The migrations applied to a copy of your production data, every check above
+passed, and no rows were lost.
 
-Production has NOT been touched. When you are satisfied:
+Production has NOT been touched. When you are ready:
 
-  ./scripts/backup-database.sh "$DATABASE_URL" ./backup
-  ./scripts/apply-migrations.sh "$DATABASE_URL" --adopt
+  ./scripts/backup-database.sh '<url>' ./backup
+  ./scripts/restore-test.sh ./backup/airhouse-<stamp>.dump
+  ./scripts/apply-migrations.sh '<url>' --adopt
 
 NEXT

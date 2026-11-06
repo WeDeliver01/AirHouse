@@ -154,6 +154,22 @@ CREATE POLICY "creator_profiles_update_own" ON public.creator_profiles
   WITH CHECK (user_id = auth.uid());
 
 -- ----------------------------------------------------------------------------
+-- 4b. Invoices are financial records; a browser must not write them.
+--
+--     018 granted INSERT on invoices to authenticated. The only caller is
+--     src/lib/invoices.js saveInvoice(), which is dead code -- nothing in the
+--     application invokes it -- and it inserts a client-chosen total, vat,
+--     customer_id and a status of 'paid' with a paid_at timestamp. Wired up
+--     as written, any signed-in user could file a settled invoice for any
+--     amount against anyone.
+--
+--     Reading invoices stays; writing them belongs with the ledger, which
+--     already records the payment the invoice describes.
+-- ----------------------------------------------------------------------------
+
+REVOKE INSERT ON public.invoices FROM anon, authenticated;
+
+-- ----------------------------------------------------------------------------
 -- 5. Refuse to finish if either table is still unrestricted.
 -- ----------------------------------------------------------------------------
 
@@ -171,5 +187,20 @@ BEGIN
 
   IF v_remaining > 0 THEN
     RAISE EXCEPTION 'profiles/creator_profiles still carry % unrestricted policies', v_remaining;
+  END IF;
+
+  -- And that no browser-facing role can write a money or privilege table.
+  SELECT count(*) INTO v_remaining
+  FROM information_schema.role_table_grants
+  WHERE table_schema = 'public'
+    AND grantee IN ('anon', 'authenticated')
+    AND privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')
+    AND table_name IN ('wallets', 'wallet_transactions', 'payout_requests',
+                       'super_admins', 'audit_logs', 'admin_invites',
+                       'escrow_holds', 'escrow_releases', 'invoices',
+                       'payment_transactions', 'ledger_entries');
+
+  IF v_remaining > 0 THEN
+    RAISE EXCEPTION 'client roles still hold % write grant(s) on money or privilege tables', v_remaining;
   END IF;
 END $$;
