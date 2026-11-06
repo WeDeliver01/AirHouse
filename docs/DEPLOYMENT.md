@@ -203,6 +203,21 @@ docker compose --env-file deploy/.env.production logs --tail 50 app
 `Missing required configuration: ...` means exactly what it says — fill those
 in. That message is the feature working.
 
+**`deploy/.env.production: line NN: syntax error near unexpected token`**
+
+Fixed. The deploy script used to read the config file by executing it as a
+shell script, so a value containing a bracket or an angle bracket -- a company
+name like `AirHouse (Pty) Ltd`, or `AirHouse <notifications@airhouse.co.za>`
+-- was a syntax error, and the message named neither the setting nor the
+problem. The file is now parsed properly and both forms work unquoted. If you
+see this, you are on an older checkout: `git pull`.
+
+**`line NN: KEY has a comment after its value`**
+
+An unquoted value with a trailing `# comment` means two different things to
+the shell and to docker compose, so the script refuses rather than guess. Move
+the comment to its own line, or quote the value.
+
 **502 Bad Gateway from Nginx.**
 
 The proxy cannot reach the container. Check it is listening and that the port

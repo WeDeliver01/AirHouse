@@ -29,6 +29,78 @@ compose() {
   docker compose --env-file "$ENV_FILE" "$@"
 }
 
+# Read the env file into the environment WITHOUT letting the shell interpret
+# it.
+#
+# This used to be `set -a; source "$ENV_FILE"; set +a`, which treats the
+# config file as a shell script. A perfectly reasonable value -- a display
+# name like AirHouse (Pty) Ltd, or an address like
+# AirHouse <notifications@airhouse.co.za> -- then hits bash as a subshell or a
+# redirect, and the whole deploy dies with
+#
+#     .env.production: line 63: syntax error near unexpected token `newline'
+#
+# which names neither the setting nor the problem. Worse, `source` would run
+# anything in there, so a stray backtick in a pasted key executes on the host.
+#
+# Parse it ourselves instead: KEY=value, one layer of matching quotes stripped
+# the way `docker compose --env-file` strips it, so the shell and compose
+# always agree on what a value is.
+load_env() {
+  local line key value lineno=0
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    lineno=$((lineno + 1))
+
+    # Tolerate a byte-order mark and CRLF line endings, which is what you get
+    # when the file has been through a Windows editor or a copy-paste.
+    [ "$lineno" -eq 1 ] && line="${line#$'\xef\xbb\xbf'}"
+    line="${line%$'\r'}"
+
+    # Trim surrounding whitespace.
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+
+    case "$line" in ""|\#*) continue ;; esac
+
+    line="${line#export }"
+
+    case "$line" in
+      *=*) ;;
+      *) die "$ENV_FILE line $lineno is not KEY=value: $line" ;;
+    esac
+
+    key="${line%%=*}"
+    value="${line#*=}"
+
+    case "$key" in
+      [A-Za-z_]*) ;;
+      *) die "$ENV_FILE line $lineno has an invalid setting name: $key" ;;
+    esac
+    case "$key" in
+      *[!A-Za-z0-9_]*) die "$ENV_FILE line $lineno has an invalid setting name: $key" ;;
+    esac
+
+    # Strip one layer of matching quotes.
+    if [ ${#value} -ge 2 ]; then
+      case "$value" in
+        \"*\") value="${value:1:${#value}-2}" ;;
+        \'*\') value="${value:1:${#value}-2}" ;;
+      esac
+    fi
+
+    # An unquoted value with an inline comment is ambiguous: compose keeps the
+    # "# ..." and the shell would drop it. Refuse rather than guess, and say
+    # which line to fix.
+    case "$line" in
+      *\"*|*\'*) ;;
+      *" #"*) die "$ENV_FILE line $lineno: $key has a comment after its value. Put the comment on its own line, or quote the value." ;;
+    esac
+
+    export "$key=$value"
+  done < "$ENV_FILE"
+}
+
 # ---------------------------------------------------------------------------
 # Preflight
 # ---------------------------------------------------------------------------
@@ -46,8 +118,7 @@ docker compose version >/dev/null 2>&1 || die "the docker compose plugin is not 
 
 # Fail early on a missing required value rather than halfway through a build.
 missing=""
-# shellcheck disable=SC1090
-set -a; source "$ENV_FILE"; set +a
+load_env
 for key in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY SUPABASE_URL SUPABASE_ANON_KEY \
            SUPABASE_SERVICE_ROLE_KEY RESEND_API_KEY ALLOWED_ORIGINS; do
   [ -z "${!key:-}" ] && missing="$missing $key"

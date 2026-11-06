@@ -52,7 +52,7 @@ Or individually:
 
 ```bash
 npm run lint       # ESLint — 0 problems expected
-npm test           # 144 unit tests
+npm test           # 154 unit tests
 npm run test:db    # 123 database assertions (needs local PostgreSQL)
 npm run test:e2e   # 38 end-to-end journeys
 npm run build      # production build

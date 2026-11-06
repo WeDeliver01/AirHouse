@@ -31,6 +31,16 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // `npm test` is the unit suite, and nothing here configured it, so vitest
+  // fell back to its default glob -- which also matches e2e/*.spec.js. Loading
+  // a Playwright spec under vitest throws "Playwright Test did not expect
+  // test.describe() to be called here", so `npm test` exited non-zero even
+  // with every unit test passing, and the CI quality gate was red on a green
+  // suite. The journey tests have their own runner: `npm run test:e2e`.
+  test: {
+    include: ['{src,server,deploy,scripts}/**/*.{test,spec}.{js,jsx}'],
+    exclude: ['**/node_modules/**', '**/dist/**'],
+  },
   server: {
     port: 5000,
     host: '0.0.0.0',
