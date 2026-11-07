@@ -10,6 +10,10 @@
 
 set -euo pipefail
 
+# pg_dump refuses to dump a server newer than itself, and Supabase runs a
+# newer PostgreSQL than Ubuntu packages. pgtools picks a matching client.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/pgtools.sh"
+
 DATABASE_URL="${1:-${DATABASE_URL:-}}"
 OUT_DIR="${2:-./backup}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -19,22 +23,39 @@ if [ -z "$DATABASE_URL" ]; then
   exit 1
 fi
 
+if ! printf '%s' "$DATABASE_URL" | grep -qE '://[^/@]*:[^/@]*@'; then
+  if [ -z "${PGPASSWORD:-}" ]; then
+    printf 'Database password (not echoed): ' >&2
+    read -rs PGPASSWORD
+    printf '\n' >&2
+    export PGPASSWORD
+  fi
+fi
+
+echo "==> Checking versions"
+pg_detect_versions "$DATABASE_URL" || exit 1
+pg_report_versions
+
 mkdir -p "$OUT_DIR"
 
 DUMP="$OUT_DIR/airhouse-$STAMP.dump"
 MANIFEST="$OUT_DIR/airhouse-$STAMP.manifest.txt"
 
 echo "==> Dumping to $DUMP"
-pg_dump "$DATABASE_URL" \
+# To stdout rather than --file: when the dump runs in a container, --file
+# would write the archive inside it and leave nothing behind here.
+pg_tool pg_dump "$DATABASE_URL" \
   --format=custom \
   --no-owner \
   --no-privileges \
-  --file="$DUMP"
+  > "$DUMP"
+
+[ -s "$DUMP" ] || { echo "ERROR: the dump is empty." >&2; exit 1; }
 
 echo "==> Verifying the archive is readable"
 # Listing the table of contents proves the file is a valid archive. It does
 # not prove it restores -- only scripts/restore-test.sh does that.
-pg_restore --list "$DUMP" > /dev/null
+pg_tool_with_file pg_restore "$DUMP" --list > /dev/null
 echo "    archive OK ($(du -h "$DUMP" | cut -f1))"
 
 echo "==> Recording a row-count manifest"
@@ -45,7 +66,7 @@ echo "==> Recording a row-count manifest"
   echo "sha256: $(sha256sum "$DUMP" | cut -d' ' -f1)"
   echo
   echo "row counts:"
-  psql "$DATABASE_URL" -tA -F$'\t' -c "
+  pg_tool psql "$DATABASE_URL" -tA -F$'\t' -c "
     SELECT relname, n_live_tup
     FROM pg_stat_user_tables
     WHERE schemaname = 'public'

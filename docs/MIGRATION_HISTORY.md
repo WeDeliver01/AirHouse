@@ -100,6 +100,14 @@ If the direct host fails with *could not translate host name* or *network is
 unreachable*, the host has no IPv6. That is not a wrong password — switch to
 the session pooler string from the dashboard's **Connect** dialog.
 
+**Docker is required for the backup and restore scripts.** Supabase runs
+PostgreSQL 17 and Ubuntu packages client 16, and `pg_dump` refuses to dump a
+newer server. Rather than add the PGDG apt repository, `scripts/lib/pgtools.sh`
+borrows the client from the `postgres` image matching the server's major
+version, and `restore-test.sh` restores into a container of the archive's own
+version. Where the local client is already current, the local binaries are
+used and no container is started.
+
 **Never paste a database password into a chat, an issue or a commit.** If one
 is exposed, rotate it immediately: Project Settings → Database → Reset
 database password. Nothing in this application uses it — the frontend uses the

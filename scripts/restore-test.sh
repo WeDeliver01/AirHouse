@@ -10,7 +10,7 @@
 set -euo pipefail
 
 DUMP="${1:-}"
-PGBIN="${PGBIN:-$(dirname "$(command -v psql)")}"
+CONTAINER="airhouse-restore-test"
 PORT="${PGPORT:-5466}"
 
 if [ -z "$DUMP" ] || [ ! -f "$DUMP" ]; then
@@ -18,27 +18,83 @@ if [ -z "$DUMP" ] || [ ! -f "$DUMP" ]; then
   exit 1
 fi
 
+command -v docker >/dev/null 2>&1 || {
+  echo "docker is required: the archive must be restored by its own PostgreSQL major version." >&2
+  exit 1
+}
+
 MANIFEST="${DUMP%.dump}.manifest.txt"
 WORKDIR="$(mktemp -d)"
 cleanup() {
-  "$PGBIN/pg_ctl" -D "$WORKDIR/data" -m immediate stop >/dev/null 2>&1 || true
+  docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
   rm -rf "$WORKDIR"
 }
 trap cleanup EXIT
 
-echo "==> Starting a throwaway PostgreSQL instance"
-mkdir -p "$WORKDIR/data" "$WORKDIR/sock"
-"$PGBIN/initdb" -D "$WORKDIR/data" --auth=trust >/dev/null
-"$PGBIN/pg_ctl" -D "$WORKDIR/data" -l "$WORKDIR/pg.log" \
-  -o "-p $PORT -k $WORKDIR/sock -c listen_addresses=''" -w start >/dev/null
+DUMP_ABS="$(cd "$(dirname "$DUMP")" && pwd)/$(basename "$DUMP")"
 
-"$PGBIN/createdb" -h "$WORKDIR/sock" -p "$PORT" restore_test
+# A custom-format archive records the server it came from, and an older
+# pg_restore cannot read a newer one. Read the version out of the archive
+# and restore with a PostgreSQL of that major version, rather than whatever
+# this machine happens to have installed.
+echo "==> Reading the archive"
+ARCHIVE_MAJOR="$(
+  docker run --rm -i -v "$DUMP_ABS:/work/input:ro" postgres:17-alpine \
+    pg_restore --list /work/input 2>/dev/null \
+  | grep -oiE 'dumped from database version: ?[0-9]+' | grep -oE '[0-9]+' | head -1
+)"
+
+if [ -z "$ARCHIVE_MAJOR" ]; then
+  echo "    could not read the version from the archive; assuming 17"
+  ARCHIVE_MAJOR=17
+else
+  echo "    dumped from PostgreSQL $ARCHIVE_MAJOR"
+fi
+
+PG_IMAGE="postgres:${ARCHIVE_MAJOR}-alpine"
+LOCAL="postgresql://postgres:restoretest@127.0.0.1:$PORT/restore_test"
+
+echo "==> Starting a throwaway PostgreSQL $ARCHIVE_MAJOR"
+docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+docker run -d --name "$CONTAINER" \
+  -e POSTGRES_PASSWORD=restoretest \
+  -e POSTGRES_DB=restore_test \
+  -v "$DUMP_ABS:/work/input:ro" \
+  -p "127.0.0.1:$PORT:5432" \
+  "$PG_IMAGE" >/dev/null
+
+for _ in $(seq 1 60); do
+  if docker exec "$CONTAINER" pg_isready -q 2>/dev/null; then break; fi
+  sleep 1
+done
+docker exec "$CONTAINER" pg_isready -q 2>/dev/null || {
+  echo "the throwaway database did not start" >&2
+  exit 1
+}
+
+# The dump references auth.users, the Supabase roles and the extensions
+# schema, none of which a public-schema dump carries.
+docker exec -i "$CONTAINER" psql -U postgres -d restore_test -q -v ON_ERROR_STOP=0 >/dev/null 2>&1 <<'SHIM'
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS pgcrypto  WITH SCHEMA extensions;
+ALTER DATABASE restore_test SET search_path TO public, extensions;
+CREATE SCHEMA IF NOT EXISTS auth;
+CREATE TABLE IF NOT EXISTS auth.users (id UUID PRIMARY KEY);
+DO $$ BEGIN CREATE ROLE anon NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE ROLE service_role NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+SHIM
 
 echo "==> Restoring"
-# Supabase dumps reference roles that do not exist locally; those errors are
-# expected and do not affect the data.
-"$PGBIN/pg_restore" -h "$WORKDIR/sock" -p "$PORT" -d restore_test \
-  --no-owner --no-privileges "$DUMP" 2>"$WORKDIR/restore.log" || true
+# Supabase dumps reference roles and objects that do not exist here; those
+# errors are expected and do not affect the data.
+docker exec "$CONTAINER" pg_restore -U postgres -d restore_test \
+  --no-owner --no-privileges /work/input > "$WORKDIR/restore.log" 2>&1 || true
+
+psql_t() {
+  docker exec "$CONTAINER" psql -U postgres -d restore_test -tAc "$1" 2>/dev/null
+}
 
 echo "==> Comparing row counts against the manifest"
 failures=0
@@ -46,8 +102,8 @@ failures=0
 if [ -f "$MANIFEST" ]; then
   while read -r table expected; do
     [ -z "$table" ] && continue
-    actual="$("$PGBIN/psql" -h "$WORKDIR/sock" -p "$PORT" -d restore_test -tAc \
-      "SELECT count(*) FROM public.$(printf '%q' "$table")" 2>/dev/null || echo "missing")"
+    actual="$(psql_t "SELECT count(*) FROM public.\"$table\"" || echo "missing")"
+    [ -n "$actual" ] || actual="missing"
 
     if [ "$actual" = "missing" ]; then
       echo "    MISSING  $table (expected ~$expected)"
@@ -68,7 +124,7 @@ else
 fi
 
 echo "==> Checking the financial ledger still balances"
-balanced="$("$PGBIN/psql" -h "$WORKDIR/sock" -p "$PORT" -d restore_test -tAc \
+balanced="$(psql_t \
   "SELECT ledger_is_balanced()" 2>/dev/null || echo "unknown")"
 echo "    ledger_is_balanced = $balanced"
 if [ "$balanced" = "f" ]; then
