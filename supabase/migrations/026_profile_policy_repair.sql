@@ -83,8 +83,17 @@ CREATE POLICY "profiles_insert_own" ON public.profiles
 -- 3. Restore the column-level UPDATE grant that 018 removed.
 --
 --    Derived from the live column list rather than hard-coded, so a column
---    added later is writable by its owner by default, while the four that
+--    added later is writable by its owner by default, while the ones that
 --    decide identity and privilege stay server-only.
+--
+--    Deriving by exclusion has a cost, and the rehearsal showed it: the live
+--    database carries verification_rejected_at and verification_rejection_
+--    reason from migration 012, which this list had never heard of, so they
+--    came out writable. They are a reviewer's decision about the account,
+--    not the account holder's own details -- a creator could have cleared
+--    the reason an admin recorded for rejecting them. Any future column that
+--    records a decision ABOUT a user, rather than data belonging to them,
+--    belongs in this list.
 -- ----------------------------------------------------------------------------
 
 DO $$
@@ -98,7 +107,8 @@ BEGIN
   FROM information_schema.columns
   WHERE table_schema = 'public'
     AND table_name = 'profiles'
-    AND column_name NOT IN ('id', 'email', 'role', 'is_verified', 'is_super_admin', 'created_at');
+    AND column_name NOT IN ('id', 'email', 'role', 'is_verified', 'is_super_admin', 'created_at',
+                           'verification_rejected_at', 'verification_rejection_reason');
 
   IF v_safe_columns IS NULL THEN
     RAISE EXCEPTION 'profiles has no updatable columns; refusing to leave it unwritable';

@@ -123,7 +123,7 @@ BEGIN
     AND table_name = 'profiles'
     AND column_name NOT IN (
       'id', 'email', 'role', 'is_verified', 'is_super_admin', 'created_at'
-    );
+    , 'verification_rejected_at', 'verification_rejection_reason');
 
   IF v_safe_columns IS NOT NULL THEN
     EXECUTE format('GRANT UPDATE (%s) ON profiles TO authenticated', v_safe_columns);

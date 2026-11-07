@@ -203,6 +203,15 @@ FROM (VALUES ('profiles'),('campaigns'),('leads'),('wallets'),('wallet_transacti
              ('disputes'),('terms_acceptances')) AS t(name)
 ORDER BY 1;"
 
+# Who the new authorization model will actually trust. After migration 016,
+# fin_is_super_admin() reads this table and nothing else, so its contents are
+# the real answer to "who runs this platform" -- not profiles.role.
+run_if super_admins "8a. Accounts in super_admins (the post-migration source of truth)" "
+SELECT sa.*, p.email AS profile_email
+FROM public.super_admins sa
+LEFT JOIN public.profiles p ON p.id = sa.user_id
+ORDER BY 1;"
+
 if exists profiles && has_column profiles is_super_admin; then
   run "8. Accounts holding elevated privilege (AH-003)" "
 SELECT id, email, role, COALESCE(is_super_admin, false) AS super_admin, created_at
