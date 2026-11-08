@@ -65,7 +65,7 @@ async function getResendClient() {
 
 const BRAND = {
   name: 'AirHouse',
-  color: '#6B9B8C',
+  color: '#015D47',
   url: config.appUrl,
 };
 

@@ -17,7 +17,7 @@ const STAGE_TONE = {
   lost: 'danger',
 }
 
-const SparklineChart = ({ data, color = '#38675a', height = 36 }) => {
+const SparklineChart = ({ data, color = '#015D47', height = 36 }) => {
   if (!data?.length) return null
   const max = Math.max(...data), min = Math.min(...data), range = max - min || 1
   const points = data

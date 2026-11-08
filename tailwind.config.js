@@ -8,59 +8,60 @@ export default {
     extend: {
       colors: {
         // === Stitch / PropTech Trust Systems M3 token set ===
+        // Brand: Forest Green (primary) / Mandarin Orange (secondary) / Crest Yellow (tertiary)
         // Surfaces
-        'surface': '#f9f9ff',
-        'surface-dim': '#d3daef',
-        'surface-bright': '#f9f9ff',
+        'surface': '#fcfdfd',
+        'surface-dim': '#dbe1e0',
+        'surface-bright': '#fafafa',
         'surface-container-lowest': '#ffffff',
-        'surface-container-low': '#f1f3ff',
-        'surface-container': '#e9edff',
-        'surface-container-high': '#e1e8fd',
-        'surface-container-highest': '#dce2f7',
-        'surface-variant': '#dce2f7',
-        'surface-tint': '#38675a',
-        'inverse-surface': '#293040',
-        'inverse-on-surface': '#edf0ff',
+        'surface-container-low': '#f7f8f8',
+        'surface-container': '#f1f3f3',
+        'surface-container-high': '#e9eceb',
+        'surface-container-highest': '#e4e7e7',
+        'surface-variant': '#e5ebe9',
+        'surface-tint': '#015D47',
+        'inverse-surface': '#2f3735',
+        'inverse-on-surface': '#f4f6f5',
 
         // Text on surfaces / background
-        'on-surface': '#141b2b',
-        'on-surface-variant': '#404945',
-        'background': '#f9f9ff',
-        'on-background': '#141b2b',
+        'on-surface': '#1c2120',
+        'on-surface-variant': '#455450',
+        'background': '#fcfdfd',
+        'on-background': '#1c2120',
 
         // Outlines
-        'outline': '#707975',
-        'outline-variant': '#c0c8c4',
+        'outline': '#6e8681',
+        'outline-variant': '#c7d1cf',
 
-        // Primary
+        // Primary — Forest Green
         'on-primary': '#ffffff',
-        'primary-container': '#6b9b8c',
-        'on-primary-container': '#003127',
-        'inverse-primary': '#9fd1c0',
-        'primary-fixed': '#bbeddc',
-        'primary-fixed-dim': '#9fd1c0',
-        'on-primary-fixed': '#002019',
-        'on-primary-fixed-variant': '#1e4f42',
+        'primary-container': '#d2f9f0',
+        'on-primary-container': '#013d2e',
+        'inverse-primary': '#a3ebda',
+        'primary-fixed': '#d2f9f0',
+        'primary-fixed-dim': '#a3ebda',
+        'on-primary-fixed': '#013227',
+        'on-primary-fixed-variant': '#028d6c',
 
-        // Secondary
-        'secondary': '#006c4e',
+        // Secondary — Mandarin Orange
+        'secondary': '#FD550A',
         'on-secondary': '#ffffff',
-        'secondary-container': '#80f9c8',
-        'on-secondary-container': '#007353',
-        'secondary-fixed': '#80f9c8',
-        'secondary-fixed-dim': '#62dcad',
-        'on-secondary-fixed': '#002115',
-        'on-secondary-fixed-variant': '#00513a',
+        'secondary-container': '#fbe1d5',
+        'on-secondary-container': '#792601',
+        'secondary-fixed': '#fbe1d5',
+        'secondary-fixed-dim': '#edc0ab',
+        'on-secondary-fixed': '#471601',
+        'on-secondary-fixed-variant': '#a23301',
 
-        // Tertiary
-        'tertiary': '#555f6d',
-        'on-tertiary': '#ffffff',
-        'tertiary-container': '#8892a2',
-        'on-tertiary-container': '#212b38',
-        'tertiary-fixed': '#d9e3f4',
-        'tertiary-fixed-dim': '#bdc7d8',
-        'on-tertiary-fixed': '#121c28',
-        'on-tertiary-fixed-variant': '#3e4755',
+        // Tertiary — Crest Yellow
+        'tertiary': '#E0F354',
+        'on-tertiary': '#2d3017',
+        'tertiary-container': '#f4f8d3',
+        'on-tertiary-container': '#3d421a',
+        'tertiary-fixed': '#f5f8dd',
+        'tertiary-fixed-dim': '#e3e9b9',
+        'on-tertiary-fixed': '#2d3017',
+        'on-tertiary-fixed-variant': '#585f25',
 
         // Error
         'error': '#ba1a1a',
@@ -77,12 +78,12 @@ export default {
         'text-secondary': '#475569',
 
         primary: {
-          DEFAULT: '#38675a',  // Stitch primary (was AirHouse #6B9B8C)
-          soft: '#E8F0ED',
-          dark: '#4A7A6B',
+          DEFAULT: '#015D47',  // Forest Green
+          soft: '#d2f9f0',
+          dark: '#013d2e',
         },
         accent: {
-          DEFAULT: '#5A8A7B',
+          DEFAULT: '#FD550A',  // Mandarin Orange
         },
         success: {
           DEFAULT: '#16a34a',
@@ -97,16 +98,16 @@ export default {
           soft: '#fee2e2',
         },
         airhouse: {
-          50: '#F0F5F3',
-          100: '#E8F0ED',
-          200: '#C5D9D1',
-          300: '#A3C2B5',
-          400: '#87AC9E',
-          500: '#6B9B8C',
-          600: '#5A8A7B',
-          700: '#4A7A6B',
-          800: '#3B615A',
-          900: '#2C4943',
+          50: '#f2f7f6',
+          100: '#e0f0ec',
+          200: '#b3e5d9',
+          300: '#74ddc4',
+          400: '#26d9ae',
+          500: '#13af89',
+          600: '#0b8e6f',
+          700: '#06745a',
+          800: '#035e48',
+          900: '#015d47',
         },
       },
       fontFamily: {

@@ -26,14 +26,14 @@ const TIER_DEFS = [
 ]
 const tierFor = (score) => TIER_DEFS.find((t) => score >= t.min) || TIER_DEFS[TIER_DEFS.length - 1]
 
-const ScoreRing = ({ value, max = 100, size = 180, color = '#006c4e' }) => {
+const ScoreRing = ({ value, max = 100, size = 180, color = '#FD550A' }) => {
   const r = (size - 16) / 2
   const c = 2 * Math.PI * r
   const p = (value / max) * c
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="transform -rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#dce2f7" strokeWidth="14" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e4e7e7" strokeWidth="14" />
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -57,14 +57,14 @@ const ScoreRing = ({ value, max = 100, size = 180, color = '#006c4e' }) => {
   )
 }
 
-const RingProgress = ({ value, size = 110, color = '#006c4e' }) => {
+const RingProgress = ({ value, size = 110, color = '#FD550A' }) => {
   const r = (size - 12) / 2
   const c = 2 * Math.PI * r
   const p = (Math.max(0, Math.min(100, value)) / 100) * c
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="transform -rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#dce2f7" strokeWidth="12" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e4e7e7" strokeWidth="12" />
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -184,7 +184,7 @@ const CreatorScorecard = () => {
     }
   }, [user.id])
 
-  const scoreColor = (s) => (s >= 90 ? '#006c4e' : s >= 70 ? '#ca8a04' : '#ba1a1a')
+  const scoreColor = (s) => (s >= 90 ? '#FD550A' : s >= 70 ? '#ca8a04' : '#ba1a1a')
   const scoreLabel = (s) => (s >= 90 ? 'Excellent' : s >= 70 ? 'Good' : 'Needs Improvement')
 
   if (loading)
@@ -333,7 +333,7 @@ const CreatorScorecard = () => {
           </div>
           <h3 className="font-headline-md text-headline-md text-on-surface mb-md">Content Approval</h3>
           <div className="flex items-center justify-center py-sm">
-            <RingProgress value={stats.contentApprovalRate ?? 0} color="#006c4e" />
+            <RingProgress value={stats.contentApprovalRate ?? 0} color="#FD550A" />
           </div>
           <p className="font-body-sm text-body-sm text-on-surface-variant text-center mt-sm">
             {stats.contentApprovalRate != null
@@ -348,7 +348,7 @@ const CreatorScorecard = () => {
           </div>
           <h3 className="font-headline-md text-headline-md text-on-surface mb-md">On-Time Delivery</h3>
           <div className="flex items-center justify-center py-sm">
-            <RingProgress value={stats.onTimeDelivery ?? 0} color="#38675a" />
+            <RingProgress value={stats.onTimeDelivery ?? 0} color="#015D47" />
           </div>
           <p className="font-body-sm text-body-sm text-on-surface-variant text-center mt-sm">
             {stats.onTimeDelivery != null

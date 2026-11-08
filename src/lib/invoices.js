@@ -263,7 +263,7 @@ export const generateInvoiceHTML = (invoiceData) => {
       margin: 0 auto;
     }
     .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
-    .logo { font-size: 28px; font-weight: bold; color: #6B9B8C; }
+    .logo { font-size: 28px; font-weight: bold; color: #d2f9f0; }
     .logo-subtitle { font-size: 12px; color: #666; }
     .invoice-title { text-align: right; }
     .invoice-title h1 { font-size: 32px; color: #333; margin-bottom: 5px; }
@@ -284,7 +284,7 @@ export const generateInvoiceHTML = (invoiceData) => {
     th { 
       text-align: left; 
       padding: 12px 8px; 
-      border-bottom: 2px solid #6B9B8C; 
+      border-bottom: 2px solid #d2f9f0; 
       font-size: 12px; 
       text-transform: uppercase; 
       color: #666;

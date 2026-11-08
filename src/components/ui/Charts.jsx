@@ -2,7 +2,7 @@ import { cn } from '../../lib/utils'
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react'
 
 // Sparkline Chart
-export const SparklineChart = ({ data, color = '#6B9B8C', height = 40 }) => {
+export const SparklineChart = ({ data, color = '#d2f9f0', height = 40 }) => {
   if (!data || data.length < 2) return null
   const max = Math.max(...data), min = Math.min(...data), range = max - min || 1
   const points = data.map((val, i) => `${(i / (data.length - 1)) * 100},${100 - ((val - min) / range) * 100}`).join(' ')
@@ -19,7 +19,7 @@ export const SparklineChart = ({ data, color = '#6B9B8C', height = 40 }) => {
 }
 
 // Donut/Ring Chart
-export const DonutChart = ({ value, max = 100, size = 120, strokeWidth = 12, color = '#6B9B8C', label }) => {
+export const DonutChart = ({ value, max = 100, size = 120, strokeWidth = 12, color = '#d2f9f0', label }) => {
   const r = (size - strokeWidth) / 2, c = 2 * Math.PI * r, p = (value / max) * c
   const percent = Math.round((value / max) * 100)
   return (
@@ -40,7 +40,7 @@ export const DonutChart = ({ value, max = 100, size = 120, strokeWidth = 12, col
 }
 
 // Bar Chart
-export const BarChart = ({ data, height = 200, color = '#6B9B8C', formatValue }) => {
+export const BarChart = ({ data, height = 200, color = '#d2f9f0', formatValue }) => {
   if (!data || data.length === 0) return null
   const max = Math.max(...data.map(d => d.value))
   return (

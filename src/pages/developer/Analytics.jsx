@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
-const SparklineChart = ({ data, color = '#6B9B8C', height = 40 }) => {
+const SparklineChart = ({ data, color = '#d2f9f0', height = 40 }) => {
   if (!data || data.length < 2) return null
   const max = Math.max(...data), min = Math.min(...data), range = max - min || 1
   const points = data.map((val, i) => `${(i / (data.length - 1)) * 100},${100 - ((val - min) / range) * 100}`).join(' ')
@@ -44,7 +44,7 @@ const BarChart = ({ data, height = 200 }) => {
   )
 }
 
-const DonutChart = ({ value, max = 100, size = 140, color = '#6B9B8C' }) => {
+const DonutChart = ({ value, max = 100, size = 140, color = '#d2f9f0' }) => {
   const r = (size - 14) / 2, c = 2 * Math.PI * r, p = (value / max) * c
   return (
     <div className="relative" style={{ width: size, height: size }}>

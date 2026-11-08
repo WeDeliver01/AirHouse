@@ -16,7 +16,7 @@ import { formatCurrency, formatRelativeTime, cn } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import OnboardingWizard from '../../components/onboarding/OnboardingWizard'
 
-const SparklineChart = ({ data, color = '#006c4e', height = 40 }) => {
+const SparklineChart = ({ data, color = '#FD550A', height = 40 }) => {
   if (!data?.length) return null
   const max = Math.max(...data)
   const min = Math.min(...data)
@@ -39,14 +39,14 @@ const SparklineChart = ({ data, color = '#006c4e', height = 40 }) => {
   )
 }
 
-const RingProgress = ({ value, size = 96, color = '#38675a' }) => {
+const RingProgress = ({ value, size = 96, color = '#015D47' }) => {
   const r = (size - 10) / 2
   const c = 2 * Math.PI * r
   const p = (Math.max(0, Math.min(100, value)) / 100) * c
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="transform -rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#dce2f7" strokeWidth="10" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e4e7e7" strokeWidth="10" />
         <circle
           cx={size / 2}
           cy={size / 2}

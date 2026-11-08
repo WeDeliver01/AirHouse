@@ -71,19 +71,19 @@ const RevenueLineChart = ({ data, height = 240 }) => {
       >
         <defs>
           <linearGradient id="revfill" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#38675a" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#38675a" stopOpacity="0" />
+            <stop offset="0%" stopColor="#015D47" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#015D47" stopOpacity="0" />
           </linearGradient>
         </defs>
         {/* Grid lines */}
         {[0, 25, 50, 75, 100].map((g) => (
-          <line key={g} x1={0} x2={w} y1={g} y2={g} stroke="#c0c8c4" strokeWidth="0.2" />
+          <line key={g} x1={0} x2={w} y1={g} y2={g} stroke="#c7d1cf" strokeWidth="0.2" />
         ))}
         <polygon points={`0,${h} ${points} ${w},${h}`} fill="url(#revfill)" />
         <polyline
           points={points}
           fill="none"
-          stroke="#38675a"
+          stroke="#015D47"
           strokeWidth="0.8"
           vectorEffect="non-scaling-stroke"
           strokeLinecap="round"
@@ -98,7 +98,7 @@ const RevenueLineChart = ({ data, height = 240 }) => {
               cx={x}
               cy={y}
               r="0.9"
-              fill="#38675a"
+              fill="#015D47"
               vectorEffect="non-scaling-stroke"
             >
               <title>{`${d.label}: ${formatCurrency(d.value)}`}</title>

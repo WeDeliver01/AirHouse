@@ -16,11 +16,11 @@ const DonutGauge = ({ value, max = 200, size = 192 }) => {
   const pct = Math.min(Math.abs(clamped) / max, 1)
   const offset = c - pct * c
   const isPositive = value >= 0
-  const stroke = isPositive ? '#38675a' : '#ba1a1a'
+  const stroke = isPositive ? '#015D47' : '#ba1a1a'
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox="0 0 100 100" className="transform -rotate-90">
-        <circle cx="50" cy="50" r={r} fill="transparent" stroke="#dce2f7" strokeWidth="14" />
+        <circle cx="50" cy="50" r={r} fill="transparent" stroke="#e4e7e7" strokeWidth="14" />
         <circle
           cx="50" cy="50" r={r} fill="transparent" stroke={stroke} strokeWidth="14"
           strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
