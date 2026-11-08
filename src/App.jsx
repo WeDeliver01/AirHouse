@@ -66,6 +66,7 @@ const FundCampaign = lazy(() => import('./pages/developer/FundCampaign'))
 const Help = lazy(() => import('./pages/shared/Help'))
 const LegalIndex = lazy(() => import('./pages/legal/LegalIndex'))
 const Marketplace = lazy(() => import('./pages/public/Marketplace'))
+const PublicProperties = lazy(() => import('./pages/public/Properties'))
 const Messages = lazy(() => import('./pages/shared/Messages'))
 const MyCampaigns = lazy(() => import('./pages/developer/MyCampaigns'))
 const MyFavorites = lazy(() => import('./pages/developer/MyFavorites'))
@@ -108,8 +109,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/campaigns" element={<Campaigns />} />
-        <Route path="/marketplace" element={<Marketplace />} />
+        <Route path="/campaigns" element={<ProtectedRoute requireSuperAdmin><Campaigns /></ProtectedRoute>} />
+        <Route path="/marketplace" element={<ProtectedRoute requireSuperAdmin><Marketplace /></ProtectedRoute>} />
+        <Route path="/properties" element={<PublicProperties />} />
         <Route path="/creators/:creatorId" element={<CreatorProfile />} />
         <Route path="/legal" element={<LegalIndex />} />
         <Route path="/legal/terms" element={<TermsOfService />} />

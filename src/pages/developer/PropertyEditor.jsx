@@ -23,6 +23,12 @@ const STATUS_OPTIONS = [
   { value: 'archived', label: 'Archived' },
 ]
 
+const PROPERTY_TYPE_OPTIONS = [
+  { value: 'getaway_stay', label: 'Getaway Stay (Airbnb-style)' },
+  { value: 'apartment', label: 'Apartment' },
+  { value: 'house', label: 'House' },
+]
+
 const slugify = (text) => {
   return (text || '')
     .toString()
@@ -66,6 +72,7 @@ const PropertyEditor = () => {
     parking: '',
     floor_area_sqm: '',
     status: 'draft',
+    property_type: 'house',
   })
   const [slugTouched, setSlugTouched] = useState(false)
 
@@ -101,6 +108,7 @@ const PropertyEditor = () => {
           parking: data.parking ?? '',
           floor_area_sqm: data.floor_area_sqm ?? '',
           status: data.status || 'draft',
+          property_type: data.property_type || 'house',
         })
         setSlugTouched(true)
         setPhotos((data.photo_urls || []).map(url => ({ url })))
@@ -203,6 +211,7 @@ const PropertyEditor = () => {
         parking: numericOrNull(form.parking),
         floor_area_sqm: numericOrNull(form.floor_area_sqm),
         status: form.status,
+        property_type: form.property_type,
       }
 
       // Step 1: insert/update the row to get an id
@@ -334,6 +343,9 @@ const PropertyEditor = () => {
               {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </Select>
           </div>
+          <Select label="Listing type" value={form.property_type} onChange={(e) => updateField('property_type', e.target.value)}>
+            {PROPERTY_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </Select>
           <Textarea label="Description" value={form.description} onChange={(e) => updateField('description', e.target.value)}
             placeholder="Describe the property, finishes, lifestyle, amenities..." rows={5} />
         </section>

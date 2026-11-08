@@ -1,10 +1,6 @@
 import { Link } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
 
 const Home = () => {
-  const { isAuthenticated } = useAuth()
-  const browseCreatorsTo = isAuthenticated ? '/marketplace' : '/register'
-
   return (
     <div>
       {/* HERO */}
@@ -22,14 +18,14 @@ const Home = () => {
               <span className="text-xl sm:text-2xl font-bold text-white">AirHouse</span>
             </div>
             <h1 className="font-headline-xl text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
-              Performance-driven social media marketing
-              <span className="text-secondary-fixed"> for property developments</span>
+              Turn social media attention into
+              <span className="text-secondary-fixed"> property leads</span>.
             </h1>
 
             <p className="mt-4 sm:mt-6 font-body-lg text-base sm:text-lg text-white/80 leading-relaxed">
-              We connect property developers with vetted content creators to run
-              structured, campaign-based social media marketing that generates
-              real property leads — not vanity metrics.
+              Connect with content creators who help showcase your
+              developments and get your properties in front of potential
+              buyers.
             </p>
 
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -37,14 +33,14 @@ const Home = () => {
                 to="/register?role=developer"
                 className="inline-flex items-center justify-center gap-2 bg-secondary-container text-on-secondary-container px-6 h-12 rounded-lg font-label-lg text-label-lg hover:bg-secondary-fixed transition-colors w-full sm:w-auto"
               >
-                I'm a Developer
+                Market My Development
                 <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
               </Link>
               <Link
                 to="/register?role=creator"
                 className="inline-flex items-center justify-center bg-white/10 text-white border border-white/30 px-6 h-12 rounded-lg font-label-lg text-label-lg hover:bg-white/20 backdrop-blur-sm transition-colors w-full sm:w-auto"
               >
-                I'm a Creator
+                Join as a Creator
               </Link>
             </div>
 
@@ -202,64 +198,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
-      <section className="bg-surface-container-low py-16 md:py-20 border-y border-outline-variant">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-10">
-            <h2 className="font-headline-lg text-headline-lg text-on-surface mb-3">
-              Trusted by SA's property leaders
-            </h2>
-            <p className="font-body-lg text-body-lg text-on-surface-variant">
-              Hear how developers and creators are building real pipelines with AirHouse.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-            {[
-              {
-                quote: "Structured campaigns and tracked referral links mean every rand we spend is measurable. We finally have visibility into which creators actually drive enquiries.",
-                name: 'David van der Merwe',
-                role: 'Marketing Director, Coastal Developments',
-              },
-              {
-                quote: "Clear briefs, fixed budgets, on-time payouts. AirHouse treats property creators like professionals — and the campaigns are genuinely worth our time.",
-                name: 'Lerato Mokoena',
-                role: 'Property Content Creator',
-              },
-            ].map((t) => (
-              <figure
-                key={t.name}
-                className="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant ambient-shadow"
-              >
-                <div className="flex items-center gap-1 mb-4 text-primary">
-                  {[0, 1, 2, 3, 4].map(i => (
-                    <span
-                      key={i}
-                      className="material-symbols-outlined"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      star
-                    </span>
-                  ))}
-                </div>
-                <blockquote className="font-body-lg text-body-lg text-on-surface mb-6">
-                  "{t.quote}"
-                </blockquote>
-                <figcaption className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-primary-fixed rounded-full flex items-center justify-center text-primary font-bold">
-                    {t.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                  </div>
-                  <div>
-                    <div className="font-label-lg text-label-lg text-on-surface">{t.name}</div>
-                    <div className="font-body-sm text-body-sm text-on-surface-variant">{t.role}</div>
-                  </div>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CTA */}
       <section className="relative py-12 sm:py-20 overflow-hidden">
         <div
@@ -273,21 +211,15 @@ const Home = () => {
             Ready to get started?
           </h2>
           <p className="font-body-lg text-lg text-white/80 mb-8 max-w-2xl mx-auto">
-            Browse live campaigns or learn how the platform works for your
-            property development.
+            Browse what's listed on the platform or learn how AirHouse works
+            for your stays and homes.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
-              to={browseCreatorsTo}
+              to="/properties"
               className="inline-flex items-center justify-center bg-white text-primary px-8 h-12 rounded-lg font-label-lg text-label-lg hover:bg-white/90 transition-colors"
             >
-              Browse Creators
-            </Link>
-            <Link
-              to="/campaigns"
-              className="inline-flex items-center justify-center bg-transparent text-white border border-white/60 px-8 h-12 rounded-lg font-label-lg text-label-lg hover:bg-white/10 transition-colors"
-            >
-              Browse Campaigns
+              Browse Properties
             </Link>
             <Link
               to="/register"

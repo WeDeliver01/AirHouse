@@ -11,13 +11,15 @@ const Sidebar = ({
   onToggleCollapse,
   onClose,
 }) => {
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, isSuperAdmin } = useAuth()
   const { unreadMessageCount } = useNotifications()
   const navigate = useNavigate()
   const location = useLocation()
 
   const currentRole = profile?.role || getRoleFromPath(location.pathname)
-  const navItems = NAV_ITEMS[currentRole] || []
+  const navItems = (NAV_ITEMS[currentRole] || []).filter(
+    (item) => !item.superAdminOnly || isSuperAdmin
+  )
 
   const isCollapsed = !isMobile && collapsed
 

@@ -112,15 +112,15 @@ const MyFavorites = () => {
             My Favourites
           </h1>
           <p className="font-body-md text-on-surface-variant mt-1">
-            Creators you've saved from the marketplace. Only you can see this list.
+            Creators you've saved. Only you can see this list.
           </p>
         </div>
         <Link
-          to="/marketplace"
+          to="/developer/creators"
           className="inline-flex items-center gap-1.5 bg-primary-container text-on-primary-container font-label-lg px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
         >
           <span className="material-symbols-outlined text-[18px]">storefront</span>
-          Browse marketplace
+          Browse creators
         </Link>
       </div>
 
@@ -138,11 +138,11 @@ const MyFavorites = () => {
         <EmptyState
           icon={Heart}
           title="No favourites yet"
-          description="Save creators from the marketplace to shortlist them here."
+          description="Save creators while browsing to shortlist them here."
           action={() => {
-            window.location.href = '/marketplace'
+            window.location.href = '/developer/creators'
           }}
-          actionLabel="Browse marketplace"
+          actionLabel="Browse creators"
         />
       ) : (
         <>
