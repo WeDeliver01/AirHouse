@@ -61,17 +61,23 @@ jobs:
       - name: Check for duplicate migration numbers
         run: |
           set -euo pipefail
+          # Migrations at or below this number predate the ledger in
+          # scripts/apply-migrations.sh and are adopted rather than replayed
+          # in order, so duplicate numbers among them are expected and
+          # documented there (HISTORICAL_THROUGH). Only 016+ must be unique.
+          HISTORICAL_THROUGH="015"
           dupes="$(ls supabase/migrations/*.sql \
             | xargs -n1 basename \
             | grep -E '^[0-9]+_' \
             | sed -E 's/^([0-9]+)_.*/\1/' \
+            | awk -v h="$HISTORICAL_THROUGH" '$0+0 > h+0' \
             | sort | uniq -d)"
           if [ -n "$dupes" ]; then
             echo "::error::Duplicate migration numbers: $dupes"
             echo "Two migrations sharing a number cannot be ordered reliably."
             exit 1
           fi
-          echo "Migration numbering is unique."
+          echo "Migration numbering is unique above $HISTORICAL_THROUGH."
 
   deploy-staging:
     name: Deploy to staging
