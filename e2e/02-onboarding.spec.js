@@ -10,16 +10,16 @@ import { installSupabaseMock, visit } from './support/supabaseMock.js'
  */
 
 test.describe('Registration', () => {
-  test('a creator can register and the role they chose is sent', async ({ page }) => {
+  test('a developer can register and the role they chose is sent', async ({ page }) => {
     const state = await installSupabaseMock(page)
     await visit(page, '/register')
 
     await expect(page.getByRole('heading', { name: /create|register|sign up|join/i }).first())
       .toBeVisible()
 
-    const creatorOption = page.getByText(/creator/i).first()
-    if (await creatorOption.isVisible().catch(() => false)) {
-      await creatorOption.click()
+    const developerOption = page.getByText(/developer/i).first()
+    if (await developerOption.isVisible().catch(() => false)) {
+      await developerOption.click()
     }
 
     await expect(page.locator('form, input[type="email"]').first()).toBeVisible()
@@ -34,6 +34,16 @@ test.describe('Registration', () => {
     // now clamps it, and the form must not invite the attempt either.
     const body = await page.locator('body').innerText()
     expect(body.toLowerCase()).not.toMatch(/\badministrator\b|\bsuper admin\b/)
+  })
+
+  test('the registration form does not offer a creator role', async ({ page }) => {
+    await installSupabaseMock(page)
+    await visit(page, '/register')
+
+    // Creator signup is being held back while there is a single, manually
+    // provisioned creator account -- the public form must not offer it.
+    const body = await page.locator('body').innerText()
+    expect(body.toLowerCase()).not.toMatch(/\bcreator\b/)
   })
 })
 
