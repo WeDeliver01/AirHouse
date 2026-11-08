@@ -9,7 +9,9 @@ import { stashPendingTermsAcceptance } from '../../components/PendingTermsAccept
 
 const Register = () => {
   const [searchParams] = useSearchParams()
-  const initialRole = searchParams.get('role') || ''
+  const requestedRole = searchParams.get('role') || ''
+  // Public self-registration only offers the developer/host role for now.
+  const initialRole = requestedRole === 'developer' ? requestedRole : ''
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -179,10 +181,9 @@ const Register = () => {
         )}
 
         {step === 1 && (
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid max-w-md mx-auto gap-4">
             {[
-              { role: 'developer', icon: 'domain', title: 'Property Developer', desc: 'Create campaigns, hire creators, and generate property leads', perks: ['Post campaign briefs','Browse creator profiles','Track leads & ROI'] },
-              { role: 'creator', icon: 'video_camera_front', title: 'Content Creator', desc: 'Find campaigns, create content, and earn from property marketing', perks: ['Browse open campaigns','Build your portfolio','Transparent earnings'] },
+              { role: 'developer', icon: 'domain', title: 'Property Developer', desc: 'List your properties, run marketing campaigns, and generate real leads', perks: ['Post campaign briefs','Manage your listings','Track leads & ROI'] },
             ].map((opt) => (
               <button
                 key={opt.role}
