@@ -1,0 +1,154 @@
+{
+  "_README": "Edit this file to update Help Centre content. No code changes required. Each article belongs to one category id (see categories[]). 'body' supports plain text; use \\n\\n for paragraph breaks. Optional 'audience' field on an article restricts it to a specific role: 'developer' or 'creator'. Articles without an 'audience' are shown to everyone.",
+  "categories": [
+    {
+      "id": "getting_started",
+      "icon": "rocket_launch",
+      "title": "Getting Started",
+      "description": "Account setup, verification and your first steps on AirHouse."
+    },
+    {
+      "id": "campaigns",
+      "icon": "campaign",
+      "title": "Campaigns & Content",
+      "description": "Funding campaigns, applying as a creator, and submitting content for review."
+    },
+    {
+      "id": "leads",
+      "icon": "groups",
+      "title": "Leads & Tracking",
+      "description": "How leads are attributed to creators and managed in the developer pipeline."
+    },
+    {
+      "id": "payments",
+      "icon": "payments",
+      "title": "Payments, Escrow & Payouts",
+      "description": "Escrow timing, payout requests and bank account setup."
+    },
+    {
+      "id": "trust",
+      "icon": "shield",
+      "title": "Trust, Safety & Disputes",
+      "description": "Verification, content rules, the dispute process and account protection."
+    },
+    {
+      "id": "tech",
+      "icon": "support_agent",
+      "title": "Account & Technical Help",
+      "description": "Login issues, deleting your account, and other technical questions."
+    }
+  ],
+  "articles": [
+    {
+      "id": "gs-creator-onboarding",
+      "category": "getting_started",
+      "title": "Creator onboarding: from sign-up to your first campaign",
+      "body": "After signing up as a creator you'll be asked to complete three things before you can apply to campaigns:\n\n1. Profile basics — display name, city, niche and a short bio that developers will see in the marketplace.\n2. Verification — submit one government-issued ID and at least one social proof handle (Instagram, TikTok, YouTube or X). Verification is reviewed by our trust team and usually completed within 1–2 business days.\n3. Payout details — add a South African bank account in your wallet so we can pay you when escrow releases. You can apply to campaigns before this is done, but you cannot withdraw earnings without it.\n\nOnce verified you'll see a green badge on your public profile and you'll be ranked higher in developer searches and invitations."
+    },
+    {
+      "id": "gs-developer-onboarding",
+      "category": "getting_started",
+      "audience": "developer",
+      "title": "Developer onboarding: setting up your first property campaign",
+      "body": "As a developer your first campaign takes about 10 minutes:\n\n1. Add a property listing with at least three photos, the price, location and key selling points. Listings can be reused across multiple campaigns.\n2. Create a campaign from the property — set a total budget, the campaign window (start and end date), and a content brief telling creators what you want them to produce.\n3. Fund the campaign. AirHouse splits the budget automatically: 25% platform fee, 75% into a campaign-specific escrow wallet that's only released when content is approved.\n4. Invite specific creators from the marketplace, or open the campaign to applications.\n\nYou can edit the brief, extend the end date or top up the budget at any time. Reducing budget below already-paid amounts is not allowed."
+    },
+    {
+      "id": "gs-verification",
+      "category": "getting_started",
+      "title": "Why creator verification is required",
+      "body": "Verification protects both sides of the marketplace. Developers are funding real campaigns, so they need confidence the creator they hire is a real person who controls the social handles they advertise.\n\nWhat we ask for:\n• A clear photo of a South African ID, passport or driver's licence.\n• A handle on at least one supported platform (Instagram, TikTok, YouTube or X) with public follower counts.\n• A short selfie video confirming your name and that you're applying to AirHouse — this prevents handle theft.\n\nWhat we do with it:\n• ID images are stored encrypted and only accessible to our trust & safety team.\n• They are never shared with developers — they only see your verification badge status.\n• Once a verification decision is made, ID images are deleted within 30 days unless we're investigating fraud."
+    },
+    {
+      "id": "cmp-applying",
+      "category": "campaigns",
+      "title": "Applying to a campaign as a creator",
+      "body": "From Marketplace, open any campaign card and click Apply. You'll be asked to:\n\n• Confirm you've read the brief.\n• Add a short pitch (max 500 characters) telling the developer why you're a good fit.\n• Optionally attach example links to past content.\n\nDevelopers see your pitch alongside your profile, follower counts and reliability score. Most decisions land within 3–5 days. If you're accepted you'll get an email and a notification, and the campaign moves into your Active Campaigns list with the full brief, deadlines and any milestone rates.\n\nYou can withdraw an application before it's accepted with no penalty. Withdrawing after acceptance counts against your reliability score unless the developer agrees to release you."
+    },
+    {
+      "id": "cmp-content-approval",
+      "category": "campaigns",
+      "title": "How content approval and payment release works",
+      "body": "Content payment is gated by developer approval to protect both sides:\n\n1. You submit a content link (Instagram post, TikTok video, YouTube short, etc.) from the campaign workspace. The submission must be live and public when you submit.\n2. The developer has 5 business days to review. They can approve, reject with feedback, or request a revision. If they take no action within 5 business days, the submission auto-approves.\n3. On approval, the agreed amount is released from the campaign escrow into your creator wallet — usually within seconds.\n4. If the developer requests a revision, you can resubmit and the 5-day clock starts again. If the content is rejected outright with a valid reason (off-brief, low quality, takedown), no payment is released for that piece. You can dispute this — see the Disputes article.\n\nTip: take a screenshot of your live post immediately after submission. It's the easiest evidence if the post is later edited or deleted."
+    },
+    {
+      "id": "cmp-content-rules",
+      "category": "campaigns",
+      "title": "Content rules and what gets rejected",
+      "body": "Most rejections fall into one of four buckets. Avoiding these dramatically improves your approval rate:\n\n• Off-brief — the post doesn't include the property, the developer's tag, or the call to action specified in the brief.\n• Tracking link missing — every post must include your unique creator tracking link from the campaign workspace, otherwise leads can't be attributed and you won't get paid.\n• Low quality or misleading — blurry footage, AI-generated images of a property that doesn't match reality, or false claims about the listing (price, size, completion date).\n• Disclosure missing — South African ARB rules require #ad, #sponsored or an equivalent visible disclosure on paid posts. Missing this is grounds for immediate rejection.\n\nIf you're unsure whether something fits the brief, message the developer before posting."
+    },
+    {
+      "id": "leads-attribution",
+      "category": "leads",
+      "title": "How leads are attributed to creators",
+      "body": "Every creator on a campaign gets a unique tracking link that looks like /go/CAMPAIGN/CREATORCODE. Anyone who clicks that link, lands on the property's lead capture page and submits the form is attributed to that creator.\n\nAttribution rules:\n• First-touch wins. If a buyer clicks your link and then later clicks another creator's link before submitting the form, the lead is still yours for 30 days from the first click.\n• Direct visits (no tracking link) are attributed to the developer, not split between creators.\n• Self-submitted leads (using your own link from the same browser/device you've signed in on) are flagged and excluded from payouts.\n\nLeads appear in real time in both your Performance dashboard and the developer's Leads pipeline. The developer is responsible for moving leads through the stages (new → contacted → qualified → won/lost)."
+    },
+    {
+      "id": "leads-pipeline",
+      "category": "leads",
+      "audience": "developer",
+      "title": "Working a lead pipeline as a developer",
+      "body": "The Leads page shows every lead across your active campaigns. We recommend a daily routine:\n\n• Contact new leads within 24 hours — response time is the single biggest predictor of conversion in property marketing.\n• Move leads through the stages (contacted, qualified, won, lost) as you work them. Creators see this status, which builds trust and improves their content over time.\n• Add notes — these are private to you and your team but help if you hand the lead to a sales agent later.\n• Mark won deals with the deal value. This feeds your ROI dashboard and the creator's performance scorecard.\n\nLeads can be exported to CSV at any time from the Leads page."
+    },
+    {
+      "id": "pay-platform-fee",
+      "category": "payments",
+      "audience": "developer",
+      "title": "How the AirHouse 25% platform fee works",
+      "body": "When a developer funds a campaign, AirHouse takes a 25% platform fee off the top and 75% goes into a campaign-specific escrow wallet for creators.\n\nExample on a R10 000 campaign:\n• R2 500 platform fee — funds escrow protection, dispute mediation, payment processing, and the creator marketplace.\n• R7 500 into escrow — paid out to creators as content is approved.\n\nThe platform fee is non-refundable once the campaign is funded, even if the campaign ends with money left in escrow. Unused escrow at campaign close is refunded to the developer's wallet in full."
+    },
+    {
+      "id": "pay-payout-timing",
+      "category": "payments",
+      "title": "Payout timing: when does money actually arrive?",
+      "body": "There are two distinct steps for creators getting paid:\n\n1. Escrow → wallet (instant): when a developer approves a content submission, the agreed amount moves from campaign escrow into your creator wallet within seconds.\n\n2. Wallet → bank (1–3 business days): when you request a payout from your wallet, AirHouse processes the bank transfer. Times depend on your bank but are typically:\n   • Same-day for big-four South African banks (Standard Bank, ABSA, FNB, Nedbank) if requested before 12:00.\n   • 1–2 business days for Capitec, TymeBank, Discovery Bank.\n   • 2–3 business days for international or business accounts.\n\nMinimum payout amount is R100. A 3% processing fee is deducted from each payout request to cover bank charges and fraud screening."
+    },
+    {
+      "id": "pay-payout-fee",
+      "category": "payments",
+      "title": "Understanding the 3% payout fee",
+      "body": "Every payout request has a 3% fee. On a R1 000 payout that's R30, leaving R970 transferred to your bank.\n\nThe payout fee covers:\n• Bank transfer charges (EFT/PayShap costs).\n• Fraud screening to protect your account from unauthorised payouts.\n• Compliance and FICA reporting required by South African regulators.\n\nWhy a percentage and not a flat fee? Larger payouts carry more fraud risk and require enhanced screening, so the fee scales. If you'd prefer to pay fewer fees, batch your withdrawals — one R5 000 payout costs R150 in fees, but five R1 000 payouts cost the same R150 total."
+    },
+    {
+      "id": "pay-bank-account",
+      "category": "payments",
+      "title": "Adding and changing your bank account",
+      "body": "Open Wallet → Bank Accounts → Add Account. You'll need:\n• Account holder name (must match your verified profile name).\n• Bank name and account number.\n• Account type (cheque or savings).\n• Branch code (for older accounts; universal codes work too).\n\nThe first time you add an account we run a name-and-account-number match against the bank. If it fails you'll be asked to upload a recent bank statement (max 30 days old). New accounts have a 24-hour cooling-off period before they can receive payouts — this is a fraud protection measure and cannot be skipped.\n\nYou can have multiple bank accounts on file but only one is the default. Changing the default takes effect immediately and applies to all future payout requests."
+    },
+    {
+      "id": "trust-disputes",
+      "category": "trust",
+      "title": "How to file a dispute (and what happens next)",
+      "body": "Either side of a campaign can file a dispute when the content approval process breaks down.\n\nWhen to file:\n• A creator: developer rejected your content unfairly, never reviewed your submission within 5 business days, or hasn't paid out an approved submission.\n• A developer: creator's content is off-brief, contains false claims about your property, or the post was deleted after approval.\n\nHow it works:\n1. Open the campaign workspace and click Open Dispute. Select the reason and attach evidence (screenshots, links, message history).\n2. The other side has 3 business days to respond with their version.\n3. AirHouse trust & safety reviews the case and makes a decision within 5 business days of the other side responding.\n4. Outcomes can be: full release of the disputed escrow to the creator, partial release, full refund to the developer, or a recommendation that both parties agree to a revision.\n\nWhile a dispute is open, the disputed amount is frozen in escrow. Other approved payments on the same campaign continue to flow normally."
+    },
+    {
+      "id": "trust-safety",
+      "category": "trust",
+      "title": "Account protection: passwords, devices and 2FA",
+      "body": "Your AirHouse account holds money, so we take security seriously:\n\n• Use a long, unique password that you do not use anywhere else.\n• Turn on two-factor authentication under Settings → Security. Scan the QR code with an authenticator app such as Google Authenticator, Authy or 1Password, and enter the 6-digit code to confirm. Admin accounts are required to have it on.\n• Payouts always go to bank accounts on your verified profile — we will never ask you to send money to release a payout.\n\nIf you suspect your account is compromised, contact support straight away using the form on this page or email support@airhouse.co.za. We'll freeze pending payouts and walk you through recovery."
+    },
+    {
+      "id": "trust-reporting",
+      "category": "trust",
+      "title": "Reporting fraudulent listings, fake creators or scams",
+      "body": "If you encounter a campaign or creator that looks fraudulent, please report it. Common red flags:\n\n• A campaign promising guaranteed payouts with no content requirement.\n• A creator whose profile photo, follower counts or location don't match their submitted content.\n• Anyone asking you to communicate or pay outside the AirHouse platform — this voids escrow protection and we cannot help if things go wrong.\n• A property listing with photos that show up on Google reverse-image search as belonging to a different listing.\n\nUse the Report button on any campaign, creator profile or message. Reports are reviewed within 24 hours and your identity is never shared with the reported party."
+    },
+    {
+      "id": "tech-login",
+      "category": "tech",
+      "title": "I can't log in — common fixes",
+      "body": "Most login problems fall into one of these categories:\n\n• Wrong password — use Forgot Password on the login page. The reset link is valid for 1 hour.\n• Email confirmation pending — if you signed up but never confirmed your email, log in will fail. Check spam for an email from no-reply@airhouse.co.za and click the confirmation link.\n• Wrong workspace — AirHouse keeps creator and developer accounts separate. If you signed up as a creator you cannot log in via the developer login page (and vice versa).\n• Browser cache — clear cookies for airhouse.co.za and try again.\n\nStill stuck? Send us your account email via the support form on this page and our team will help, usually within one business day."
+    },
+    {
+      "id": "tech-account-deletion",
+      "category": "tech",
+      "title": "Deleting your account and your data",
+      "body": "You can request account deletion at any time from Settings → Account → Delete Account. Here's what happens:\n\n1. The request is queued for 14 days. During this period you can cancel by logging back in. After 14 days the deletion is permanent and cannot be reversed.\n2. Your profile, content submissions, messages and verification documents are deleted from our active systems. ID images are wiped from cold storage within 30 days.\n3. We are required by South African tax and FICA law to retain financial records (wallet transactions, payouts, invoices) for 5 years. These are stripped of personal identifiers where possible and locked down to our finance team only.\n4. Active campaigns and disputes block deletion. You'll be asked to close or transfer them first.\n\nIf you want a copy of your data before deleting, request a data export from the same screen. We send a downloadable archive within 7 days.\n\nQuestions about a specific record? Contact support@airhouse.co.za and reference the account email."
+    },
+    {
+      "id": "tech-notifications",
+      "category": "tech",
+      "title": "Managing email and in-app notifications",
+      "body": "AirHouse sends three types of notification:\n\n• Transactional (always on) — payouts, dispute updates, content approval/rejection, account security. These cannot be disabled because they are tied to money or safety.\n• Activity (configurable) — new applications, new leads, new messages, campaign invitations. Toggle these in Settings → Notifications.\n• Marketing (opt-in) — product updates and platform tips. Off by default; opt in from the same screen.\n\nIn-app notifications appear in the bell icon in your top bar and are mirrored to email based on your settings. If you stop receiving emails entirely, check that no-reply@airhouse.co.za and notifications@airhouse.co.za aren't blocked or marked as spam."
+    }
+  ]
+}

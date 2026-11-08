@@ -1,0 +1,24 @@
+# Keep the build context small and keep secrets out of the image.
+node_modules
+dist
+.git
+.github
+.env
+.env.*
+!.env.example
+
+# Test and tooling output that has no business in a production image.
+test-results
+playwright-report
+.playwright
+coverage
+e2e
+load-tests
+supabase/tests
+backup
+*.log
+
+# Local editor and OS noise
+.DS_Store
+.vscode
+.idea
