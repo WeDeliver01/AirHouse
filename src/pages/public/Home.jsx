@@ -1,10 +1,6 @@
 import { Link } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
 
 const Home = () => {
-  const { isAuthenticated } = useAuth()
-  const browseCreatorsTo = isAuthenticated ? '/marketplace' : '/register'
-
   return (
     <div>
       {/* HERO */}
@@ -215,21 +211,15 @@ const Home = () => {
             Ready to get started?
           </h2>
           <p className="font-body-lg text-lg text-white/80 mb-8 max-w-2xl mx-auto">
-            Browse live campaigns or learn how the platform works for your
-            property development.
+            Browse what's listed on the platform or learn how AirHouse works
+            for your stays and homes.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
-              to={browseCreatorsTo}
+              to="/properties"
               className="inline-flex items-center justify-center bg-white text-primary px-8 h-12 rounded-lg font-label-lg text-label-lg hover:bg-white/90 transition-colors"
             >
-              Browse Creators
-            </Link>
-            <Link
-              to="/campaigns"
-              className="inline-flex items-center justify-center bg-transparent text-white border border-white/60 px-8 h-12 rounded-lg font-label-lg text-label-lg hover:bg-white/10 transition-colors"
-            >
-              Browse Campaigns
+              Browse Properties
             </Link>
             <Link
               to="/register"

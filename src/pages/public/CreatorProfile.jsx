@@ -208,8 +208,8 @@ const CreatorProfile = () => {
             title="Creator not found"
             description="This creator profile doesn't exist or is no longer available."
             action={
-              <Link to="/campaigns">
-                <Button variant="primary">Browse Campaigns</Button>
+              <Link to="/properties">
+                <Button variant="primary">Browse Properties</Button>
               </Link>
             }
           />
@@ -223,11 +223,11 @@ const CreatorProfile = () => {
       {/* Top bar */}
       <div className="flex items-center justify-between gap-sm">
         <Link
-          to="/campaigns"
+          to="/properties"
           className="inline-flex items-center gap-xs font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors"
         >
           <Icon name="arrow_back" size={18} />
-          Back to Campaigns
+          Back to Properties
         </Link>
         <div className="flex items-center gap-xs">
           {isDeveloper ? (

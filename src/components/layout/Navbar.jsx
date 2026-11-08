@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from 'react'
 import { getDashboardPath as resolveDashboardPath } from '../../lib/navItems'
 
 const Navbar = () => {
-  const { user, profile, signOut, isAuthenticated } = useAuth()
+  const { user, profile, signOut, isAuthenticated, isSuperAdmin } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -55,8 +55,13 @@ const Navbar = () => {
 
             <nav className="hidden md:flex items-center gap-6">
               <Link to="/" className={navLinkClass('/')}>Home</Link>
-              <Link to="/marketplace" className={navLinkClass('/marketplace')}>Marketplace</Link>
-              <Link to="/campaigns" className={navLinkClass('/campaigns')}>Campaigns</Link>
+              <Link to="/properties" className={navLinkClass('/properties')}>Properties</Link>
+              {isSuperAdmin && (
+                <>
+                  <Link to="/marketplace" className={navLinkClass('/marketplace')}>Marketplace</Link>
+                  <Link to="/campaigns" className={navLinkClass('/campaigns')}>Campaigns</Link>
+                </>
+              )}
             </nav>
           </div>
 
@@ -195,19 +200,30 @@ const Navbar = () => {
                 Home
               </Link>
               <Link
-                to="/marketplace"
+                to="/properties"
                 className="px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors font-label-lg text-label-lg"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Marketplace
+                Properties
               </Link>
-              <Link
-                to="/campaigns"
-                className="px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors font-label-lg text-label-lg"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Campaigns
-              </Link>
+              {isSuperAdmin && (
+                <>
+                  <Link
+                    to="/marketplace"
+                    className="px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors font-label-lg text-label-lg"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Marketplace
+                  </Link>
+                  <Link
+                    to="/campaigns"
+                    className="px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors font-label-lg text-label-lg"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Campaigns
+                  </Link>
+                </>
+              )}
 
               {isAuthenticated ? (
                 <>
