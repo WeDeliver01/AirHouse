@@ -32,7 +32,7 @@ const DeveloperLeads = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [leads, setLeads] = useState([])
-  const [stats, setStats] = useState({ total: 0, new: 0, converted: 0, conversionRate: 0 })
+  const [stats, setStats] = useState({ total: 0, new: 0, converted: 0, conversionRate: 0, clicks: 0, clickToEnquiryRate: 0 })
   const [filter, setFilter] = useState({ stage: '', campaign: '', search: '' })
   const [campaigns, setCampaigns] = useState([])
   const [selectedLead, setSelectedLead] = useState(null)
@@ -74,9 +74,19 @@ const DeveloperLeads = () => {
       const total = leadsData?.length || 0
       const newLeads = leadsData?.filter((l) => l.pipeline_stage === 'new').length || 0
       const converted = leadsData?.filter((l) => l.pipeline_stage === 'converted').length || 0
+
+      // Outbound tracking-link clicks (e.g. to an Airbnb listing). A click is
+      // not an enquiry — this is the funnel step before a lead exists.
+      const { count: clicks } = await supabase
+        .from('link_clicks')
+        .select('id', { count: 'exact', head: true })
+        .in('campaign_id', campaignIds)
+
       setStats({
         total, new: newLeads, converted,
         conversionRate: total > 0 ? Math.round((converted / total) * 100) : 0,
+        clicks: clicks || 0,
+        clickToEnquiryRate: clicks > 0 ? Math.round((total / clicks) * 100) : 0,
       })
     } catch (e) {
       console.error(e)
@@ -202,7 +212,10 @@ const DeveloperLeads = () => {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-gutter">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-gutter">
+        <MetricCard icon="ads_click" label="Outbound Clicks"
+          value={<span className="font-data-mono">{stats.clicks}</span>}
+          helper="Tracking link clicks (e.g. to Airbnb)" />
         <MetricCard icon="trending_up" label="Total Leads"
           value={<span className="font-data-mono">{stats.total}</span>} />
         <MetricCard icon="schedule" label="New"
@@ -214,6 +227,9 @@ const DeveloperLeads = () => {
         <MetricCard icon="percent" label="Conversion Rate"
           value={<span className="font-data-mono">{stats.conversionRate}%</span>}
           helper={`${stats.converted} of ${stats.total}`} />
+        <MetricCard icon="query_stats" label="Click → Enquiry"
+          value={<span className="font-data-mono">{stats.clickToEnquiryRate}%</span>}
+          helper={`${stats.total} of ${stats.clicks} clicks`} />
       </div>
 
       {/* Filters */}

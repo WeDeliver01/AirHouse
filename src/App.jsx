@@ -88,6 +88,7 @@ import ForgotPassword from './pages/public/ForgotPassword'
 import ResetPassword from './pages/public/ResetPassword'
 import AuthCallback from './pages/public/AuthCallback'
 import LeadCapture from './pages/public/LeadCapture'
+import GoRedirect from './pages/public/GoRedirect'
 
 // Creator Pages
 // Developer Pages
@@ -124,6 +125,7 @@ function App() {
         <Route path="/legal/paia" element={<PAIAManual />} />
       </Route>
       <Route path="/lead/:campaignId" element={<LeadCapture />} />
+      <Route path="/go/:token" element={<GoRedirect />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
       <Route path="/admin/invite/:code" element={<AdminInvite />} />
