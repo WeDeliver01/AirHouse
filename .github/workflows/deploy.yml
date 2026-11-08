@@ -44,13 +44,16 @@ jobs:
       - name: Install PostgreSQL
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-16
+          sudo apt-get install -y postgresql
+          # The runner's default major version varies across Ubuntu releases,
+          # so locate whichever one actually got installed rather than
+          # assuming a specific number.
+          pgbin="$(dirname "$(find /usr/lib/postgresql -maxdepth 3 -name pg_ctl | sort -V | tail -1)")"
+          echo "PGBIN=$pgbin" >> "$GITHUB_ENV"
 
       # Migrations are proved against a throwaway database before they are
       # allowed anywhere near a real one.
       - name: Apply migrations and run the integrity suite
-        env:
-          PGBIN: /usr/lib/postgresql/16/bin
         run: |
           sudo chmod -R a+rX "$GITHUB_WORKSPACE"
           bash supabase/tests/run_tests.sh

@@ -2,7 +2,8 @@
 #
 # Run the database integrity test suite against a throwaway PostgreSQL
 # instance. Requires a local PostgreSQL 14+ installation (the CI workflow
-# installs postgresql-16).
+# installs whatever "postgresql" resolves to on the runner and points PGBIN
+# at it).
 #
 #   ./supabase/tests/run_tests.sh
 #
