@@ -30,6 +30,14 @@ const PROPERTY_TYPES = [
   { value: 'luxury', label: 'Luxury Estate' },
 ]
 
+const OBJECTIVE_OPTIONS = [
+  { value: '', label: 'Select an objective' },
+  { value: 'listing_awareness', label: 'Listing Awareness' },
+  { value: 'listing_traffic', label: 'Listing Traffic' },
+  { value: 'booking_enquiries', label: 'Booking Enquiries' },
+  { value: 'occupancy', label: 'Occupancy' },
+]
+
 const TARGET_AUDIENCES = [
   'First-time buyers', 'Young professionals', 'Families', 'Investors',
   'Retirees', 'Students', 'High-net-worth individuals',
@@ -102,7 +110,7 @@ const CampaignWizard = () => {
 
   const [formData, setFormData] = useState({
     title: '', property_name: '', property_location: '', property_type: '', description: '',
-    target_audience: [], campaign_objectives: '', key_selling_points: '',
+    target_audience: [], campaign_objectives: '', key_selling_points: '', objective: '',
     total_budget: '', start_date: '', end_date: '', payment_structure: 'milestone',
     deliverables: [], content_guidelines: '', brand_assets_url: '', landing_page_url: '',
     property_id: '',
@@ -134,7 +142,7 @@ const CampaignWizard = () => {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, slug, location_city, location_suburb, status, photo_urls, description, price_zar, bedrooms, bathrooms, parking, floor_area_sqm')
+          .select('id, title, slug, location_city, location_suburb, status, photo_urls, description, price_zar, bedrooms, bathrooms, parking, floor_area_sqm, listing_category, booking_platform, external_booking_url, guest_capacity, nightly_rate, amenities')
           .eq('developer_id', user.id)
           .order('created_at', { ascending: false })
         if (error) throw error
@@ -333,6 +341,7 @@ const CampaignWizard = () => {
         property_location: formData.property_location,
         property_type: formData.property_type,
         target_audience: formData.target_audience,
+        objective: formData.objective || null,
         campaign_objectives: formData.campaign_objectives,
         key_selling_points: formData.key_selling_points,
         total_budget: totalBudget,
@@ -504,6 +513,29 @@ const CampaignWizard = () => {
                   </div>
                 )
               })()}
+
+              {(() => {
+                const linked = propertyOptions.find(p => p.id === formData.property_id)
+                if (!linked || linked.listing_category !== 'short_term_rental') return null
+                return (
+                  <div className="flex items-start gap-sm p-sm bg-primary-container/20 rounded border border-outline-variant">
+                    <Icon name="luggage" size={18} className="text-primary mt-xs" />
+                    <div className="font-body-sm text-body-sm text-on-surface-variant">
+                      <p className="font-label-md text-label-md text-on-surface">Short-term rental listing</p>
+                      <p>
+                        {linked.booking_platform ? `Booked via ${linked.booking_platform}. ` : ''}
+                        {linked.guest_capacity ? `Up to ${linked.guest_capacity} guests. ` : ''}
+                        {linked.nightly_rate ? `R${linked.nightly_rate}/night.` : ''}
+                      </p>
+                      {!linked.external_booking_url && (
+                        <p className="text-error mt-xs">
+                          This property has no booking URL yet — add one before assigning creators, or clicks will have nowhere to go.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
             </Card>
 
             <Input label="Campaign Title *" value={formData.title}
@@ -654,6 +686,10 @@ const CampaignWizard = () => {
               </div>
               {errors.target_audience && <p className="font-body-sm text-body-sm text-error mt-xs">{errors.target_audience}</p>}
             </div>
+            <Select label="Objective" value={formData.objective}
+              onChange={(e) => updateField('objective', e.target.value)}>
+              {OBJECTIVE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </Select>
             <Textarea label="Campaign Objectives" value={formData.campaign_objectives}
               onChange={(e) => updateField('campaign_objectives', e.target.value)}
               placeholder="What do you want to achieve? e.g., Generate 50 qualified leads…" rows={3} />

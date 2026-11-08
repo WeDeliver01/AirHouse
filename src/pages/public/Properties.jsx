@@ -27,7 +27,7 @@ const Properties = () => {
     try {
       const { data, error } = await supabase
         .from('properties')
-        .select('id, slug, title, price_zar, location_city, location_suburb, bedrooms, bathrooms, property_type, photo_urls, created_at')
+        .select('id, slug, title, price_zar, location_city, location_suburb, bedrooms, bathrooms, property_type, listing_category, nightly_rate, guest_capacity, photo_urls, created_at')
         .eq('status', 'active')
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -183,6 +183,11 @@ const PropertyCard = ({ property: p }) => (
       <span className="absolute top-3 left-3 bg-surface-container-lowest/90 text-on-surface font-label-md text-label-md px-2.5 py-1 rounded-full">
         {CATEGORY_LABEL[p.property_type] || 'House'}
       </span>
+      {p.listing_category === 'short_term_rental' && (
+        <span className="absolute top-3 right-3 bg-primary text-on-primary font-label-md text-label-md px-2.5 py-1 rounded-full">
+          Short-Term Rental
+        </span>
+      )}
     </div>
     <div className="p-4">
       <h3 className="font-label-lg text-label-lg text-on-surface truncate">{p.title}</h3>
@@ -192,9 +197,14 @@ const PropertyCard = ({ property: p }) => (
       </p>
       <div className="mt-3 pt-3 border-t border-outline-variant flex items-end justify-between">
         <div className="font-label-lg text-label-lg text-on-surface font-bold">
-          {p.price_zar ? formatCurrency(p.price_zar) : <span className="text-on-surface-variant font-normal">Rate on request</span>}
+          {p.listing_category === 'short_term_rental'
+            ? (p.nightly_rate ? `${formatCurrency(p.nightly_rate)}/night` : <span className="text-on-surface-variant font-normal">Rate on request</span>)
+            : (p.price_zar ? formatCurrency(p.price_zar) : <span className="text-on-surface-variant font-normal">Rate on request</span>)}
         </div>
         <div className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-2">
+          {p.listing_category === 'short_term_rental' && p.guest_capacity != null && (
+            <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-[16px]">group</span>{p.guest_capacity}</span>
+          )}
           {p.bedrooms != null && <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-[16px]">bed</span>{p.bedrooms}</span>}
           {p.bathrooms != null && <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-[16px]">bathtub</span>{p.bathrooms}</span>}
         </div>

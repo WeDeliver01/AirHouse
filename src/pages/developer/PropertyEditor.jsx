@@ -29,6 +29,18 @@ const PROPERTY_TYPE_OPTIONS = [
   { value: 'house', label: 'House' },
 ]
 
+const LISTING_CATEGORY_OPTIONS = [
+  { value: 'sale', label: 'For Sale' },
+  { value: 'short_term_rental', label: 'Short-Term Rental (Airbnb, etc.)' },
+]
+
+const BOOKING_PLATFORM_OPTIONS = [
+  { value: '', label: 'Select platform' },
+  { value: 'airbnb', label: 'Airbnb' },
+  { value: 'booking_com', label: 'Booking.com' },
+  { value: 'direct', label: 'Direct booking' },
+]
+
 const slugify = (text) => {
   return (text || '')
     .toString()
@@ -73,6 +85,12 @@ const PropertyEditor = () => {
     floor_area_sqm: '',
     status: 'draft',
     property_type: 'house',
+    listing_category: 'sale',
+    booking_platform: '',
+    external_booking_url: '',
+    guest_capacity: '',
+    nightly_rate: '',
+    amenities: '',
   })
   const [slugTouched, setSlugTouched] = useState(false)
 
@@ -109,6 +127,12 @@ const PropertyEditor = () => {
           floor_area_sqm: data.floor_area_sqm ?? '',
           status: data.status || 'draft',
           property_type: data.property_type || 'house',
+          listing_category: data.listing_category || 'sale',
+          booking_platform: data.booking_platform || '',
+          external_booking_url: data.external_booking_url || '',
+          guest_capacity: data.guest_capacity ?? '',
+          nightly_rate: data.nightly_rate ?? '',
+          amenities: (data.amenities || []).join(', '),
         })
         setSlugTouched(true)
         setPhotos((data.photo_urls || []).map(url => ({ url })))
@@ -186,6 +210,9 @@ const PropertyEditor = () => {
     if (!form.slug.trim()) e.slug = 'Slug is required'
     else if (!/^[a-z0-9-]+$/.test(form.slug)) e.slug = 'Use lowercase letters, numbers and hyphens only'
     if (form.price_zar !== '' && Number(form.price_zar) < 0) e.price_zar = 'Must be positive'
+    if (form.listing_category === 'short_term_rental' && !form.external_booking_url.trim()) {
+      e.external_booking_url = 'Required for short-term rentals'
+    }
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -212,6 +239,14 @@ const PropertyEditor = () => {
         floor_area_sqm: numericOrNull(form.floor_area_sqm),
         status: form.status,
         property_type: form.property_type,
+        listing_category: form.listing_category,
+        booking_platform: form.listing_category === 'short_term_rental' ? (form.booking_platform || null) : null,
+        external_booking_url: form.listing_category === 'short_term_rental' ? (form.external_booking_url.trim() || null) : null,
+        guest_capacity: form.listing_category === 'short_term_rental' ? numericOrNull(form.guest_capacity) : null,
+        nightly_rate: form.listing_category === 'short_term_rental' ? numericOrNull(form.nightly_rate) : null,
+        amenities: form.listing_category === 'short_term_rental'
+          ? form.amenities.split(',').map(a => a.trim()).filter(Boolean)
+          : [],
       }
 
       // Step 1: insert/update the row to get an id
@@ -346,6 +381,9 @@ const PropertyEditor = () => {
           <Select label="Listing type" value={form.property_type} onChange={(e) => updateField('property_type', e.target.value)}>
             {PROPERTY_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </Select>
+          <Select label="Category *" value={form.listing_category} onChange={(e) => updateField('listing_category', e.target.value)}>
+            {LISTING_CATEGORY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </Select>
           <Textarea label="Description" value={form.description} onChange={(e) => updateField('description', e.target.value)}
             placeholder="Describe the property, finishes, lifestyle, amenities..." rows={5} />
         </section>
@@ -353,10 +391,45 @@ const PropertyEditor = () => {
         {/* Pricing */}
         <section className="space-y-4">
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Pricing</h2>
-          <Input label="Asking price (ZAR)" type="number" min="0" value={form.price_zar}
-            onChange={(e) => updateField('price_zar', e.target.value)} placeholder="e.g., 4500000"
-            error={errors.price_zar} />
+          {form.listing_category === 'short_term_rental' ? (
+            <Input label="Nightly rate (ZAR)" type="number" min="0" value={form.nightly_rate}
+              onChange={(e) => updateField('nightly_rate', e.target.value)} placeholder="e.g., 1800" />
+          ) : (
+            <Input label="Asking price (ZAR)" type="number" min="0" value={form.price_zar}
+              onChange={(e) => updateField('price_zar', e.target.value)} placeholder="e.g., 4500000"
+              error={errors.price_zar} />
+          )}
         </section>
+
+        {/* Accommodation details */}
+        {form.listing_category === 'short_term_rental' && (
+          <section className="space-y-4">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Booking Details</h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              <Select label="Booking platform" value={form.booking_platform}
+                onChange={(e) => updateField('booking_platform', e.target.value)}>
+                {BOOKING_PLATFORM_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </Select>
+              <Input label="Guest capacity" type="number" min="0" value={form.guest_capacity}
+                onChange={(e) => updateField('guest_capacity', e.target.value)} placeholder="e.g., 6" />
+            </div>
+            <Input
+              label="Listing URL (Airbnb, Booking.com, etc.) *"
+              value={form.external_booking_url}
+              onChange={(e) => updateField('external_booking_url', e.target.value)}
+              placeholder="https://www.airbnb.com/rooms/..."
+              helperText="Visitors who click through a creator's tracking link land here."
+              error={errors.external_booking_url}
+            />
+            <Input
+              label="Amenities"
+              value={form.amenities}
+              onChange={(e) => updateField('amenities', e.target.value)}
+              placeholder="Pool, Wifi, Braai area, Air conditioning"
+              helperText="Comma-separated list."
+            />
+          </section>
+        )}
 
         {/* Location */}
         <section className="space-y-4">

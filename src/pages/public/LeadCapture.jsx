@@ -8,6 +8,7 @@ import {
   MapPin, ChevronLeft, ChevronRight, X, Download, FileText, Image
 } from 'lucide-react'
 import { notifyNewLead } from '../../lib/notifications'
+import { creditTrackingLeadByToken } from '../../lib/tracking'
 
 const INTEREST_LEVELS = [
   { value: 'hot', label: 'Ready to buy - actively looking' },
@@ -29,6 +30,7 @@ const LeadCaptureForm = () => {
   const refCode = searchParams.get('ref')
 
   const [campaign, setCampaign] = useState(null)
+  const isAccommodation = campaign?.property?.listing_category === 'short_term_rental'
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -42,6 +44,9 @@ const LeadCaptureForm = () => {
     timeline: '',
     budget: '',
     message: '',
+    check_in_date: '',
+    check_out_date: '',
+    guest_count: '',
     consent: false,
     // Honeypot: a real person never fills this in because it is hidden.
     // Automated form-fillers populate every field they find.
@@ -75,6 +80,7 @@ const LeadCaptureForm = () => {
             property_images,
             brochure_urls,
             key_selling_points,
+            property:properties(listing_category, external_booking_url, nightly_rate, guest_capacity, booking_platform),
             developer:profiles!developer_id (full_name, company_name, avatar_url)
           `)
           .eq('id', campaignId)
@@ -121,6 +127,11 @@ const LeadCaptureForm = () => {
       newErrors.phone = 'Phone number is required'
     }
 
+    if (isAccommodation && formData.check_in_date && formData.check_out_date
+        && formData.check_out_date <= formData.check_in_date) {
+      newErrors.check_out_date = 'Check-out must be after check-in'
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -150,41 +161,31 @@ const LeadCaptureForm = () => {
     setSubmitting(true)
 
     try {
-      // Find creator by tracking code if provided
+      // Find creator by tracking token if provided. Attribution is only ever
+      // trusted when it is re-verified server-side (migration 024's
+      // validate_lead trigger drops creator_id unless that creator is
+      // actually assigned to this campaign) -- this lookup just finds who
+      // to credit, it is not the source of truth.
       let creatorId = null
-      let trackingCode = refCode
 
       if (refCode) {
-        // Find tracking link by code
         const { data: trackingLink } = await supabase
           .from('creator_tracking_links')
           .select('creator_id')
-          .eq('tracking_code', refCode)
-          .single()
+          .eq('token', refCode)
+          .maybeSingle()
 
         if (trackingLink) {
           creatorId = trackingLink.creator_id
-
-          // Bump the link's lead counter. `supabase.rpc()` returns a query
-          // builder, which is thenable but has no `.catch()` until awaited --
-          // calling `.catch()` on it threw a TypeError that aborted the whole
-          // submission, so every enquiry arriving through a referral link was
-          // lost. The counter is a nice-to-have, so a failure here must not
-          // take the lead down with it.
-          try {
-            await supabase.rpc('increment_link_leads', { p_tracking_code: refCode })
-          } catch (counterError) {
-            console.warn('Could not increment link lead count:', counterError)
-          }
         } else {
-          // Fallback: Try assignment lookup (old method)
+          // Fallback for older campaign_assignments-based referral codes.
           const { data: assignment } = await supabase
             .from('campaign_assignments')
             .select('creator_id')
-            .eq('unique_referral_url', refCode)
-            .single()
-          
-          creatorId = assignment?.creator_id
+            .eq('creator_referral_code', refCode)
+            .maybeSingle()
+
+          creatorId = assignment?.creator_id || null
         }
       }
 
@@ -192,18 +193,20 @@ const LeadCaptureForm = () => {
         campaign_id: campaignId,
         creator_id: creatorId,
         referral_code: refCode || campaign?.referral_code,
-        tracking_code: trackingCode,
+        tracking_token: refCode || null,
         lead_name: formData.name,
         lead_email: formData.email,
         lead_phone: formData.phone,
         interest_level: formData.interest_level,
+        check_in_date: isAccommodation ? (formData.check_in_date || null) : null,
+        check_out_date: isAccommodation ? (formData.check_out_date || null) : null,
+        guest_count: isAccommodation && formData.guest_count ? Number(formData.guest_count) : null,
         notes: JSON.stringify({
           timeline: formData.timeline,
           budget: formData.budget,
           message: formData.message,
         }),
         source_url: window.location.href,
-        attributed_at: creatorId ? new Date().toISOString() : null,
         status: 'new',
         pipeline_stage: 'new',
         consent_given: true,
@@ -217,6 +220,10 @@ const LeadCaptureForm = () => {
         .single()
 
       if (error) throw error
+
+      if (refCode) {
+        creditTrackingLeadByToken(refCode)
+      }
 
       // The developer's notification is raised server-side from the stored
       // lead, so this public page never supplies a recipient address or email
@@ -376,9 +383,13 @@ const LeadCaptureForm = () => {
 
           {/* Right Column - Lead Form */}
           <Card>
-            <h2 className="text-lg font-semibold mb-1">Request Information</h2>
+            <h2 className="text-lg font-semibold mb-1">
+              {isAccommodation ? 'Enquire About This Stay' : 'Request Information'}
+            </h2>
             <p className="text-sm text-gray-500 mb-6">
-              Fill in your details and we'll get back to you with more information.
+              {isAccommodation
+                ? "Tell us your dates and we'll get back to you with availability."
+                : "Fill in your details and we'll get back to you with more information."}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -426,29 +437,59 @@ const LeadCaptureForm = () => {
                 />
               </div>
 
-              {/* Interest Level */}
-              <Select
-                label="How interested are you?"
-                options={INTEREST_LEVELS}
-                value={formData.interest_level}
-                onChange={(e) => updateField('interest_level', e.target.value)}
-              />
+              {isAccommodation ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Check-in"
+                      type="date"
+                      value={formData.check_in_date}
+                      onChange={(e) => updateField('check_in_date', e.target.value)}
+                    />
+                    <Input
+                      label="Check-out"
+                      type="date"
+                      value={formData.check_out_date}
+                      onChange={(e) => updateField('check_out_date', e.target.value)}
+                      error={errors.check_out_date}
+                    />
+                  </div>
+                  <Input
+                    label="Number of Guests"
+                    type="number"
+                    min="1"
+                    value={formData.guest_count}
+                    onChange={(e) => updateField('guest_count', e.target.value)}
+                    placeholder="e.g., 4"
+                  />
+                </>
+              ) : (
+                <>
+                  {/* Interest Level */}
+                  <Select
+                    label="How interested are you?"
+                    options={INTEREST_LEVELS}
+                    value={formData.interest_level}
+                    onChange={(e) => updateField('interest_level', e.target.value)}
+                  />
 
-              {/* Timeline */}
-              <Select
-                label="When are you looking to buy?"
-                options={[{ value: '', label: 'Select timeline' }, ...TIMELINE_OPTIONS]}
-                value={formData.timeline}
-                onChange={(e) => updateField('timeline', e.target.value)}
-              />
+                  {/* Timeline */}
+                  <Select
+                    label="When are you looking to buy?"
+                    options={[{ value: '', label: 'Select timeline' }, ...TIMELINE_OPTIONS]}
+                    value={formData.timeline}
+                    onChange={(e) => updateField('timeline', e.target.value)}
+                  />
 
-              {/* Budget */}
-              <Input
-                label="Budget Range (Optional)"
-                value={formData.budget}
-                onChange={(e) => updateField('budget', e.target.value)}
-                placeholder="e.g., R1.5M - R2M"
-              />
+                  {/* Budget */}
+                  <Input
+                    label="Budget Range (Optional)"
+                    value={formData.budget}
+                    onChange={(e) => updateField('budget', e.target.value)}
+                    placeholder="e.g., R1.5M - R2M"
+                  />
+                </>
+              )}
 
               {/* Message */}
               <Textarea
