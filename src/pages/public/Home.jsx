@@ -22,14 +22,14 @@ const Home = () => {
               <span className="text-xl sm:text-2xl font-bold text-white">AirHouse</span>
             </div>
             <h1 className="font-headline-xl text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
-              Performance-driven social media marketing
-              <span className="text-secondary-fixed"> for property developments</span>
+              Turn social media attention into
+              <span className="text-secondary-fixed"> property leads</span>.
             </h1>
 
             <p className="mt-4 sm:mt-6 font-body-lg text-base sm:text-lg text-white/80 leading-relaxed">
-              We connect property developers with vetted content creators to run
-              structured, campaign-based social media marketing that generates
-              real property leads — not vanity metrics.
+              Connect with content creators who help showcase your
+              developments and get your properties in front of potential
+              buyers.
             </p>
 
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -37,14 +37,14 @@ const Home = () => {
                 to="/register?role=developer"
                 className="inline-flex items-center justify-center gap-2 bg-secondary-container text-on-secondary-container px-6 h-12 rounded-lg font-label-lg text-label-lg hover:bg-secondary-fixed transition-colors w-full sm:w-auto"
               >
-                I'm a Developer
+                Market My Development
                 <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
               </Link>
               <Link
                 to="/register?role=creator"
                 className="inline-flex items-center justify-center bg-white/10 text-white border border-white/30 px-6 h-12 rounded-lg font-label-lg text-label-lg hover:bg-white/20 backdrop-blur-sm transition-colors w-full sm:w-auto"
               >
-                I'm a Creator
+                Join as a Creator
               </Link>
             </div>
 
