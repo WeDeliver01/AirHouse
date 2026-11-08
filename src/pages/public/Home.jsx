@@ -23,9 +23,9 @@ const Home = () => {
             </h1>
 
             <p className="mt-4 sm:mt-6 font-body-lg text-base sm:text-lg text-white/80 leading-relaxed">
-              Connect with content creators who help showcase your
-              developments and get your properties in front of potential
-              buyers.
+              List your getaway stays, apartments, or houses and run
+              structured marketing campaigns that put your properties in
+              front of potential buyers and guests.
             </p>
 
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -36,18 +36,12 @@ const Home = () => {
                 Market My Development
                 <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
               </Link>
-              <Link
-                to="/register?role=creator"
-                className="inline-flex items-center justify-center bg-white/10 text-white border border-white/30 px-6 h-12 rounded-lg font-label-lg text-label-lg hover:bg-white/20 backdrop-blur-sm transition-colors w-full sm:w-auto"
-              >
-                Join as a Creator
-              </Link>
             </div>
 
             <div className="mt-8 sm:mt-12 flex flex-wrap items-center gap-4 sm:gap-8 font-label-md text-label-md text-white/70">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-secondary-fixed text-[20px]">check_circle</span>
-                <span>Vetted Creators</span>
+                <span>Verified Listings</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-secondary-fixed text-[20px]">check_circle</span>
@@ -70,8 +64,8 @@ const Home = () => {
           </h2>
           <p className="font-body-lg text-body-lg text-on-surface-variant">
             From weekend getaways and serviced apartments to full houses —
-            AirHouse turns every short-stay listing into creator-led content
-            that drives real bookings, not vanity metrics.
+            AirHouse helps you market every short-stay listing and turn
+            attention into real bookings, not vanity metrics.
           </p>
         </div>
 
@@ -85,8 +79,8 @@ const Home = () => {
               </h3>
               <p className="font-body-md text-body-md text-on-surface-variant">
                 Market Airbnb-style getaways, serviced apartments, and full
-                houses through creator-led content, with full visibility into
-                campaign performance and lead generation.
+                houses through structured marketing campaigns, with full
+                visibility into performance and lead generation.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-4 pt-6 border-t border-outline-variant/60">
@@ -95,8 +89,8 @@ const Home = () => {
                 <div className="font-label-lg text-label-lg text-on-surface">Track cost per lead</div>
               </div>
               <div>
-                <span className="material-symbols-outlined text-primary mb-2 block">group_search</span>
-                <div className="font-label-lg text-label-lg text-on-surface">Browse vetted creators</div>
+                <span className="material-symbols-outlined text-primary mb-2 block">home_work</span>
+                <div className="font-label-lg text-label-lg text-on-surface">List unlimited properties</div>
               </div>
               <div>
                 <span className="material-symbols-outlined text-primary mb-2 block">campaign</span>
@@ -129,37 +123,8 @@ const Home = () => {
             </div>
           </div>
 
-          {/* For Creators — medium */}
-          <div className="md:col-span-5 bg-secondary-container/50 rounded-[28px] p-8">
-            <span className="font-label-md text-label-md text-on-secondary-container uppercase tracking-wider">02 · Creators</span>
-            <h3 className="font-headline-md text-headline-md text-on-surface mt-2 mb-2">Content Creators</h3>
-            <p className="font-body-md text-body-md text-on-surface-variant mb-6">
-              Shoot real getaways and homes on serious, paid campaigns —
-              clear expectations, professional briefs, structured delivery.
-            </p>
-            <ul className="space-y-3 mb-6">
-              {[
-                'Fixed campaign budgets',
-                'Clear briefs & deliverables',
-                'Build your reputation',
-              ].map((t) => (
-                <li key={t} className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-secondary text-[20px]">check_circle</span>
-                  <span className="font-body-sm text-body-sm text-on-surface">{t}</span>
-                </li>
-              ))}
-            </ul>
-            <Link
-              to="/register?role=creator"
-              className="inline-flex items-center justify-center gap-2 text-on-secondary-container font-label-lg text-label-lg hover:gap-3 transition-all"
-            >
-              Join as Creator
-              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-            </Link>
-          </div>
-
-          {/* How it works — wide */}
-          <div className="md:col-span-7 rounded-[28px] overflow-hidden relative min-h-[320px] flex flex-col">
+          {/* How it works — full width */}
+          <div className="md:col-span-12 rounded-[28px] overflow-hidden relative min-h-[320px] flex flex-col">
             <div
               className="absolute inset-0 bg-cover bg-center"
               style={{ backgroundImage: "url('/images/how-it-works-bg.jpg')" }}
@@ -175,7 +140,7 @@ const Home = () => {
               <div className="flex flex-col sm:flex-row gap-0 sm:gap-6">
                 {[
                   { num: '01', icon: 'campaign',    title: 'Create a campaign',   body: 'Define brief, budget, and audience.' },
-                  { num: '02', icon: 'group',       title: 'Match with a creator', body: 'Assign one creator per campaign.' },
+                  { num: '02', icon: 'palette',      title: 'Content gets produced', body: 'Your listing is turned into campaign-ready content.' },
                   { num: '03', icon: 'trending_up', title: 'Generate leads',       body: 'Capture real enquiries via tracked links.' },
                 ].map((step, i) => (
                   <div key={step.num} className="flex-1 flex sm:flex-col gap-3 py-3 sm:py-0 relative">
