@@ -195,8 +195,6 @@ const AdminAnalytics = () => {
 
   const selectedRange = RANGES.find((r) => r.key === range) || RANGES[0]
 
-  useEffect(() => { fetchData() /* eslint-disable-next-line */ }, [range, fetchData])
-
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -459,6 +457,8 @@ const AdminAnalytics = () => {
       setLoading(false)
     }
   }, [selectedRange.days])
+
+  useEffect(() => { fetchData() }, [fetchData])
 
   const conversionPct = useMemo(
     () => (data.leadsTotal ? (data.convertedTotal / data.leadsTotal) * 100 : 0),

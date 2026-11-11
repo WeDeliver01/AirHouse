@@ -16,8 +16,6 @@ const PropertyDetail = () => {
   const [campaigns, setCampaigns] = useState([])
   const [activePhoto, setActivePhoto] = useState(0)
 
-  useEffect(() => { load() }, [slug, load])
-
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -52,6 +50,8 @@ const PropertyDetail = () => {
       setLoading(false)
     }
   }, [slug])
+
+  useEffect(() => { load() }, [load])
 
   if (loading) {
     return (

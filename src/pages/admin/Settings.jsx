@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { toast } from 'react-hot-toast'
 import { Settings, Globe, Bell, Shield, Database, Palette, Save, UserPlus, Copy, Trash2} from 'lucide-react'
 import PaymentModeCard from './PaymentModeCard'
+import IdentityVerificationCard from './IdentityVerificationCard'
 import SecuritySettings from '../../components/SecuritySettings'
 
 const AdminSettings = () => {
@@ -17,7 +18,6 @@ const AdminSettings = () => {
     newCampaignNotification: true,
     newLeadNotification: false,
     requireEmailVerification: true,
-    requireProfileVerification: true,
     maxLoginAttempts: 5,
     sessionTimeout: 30,
     allowCreatorSignups: true,
@@ -139,6 +139,7 @@ const AdminSettings = () => {
         <>
           <SecuritySettings required />
           <PaymentModeCard />
+          <IdentityVerificationCard />
 
           <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
             <div className="flex items-center gap-2 mb-6">
@@ -261,7 +262,6 @@ const AdminSettings = () => {
         </div>
         <div className="space-y-4">
           <ToggleSetting label="Require Email Verification" description="Users must verify email before accessing platform" settingKey="requireEmailVerification" />
-          <ToggleSetting label="Require Profile Verification" description="Creators/Developers must be verified by admin" settingKey="requireProfileVerification" />
           <div className="grid grid-cols-2 gap-4">
             <Input label="Max Login Attempts" type="number" value={settings.maxLoginAttempts} onChange={(e) => updateSetting('maxLoginAttempts', parseInt(e.target.value))} helperText="Before temporary lockout" />
             <Input label="Session Timeout (minutes)" type="number" value={settings.sessionTimeout} onChange={(e) => updateSetting('sessionTimeout', parseInt(e.target.value))} helperText="Inactive session duration" />

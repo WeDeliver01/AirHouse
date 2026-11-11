@@ -7,6 +7,7 @@ import {
   submitVerificationRequest,
   fetchLatestVerificationRequest,
 } from '../../lib/verification'
+import { getRequireIdentityVerification } from '../../lib/platformSettings'
 
 const CREATOR_CONTENT_TYPES = [
   { id: 'reels',     label: 'Instagram Reels',  icon: 'movie' },
@@ -20,19 +21,30 @@ const CREATOR_CONTENT_TYPES = [
 ]
 
 const DEVELOPER_PROPERTY_TYPES = [
-  { id: 'apartments', label: 'Apartments',       icon: 'apartment' },
-  { id: 'houses',     label: 'Houses',           icon: 'house' },
-  { id: 'townhouses', label: 'Townhouses',       icon: 'holiday_village' },
-  { id: 'commercial', label: 'Commercial',       icon: 'corporate_fare' },
-  { id: 'mixed',      label: 'Mixed-Use',        icon: 'domain' },
-  { id: 'luxury',     label: 'Luxury Estates',   icon: 'villa' },
-  { id: 'student',    label: 'Student Housing',  icon: 'school' },
-  { id: 'retire',     label: 'Retirement Living',icon: 'elderly' },
+  { id: 'apartments',    label: 'Apartments',               icon: 'apartment' },
+  { id: 'houses',        label: 'Houses',                   icon: 'house' },
+  { id: 'townhouses',    label: 'Townhouses',               icon: 'holiday_village' },
+  { id: 'commercial',    label: 'Commercial',               icon: 'corporate_fare' },
+  { id: 'mixed',         label: 'Mixed-Use',                icon: 'domain' },
+  { id: 'luxury',        label: 'Luxury Estates',           icon: 'villa' },
+  { id: 'student',       label: 'Student Housing',          icon: 'school' },
+  { id: 'retire',        label: 'Retirement Living',        icon: 'elderly' },
+  { id: 'condos',        label: 'Condos',                   icon: 'location_city' },
+  { id: 'guesthouses',   label: 'Guest Houses',             icon: 'cottage' },
+  { id: 'bnbs',          label: 'B&Bs',                     icon: 'bed' },
+  { id: 'cottages',      label: 'Cottages & Cabins',        icon: 'cabin' },
+  { id: 'selfcatering',  label: 'Self-Catering Units',      icon: 'kitchen' },
+  { id: 'getaway_stays', label: 'Short-Term / Airbnb Stays',icon: 'luggage' },
 ]
 
 const BUDGET_RANGES = [
   'Under R5,000', 'R5,000 - R15,000', 'R15,000 - R50,000',
   'R50,000 - R100,000', 'R100,000+',
+]
+
+const NIGHTLY_RATE_RANGES = [
+  'Under R500/night', 'R500 - R1,000/night', 'R1,000 - R2,500/night',
+  'R2,500 - R5,000/night', 'R5,000+/night',
 ]
 
 const ProgressBar = ({ steps, currentStep }) => (
@@ -218,42 +230,93 @@ const CheckboxCardGrid = ({ options, selected, onChange }) => (
   </div>
 )
 
+const DEFAULT_ONBOARDING_DATA = (profile, isCreator) => ({
+  fullName: profile?.full_name || '',
+  bio: profile?.bio || '',
+  location: profile?.location || '',
+  avatarUrl: profile?.avatar_url || '',
+  companyName: profile?.company_name || '',
+  contentTypes: [],
+  specialties: '',
+  instagramHandle: '',
+  tiktokHandle: '',
+  youtubeHandle: '',
+  propertyTypes: [],
+  targetAreas: '',
+  pricingModel: 'budget',
+  budgetRange: '',
+  nightlyRateRange: '',
+  idDocumentType: isCreator ? 'national_id' : 'company_registration',
+  idDocumentFile: null,
+  selfieFile: null,
+  applicantNotes: '',
+})
+
+const onboardingStorageKey = (userId, role) => `airhouse:onboarding:${role}:${userId}`
+
+// Files can't survive a refresh (or serialize to JSON), so they're dropped
+// before persisting and simply have to be re-selected if the step is resumed.
+const stripUnpersistableFields = (fullData) => {
+  const { idDocumentFile: _idDocumentFile, selfieFile: _selfieFile, ...rest } = fullData
+  return rest
+}
+
+const loadSavedOnboarding = (userId, role) => {
+  if (!userId || typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(onboardingStorageKey(userId, role))
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
 const OnboardingWizard = ({ role, profile, onComplete }) => {
   const { user, updateProfile } = useAuth()
   const isCreator = role === 'creator'
-  const steps = isCreator
-    ? ['Profile', 'Skills & Expertise', 'Identity Check', 'All Set!']
-    : ['Profile', 'Your Properties', 'Identity Check', 'All Set!']
-  const completionStep = steps.length - 1
-  const verificationStep = steps.length - 2
 
-  const [currentStep, setCurrentStep] = useState(0)
-  const [saving, setSaving] = useState(false)
-  const [data, setData] = useState({
-    fullName: profile?.full_name || '',
-    bio: profile?.bio || '',
-    location: profile?.location || '',
-    avatarUrl: profile?.avatar_url || '',
-    companyName: profile?.company_name || '',
-    contentTypes: [],
-    specialties: '',
-    instagramHandle: '',
-    tiktokHandle: '',
-    youtubeHandle: '',
-    propertyTypes: [],
-    targetAreas: '',
-    budgetRange: '',
-    idDocumentType: isCreator ? 'national_id' : 'company_registration',
-    idDocumentFile: null,
-    selfieFile: null,
-    applicantNotes: '',
+  const [requireVerification, setRequireVerification] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    getRequireIdentityVerification().then((required) => {
+      if (!cancelled) setRequireVerification(required)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const steps = isCreator
+    ? ['Profile', 'Skills & Expertise', ...(requireVerification ? ['Identity Check'] : []), 'All Set!']
+    : ['Profile', 'Your Properties', ...(requireVerification ? ['Identity Check'] : []), 'All Set!']
+  const completionStep = steps.length - 1
+  const verificationStep = requireVerification ? steps.length - 2 : -1
+
+  const saved = loadSavedOnboarding(user?.id, role)
+
+  const [currentStep, setCurrentStep] = useState(() => {
+    const step = saved?.currentStep
+    return Number.isInteger(step) && step >= 0 ? step : 0
   })
+  const [saving, setSaving] = useState(false)
+  const [data, setData] = useState(() => ({
+    ...DEFAULT_ONBOARDING_DATA(profile, isCreator),
+    ...(saved?.data || {}),
+  }))
 
   const [verification, setVerification] = useState({
     submitting: false,
     submittedRequest: null,
     error: null,
   })
+
+  // The restored step can land out of range once requireVerification loads
+  // (it starts false and may flip after the resumed step was saved).
+  useEffect(() => {
+    if (currentStep > steps.length - 1) setCurrentStep(steps.length - 1)
+  }, [currentStep, steps.length])
 
   useEffect(() => {
     let cancelled = false
@@ -269,6 +332,30 @@ const OnboardingWizard = ({ role, profile, onComplete }) => {
     }
   }, [user?.id])
 
+  // Save progress as the user goes so a refresh, a closed tab, or leaving the
+  // page mid-flow doesn't lose their place or what they've already filled in.
+  useEffect(() => {
+    if (!user?.id || typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(
+        onboardingStorageKey(user.id, role),
+        JSON.stringify({ currentStep, data: stripUnpersistableFields(data) }),
+      )
+    } catch {
+      // Storage can be full or unavailable (private browsing) — losing the
+      // autosave isn't worth surfacing an error over.
+    }
+  }, [user?.id, role, currentStep, data])
+
+  const clearSavedOnboarding = () => {
+    if (!user?.id || typeof window === 'undefined') return
+    try {
+      window.localStorage.removeItem(onboardingStorageKey(user.id, role))
+    } catch {
+      // Nothing to clean up if storage isn't available.
+    }
+  }
+
   const updateField = (field, value) => setData(prev => ({ ...prev, [field]: value }))
 
   const hasVerificationSubmission = Boolean(verification.submittedRequest)
@@ -280,7 +367,7 @@ const OnboardingWizard = ({ role, profile, onComplete }) => {
       if (isCreator) return data.fullName.trim() && data.bio.trim()
       return data.fullName.trim() && data.bio.trim() && data.companyName.trim()
     }
-    if (currentStep === verificationStep) {
+    if (requireVerification && currentStep === verificationStep) {
       return hasVerificationSubmission
     }
     return true
@@ -343,6 +430,7 @@ const OnboardingWizard = ({ role, profile, onComplete }) => {
       if (data.avatarUrl) updates.avatar_url = data.avatarUrl
       if (!isCreator) updates.company_name = data.companyName
       await updateProfile(updates)
+      clearSavedOnboarding()
       onComplete()
     } catch (err) {
       console.error('Onboarding save error:', err)
@@ -508,26 +596,83 @@ const OnboardingWizard = ({ role, profile, onComplete }) => {
 
       <div>
         <label className="font-label-md text-label-md text-on-surface block mb-3">
-          Typical campaign budget
+          How do you price your listings?
         </label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {BUDGET_RANGES.map(range => (
-            <button
-              key={range}
-              type="button"
-              onClick={() => updateField('budgetRange', range)}
-              className={cn(
-                'px-3 py-2.5 rounded-lg border-2 font-label-md text-label-md transition-colors',
-                data.budgetRange === range
-                  ? 'border-primary bg-primary-fixed text-primary'
-                  : 'border-outline-variant text-on-surface-variant hover:border-outline'
-              )}
-            >
-              {range}
-            </button>
-          ))}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => updateField('pricingModel', 'budget')}
+            className={cn(
+              'px-3 py-2.5 rounded-lg border-2 font-label-md text-label-md transition-colors',
+              data.pricingModel === 'budget'
+                ? 'border-primary bg-primary-fixed text-primary'
+                : 'border-outline-variant text-on-surface-variant hover:border-outline'
+            )}
+          >
+            Sale price / campaign budget
+          </button>
+          <button
+            type="button"
+            onClick={() => updateField('pricingModel', 'nightly')}
+            className={cn(
+              'px-3 py-2.5 rounded-lg border-2 font-label-md text-label-md transition-colors',
+              data.pricingModel === 'nightly'
+                ? 'border-primary bg-primary-fixed text-primary'
+                : 'border-outline-variant text-on-surface-variant hover:border-outline'
+            )}
+          >
+            Nightly rate (short-term stays)
+          </button>
         </div>
       </div>
+
+      {data.pricingModel === 'nightly' ? (
+        <div>
+          <label className="font-label-md text-label-md text-on-surface block mb-3">
+            Typical nightly rate
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {NIGHTLY_RATE_RANGES.map(range => (
+              <button
+                key={range}
+                type="button"
+                onClick={() => updateField('nightlyRateRange', range)}
+                className={cn(
+                  'px-3 py-2.5 rounded-lg border-2 font-label-md text-label-md transition-colors',
+                  data.nightlyRateRange === range
+                    ? 'border-primary bg-primary-fixed text-primary'
+                    : 'border-outline-variant text-on-surface-variant hover:border-outline'
+                )}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div>
+          <label className="font-label-md text-label-md text-on-surface block mb-3">
+            Typical campaign budget
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {BUDGET_RANGES.map(range => (
+              <button
+                key={range}
+                type="button"
+                onClick={() => updateField('budgetRange', range)}
+                className={cn(
+                  'px-3 py-2.5 rounded-lg border-2 font-label-md text-label-md transition-colors',
+                  data.budgetRange === range
+                    ? 'border-primary bg-primary-fixed text-primary'
+                    : 'border-outline-variant text-on-surface-variant hover:border-outline'
+                )}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 
