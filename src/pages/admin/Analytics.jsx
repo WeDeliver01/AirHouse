@@ -69,17 +69,11 @@ const RevenueLineChart = ({ data, height = 240 }) => {
         role="img"
         aria-label="Revenue trend over time"
       >
-        <defs>
-          <linearGradient id="revfill" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#015D47" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#015D47" stopOpacity="0" />
-          </linearGradient>
-        </defs>
         {/* Grid lines */}
         {[0, 25, 50, 75, 100].map((g) => (
           <line key={g} x1={0} x2={w} y1={g} y2={g} stroke="#c7d1cf" strokeWidth="0.2" />
         ))}
-        <polygon points={`0,${h} ${points} ${w},${h}`} fill="url(#revfill)" />
+        <polygon points={`0,${h} ${points} ${w},${h}`} fill="#015D47" fillOpacity="0.15" />
         <polyline
           points={points}
           fill="none"
@@ -136,7 +130,7 @@ const CategoriesBarChart = ({ data, height = 220 }) => {
           </span>
           <div className="flex-1 h-5 bg-surface-container-highest rounded overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-primary to-primary-container rounded transition-all duration-500"
+              className="h-full bg-primary rounded transition-all duration-500"
               style={{ width: `${(d.value / max) * 100}%` }}
             />
           </div>
@@ -162,7 +156,7 @@ const MauChart = ({ data, height = 200 }) => {
             title={`${d.label}: ${d.value} active users`}
           >
             <div
-              className="w-full bg-gradient-to-t from-secondary-fixed-dim to-secondary rounded-t transition-all duration-500"
+              className="w-full bg-secondary rounded-t transition-all duration-500"
               style={{ height: `${(d.value / max) * 100}%`, minHeight: 4 }}
             />
           </div>

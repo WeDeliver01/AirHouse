@@ -205,7 +205,7 @@ const AdminUsers = () => {
         {selectedUser && (
           <div className="space-y-6">
             <div className="flex items-start gap-4">
-              <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/40 rounded-2xl flex items-center justify-center text-3xl font-bold text-primary">
+              <div className="w-20 h-20 bg-primary/20 rounded-2xl flex items-center justify-center text-3xl font-bold text-primary">
                 {selectedUser.full_name?.charAt(0)}
               </div>
               <div className="flex-1">

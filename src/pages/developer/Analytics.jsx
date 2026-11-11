@@ -15,10 +15,7 @@ const SparklineChart = ({ data, color = '#d2f9f0', height = 40 }) => {
   const points = data.map((val, i) => `${(i / (data.length - 1)) * 100},${100 - ((val - min) / range) * 100}`).join(' ')
   return (
     <svg viewBox="0 0 100 100" className="w-full" style={{ height }} preserveAspectRatio="none">
-      <defs><linearGradient id={`an-${color.slice(1)}`} x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor={color} stopOpacity="0.3" /><stop offset="100%" stopColor={color} stopOpacity="0" />
-      </linearGradient></defs>
-      <polygon points={`0,100 ${points} 100,100`} fill={`url(#an-${color.slice(1)})`} />
+      <polygon points={`0,100 ${points} 100,100`} fill={color} fillOpacity="0.15" />
       <polyline points={points} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   )
@@ -232,7 +229,7 @@ const DeveloperAnalytics = () => {
               <p className="text-sm text-gray-500">Total Leads</p>
               <p className="text-2xl font-bold mt-1">{stats.leads}</p>
             </div>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-green-500 to-emerald-600">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-green-600">
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
           </div>
@@ -251,7 +248,7 @@ const DeveloperAnalytics = () => {
               <p className="text-sm text-gray-500">Conversion Rate</p>
               <p className="text-2xl font-bold mt-1">{stats.conversionRate}%</p>
             </div>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary to-teal-600">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary">
               <Target className="w-6 h-6 text-white" />
             </div>
           </div>
@@ -270,7 +267,7 @@ const DeveloperAnalytics = () => {
               <p className="text-sm text-gray-500">Cost per Lead</p>
               <p className="text-2xl font-bold mt-1">{formatCurrency(stats.costPerLead)}</p>
             </div>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-500 to-indigo-600">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-600">
               <DollarSign className="w-6 h-6 text-white" />
             </div>
           </div>
@@ -289,7 +286,7 @@ const DeveloperAnalytics = () => {
               <p className="text-sm text-gray-500">Total Spent</p>
               <p className="text-2xl font-bold mt-1">{formatCurrency(stats.spent)}</p>
             </div>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-500">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-secondary">
               <Megaphone className="w-6 h-6 text-white" />
             </div>
           </div>

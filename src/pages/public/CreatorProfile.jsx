@@ -254,7 +254,6 @@ const CreatorProfile = () => {
 
       {/* Hero */}
       <Card padding="lg" className="relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-bl from-surface-container-high/40 to-transparent pointer-events-none rounded-tr" />
         <div className="relative flex flex-col md:flex-row gap-lg items-start">
           <Avatar
             src={profile.avatar_url}

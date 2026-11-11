@@ -54,7 +54,7 @@ const Campaigns = () => {
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-campaigns-hero"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-gray-50" />
+        <div className="absolute inset-0 bg-black/50" />
         <div className="relative px-4 sm:px-6 lg:px-8 pt-10 pb-20 sm:pt-16 sm:pb-28 max-w-7xl mx-auto">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-1.5 mb-4">
@@ -118,7 +118,7 @@ const Campaigns = () => {
                 className="block"
               >
                 <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group h-full">
-                  <div className="h-36 sm:h-44 bg-gradient-to-br from-primary/10 to-accent/15 relative overflow-hidden">
+                  <div className="h-36 sm:h-44 bg-primary/10 relative overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Building2 className="w-14 h-14 sm:w-16 sm:h-16 text-primary/20 group-hover:scale-110 transition-transform duration-300" />
                     </div>
@@ -146,7 +146,7 @@ const Campaigns = () => {
                     </p>
 
                     <div className="flex items-center gap-2.5 mt-3 sm:mt-4 pb-3 sm:pb-4 border-b border-gray-100">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold text-gray-600 shrink-0">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gray-100 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold text-gray-600 shrink-0">
                         {campaign.developer?.company_name?.charAt(0) || campaign.developer?.full_name?.charAt(0)}
                       </div>
                       <div className="min-w-0">
@@ -182,7 +182,7 @@ const Campaigns = () => {
         )}
 
         {!isAuthenticated && campaigns.length > 0 && (
-          <div className="mb-12 bg-gradient-to-r from-primary/5 to-accent/10 rounded-xl sm:rounded-2xl p-6 sm:p-8 text-center border border-primary/20">
+          <div className="mb-12 bg-primary/5 rounded-xl sm:rounded-2xl p-6 sm:p-8 text-center border border-primary/20">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Ready to start earning?</h2>
             <p className="text-sm sm:text-base text-gray-500 mb-5 sm:mb-6">Sign up as a creator to apply to these campaigns</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">

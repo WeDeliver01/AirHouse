@@ -13,7 +13,7 @@ const PublicLayout = () => {
 
       {/* Footer */}
       <footer className="w-full bg-surface-container-lowest">
-        <div className="h-1.5 w-full bg-gradient-to-r from-primary via-secondary to-tertiary" aria-hidden />
+        <div className="h-1.5 w-full bg-primary" aria-hidden />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             {/* Brand + ECTA s.43 business identity */}

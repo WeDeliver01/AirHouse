@@ -79,17 +79,17 @@ const CreatorBrowser = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-primary to-teal-600 rounded-2xl p-5 text-white">
+        <div className="bg-primary rounded-2xl p-5 text-white">
           <Users className="w-8 h-8 opacity-80 mb-2" />
           <p className="text-3xl font-bold">{stats.total}</p>
           <p className="text-sm opacity-80">Total Creators</p>
         </div>
-        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-5 text-white">
+        <div className="bg-green-600 rounded-2xl p-5 text-white">
           <CheckCircle className="w-8 h-8 opacity-80 mb-2" />
           <p className="text-3xl font-bold">{stats.verified}</p>
           <p className="text-sm opacity-80">Verified</p>
         </div>
-        <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-5 text-white">
+        <div className="bg-purple-600 rounded-2xl p-5 text-white">
           <TrendingUp className="w-8 h-8 opacity-80 mb-2" />
           <p className="text-3xl font-bold">{stats.avgFollowers.toLocaleString()}</p>
           <p className="text-sm opacity-80">Avg Followers</p>
@@ -129,9 +129,9 @@ const CreatorBrowser = () => {
           {filteredCreators.map(creator => (
             <div key={creator.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all">
               <div className="relative">
-                <div className="h-32 bg-gradient-to-br from-primary/10 to-primary/20" />
+                <div className="h-32 bg-primary/15" />
                 <div className="absolute -bottom-10 left-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-primary to-teal-600 rounded-2xl flex items-center justify-center text-2xl font-bold text-white border-4 border-white shadow-lg">
+                  <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center text-2xl font-bold text-white border-4 border-white shadow-lg">
                     {creator.user?.full_name?.charAt(0)}
                   </div>
                 </div>

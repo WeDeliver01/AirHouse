@@ -140,7 +140,7 @@ const CreatorVerification = () => {
         </div>
       </div>
 
-      <div className="bg-gradient-to-r from-primary/10 to-teal-50 rounded-2xl p-6 border border-primary/20">
+      <div className="bg-primary/10 rounded-2xl p-6 border border-primary/20">
         <div className="flex items-center gap-4">
           <div className={cn('w-16 h-16 rounded-full flex items-center justify-center',
             verificationLevel.level === 'gold' ? 'bg-yellow-100' :
