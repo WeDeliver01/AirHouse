@@ -9,7 +9,6 @@
  */
 
 import { supabase } from './supabase'
-import { releaseContentPayment } from './payments'
 
 // ============================================
 // CONTENT STATUS FLOW
@@ -185,7 +184,12 @@ export const resubmitContent = async (submissionId, updates = {}) => {
 }
 
 /**
- * Approve content
+ * Approve content.
+ *
+ * Payment for the deliverable was already settled in full at checkout (see
+ * cart.js / supabase/migrations/030_pricing_cart_checkout.sql) -- there is no
+ * per-submission payment to release on approval any more, so `paymentAmount`
+ * is recorded for reference only.
  */
 export const approveContent = async (submissionId, reviewerId, paymentAmount = null) => {
   const { data, error } = await supabase
@@ -196,7 +200,7 @@ export const approveContent = async (submissionId, reviewerId, paymentAmount = n
       reviewed_by: reviewerId,
       reviewed_at: new Date().toISOString(),
       payment_amount: paymentAmount,
-      payment_status: paymentAmount ? 'pending_release' : null,
+      payment_status: paymentAmount ? 'paid' : null,
     })
     .eq('id', submissionId)
     .select(`
@@ -211,15 +215,6 @@ export const approveContent = async (submissionId, reviewerId, paymentAmount = n
   if (error) throw error
 
   await logContentActivity(submissionId, 'approved', 'Content approved', { reviewer_id: reviewerId })
-
-  // Trigger payment if amount is set
-  if (paymentAmount && paymentAmount > 0) {
-    try {
-      await releaseContentPayment(submissionId, reviewerId)
-    } catch (e) {
-      console.error('Payment release failed:', e)
-    }
-  }
 
   return data
 }

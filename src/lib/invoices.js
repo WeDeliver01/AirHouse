@@ -439,7 +439,7 @@ export const generateInvoiceHTML = (invoiceData) => {
     </div>
     ${invoiceData.escrowAmount ? `
     <div class="total-row" style="color: #666; font-size: 13px; margin-top: 12px;">
-      <span>Escrow Amount</span>
+      <span>Paid to Creator</span>
       <span>R ${invoiceData.escrowAmount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}</span>
     </div>
     ` : ''}

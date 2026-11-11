@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { Button, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
 import { toast } from 'react-hot-toast'
@@ -199,9 +200,11 @@ const CreatorBrowser = () => {
                   <a href={`mailto:${creator.user?.email}`} className="flex-1">
                     <Button variant="secondary" className="w-full"><Mail className="w-4 h-4 mr-1" />Contact</Button>
                   </a>
-                  <Button variant="primary" className="flex-1">
-                    <ArrowUpRight className="w-4 h-4 mr-1" />Invite
-                  </Button>
+                  <Link to={`/developer/creators/${creator.user?.id}/book`} className="flex-1">
+                    <Button variant="primary" className="w-full">
+                      <ArrowUpRight className="w-4 h-4 mr-1" />Book
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>

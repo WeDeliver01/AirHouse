@@ -245,7 +245,7 @@ const AdminDashboard = () => {
             icon={Wallet}
           />
           <MetricCard
-            label="Commission Earned (25%)"
+            label="Transaction Fees (2.7%)"
             value={formatCurrency(stats.platformFees)}
             hint="Across all campaigns"
             hintTone="neutral"

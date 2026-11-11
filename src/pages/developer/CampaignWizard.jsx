@@ -8,7 +8,7 @@ import {
   PageHeader, Button, Card, Chip, Icon, Input, Textarea, Select,
 } from '../../components/stitch'
 
-const PLATFORM_FEE_RATE = 0.25
+const PLATFORM_FEE_RATE = 0.027
 const MAX_IMAGE_SIZE = 50 * 1024 * 1024
 const MAX_BROCHURE_SIZE = 100 * 1024 * 1024
 
@@ -72,7 +72,8 @@ const CommissionBreakdown = ({ totalBudget }) => {
         <div>
           <p className="font-label-lg text-label-lg text-on-surface">Budget Breakdown</p>
           <p className="font-body-sm text-body-sm text-on-surface-variant">
-            Your campaign budget includes a 25% platform listing fee.
+            A flat 2.7% platform transaction fee is taken at checkout. There is no revenue
+            share -- the rest goes straight to the creator.
           </p>
         </div>
       </div>
@@ -82,7 +83,7 @@ const CommissionBreakdown = ({ totalBudget }) => {
           <dd className="font-data-mono text-on-surface">{formatCurrency(budget)}</dd>
         </div>
         <div className="flex justify-between text-on-surface-variant">
-          <dt>Platform Listing Fee (25%)</dt>
+          <dt>Platform Transaction Fee (2.7%)</dt>
           <dd className="font-data-mono">−{formatCurrency(platformFee)}</dd>
         </div>
         <div className="border-t border-outline-variant pt-xs flex justify-between">

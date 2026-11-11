@@ -55,10 +55,21 @@ BEGIN
 
   RAISE NOTICE '--- MANUAL BANK PAYMENT ---';
 
-  -- Developer raises a funding request for R2,000 on the lifecycle campaign.
+  -- A fresh campaign, booked with one creator (as checkout_campaign_cart
+  -- always does), rather than reusing the lifecycle campaign from
+  -- 06_tenant_isolation_tests.sql -- that one ends the previous file
+  -- 'archived', a terminal state no longer eligible for new assignments or
+  -- funding.
   PERFORM set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111', true);
+  INSERT INTO campaigns (id, developer_id, title, status, total_budget, platform_fee, creator_budget)
+  VALUES ('cccccccc-0000-4000-8000-000000000003','11111111-1111-4111-8111-111111111111',
+          'Ledger Test Campaign', 'invited', 2000, 54, 1946);
+  INSERT INTO campaign_assignments (campaign_id, creator_id)
+  VALUES ('cccccccc-0000-4000-8000-000000000003','22222222-2222-4222-8222-222222222222');
+
+  -- Developer raises a funding request for R2,000.
   SELECT balance_cents INTO bank FROM ledger_account_balances WHERE code='bank';
-  j := create_payment_intent('cccccccc-0000-4000-8000-000000000002', 200000, 'intent-key-00001');
+  j := create_payment_intent('cccccccc-0000-4000-8000-000000000003', 200000, 'intent-key-00001');
   v_intent := (j->>'payment_intent_id')::UUID;
   v_ref := j->>'reference';
   PERFORM expect('A funding request can be raised', (j->>'status') = 'awaiting_payment');
@@ -70,7 +81,7 @@ BEGIN
 
   -- A different developer cannot fund someone else's campaign.
   res := try_sql('55555555-5555-4555-8555-555555555555',
-    $q$SELECT create_payment_intent('cccccccc-0000-4000-8000-000000000002', 100000, 'intent-key-00002')::text$q$);
+    $q$SELECT create_payment_intent('cccccccc-0000-4000-8000-000000000003', 100000, 'intent-key-00002')::text$q$);
   PERFORM expect('Only the campaign owner may fund it', res LIKE 'ERR:Only the campaign owner%');
 
   -- Payer attaches proof.
@@ -86,24 +97,28 @@ BEGIN
 
   -- Capture the position before confirmation so the assertions below measure
   -- the effect of this payment rather than the whole suite's history.
-  SELECT balance_cents INTO bank  FROM ledger_account_balances WHERE code='bank';
-  SELECT balance_cents INTO funds FROM ledger_account_balances WHERE code='campaign_funds';
-  SELECT balance_cents INTO fee   FROM ledger_account_balances WHERE code='platform_fee';
+  SELECT balance_cents INTO bank    FROM ledger_account_balances WHERE code='bank';
+  SELECT balance_cents INTO payable FROM ledger_account_balances WHERE code='creator_payable';
+  SELECT balance_cents INTO fee     FROM ledger_account_balances WHERE code='platform_fee';
 
-  -- Operator confirms receipt. This is where money is created.
+  -- Operator confirms receipt. This is where money is created, and -- with
+  -- no escrow any more -- where the creator is paid in full, directly.
   PERFORM set_config('request.jwt.claim.sub','44444444-4444-4444-8444-444444444444', true);
   j := confirm_manual_payment(v_intent, 'FNB-12345', 'confirm-key-00001');
   PERFORM expect('An operator can confirm receipt', (j->>'success') = 'true');
-  PERFORM expect('Platform fee is 25% of R2,000 = R500', (j->>'platform_fee_cents')::BIGINT = 50000);
-  PERFORM expect('Campaign receives the remaining R1,500', (j->>'campaign_funds_cents')::BIGINT = 150000);
+  PERFORM expect('Platform fee is 2.7% of R2,000 = R54', (j->>'platform_fee_cents')::BIGINT = 5400);
+  PERFORM expect('The creator receives the remaining R1,946 immediately', (j->>'creator_amount_cents')::BIGINT = 194600);
 
   PERFORM expect('Bank asset rises by R2,000',
     (SELECT balance_cents FROM ledger_account_balances WHERE code='bank') - bank = 200000);
-  PERFORM expect('Campaign funds liability rises by R1,500',
-    (SELECT balance_cents FROM ledger_account_balances WHERE code='campaign_funds') - funds = 150000);
-  PERFORM expect('Platform income rises by R500',
-    (SELECT balance_cents FROM ledger_account_balances WHERE code='platform_fee') - fee = 50000);
+  PERFORM expect('Creator payable rises by R1,946 -- straight to the creator, nothing held in campaign funds',
+    (SELECT balance_cents FROM ledger_account_balances WHERE code='creator_payable') - payable = 194600);
+  PERFORM expect('Platform income rises by R54',
+    (SELECT balance_cents FROM ledger_account_balances WHERE code='platform_fee') - fee = 5400);
   PERFORM expect('Ledger balances after funding', ledger_is_balanced());
+  PERFORM expect('The campaign is active and nothing sits in escrow',
+    (SELECT status::text = 'active' AND COALESCE(escrow_amount, 0) = 0
+     FROM campaigns WHERE id = 'cccccccc-0000-4000-8000-000000000003'));
   SELECT balance_cents INTO bank FROM ledger_account_balances WHERE code='bank';
 
   -- Idempotency: the same confirmation twice must not fund twice.
@@ -116,28 +131,6 @@ BEGIN
   res := try_sql('44444444-4444-4444-8444-444444444444',
     format($q$SELECT reject_manual_payment('%s','changed my mind')::text$q$, v_intent));
   PERFORM expect('A confirmed payment cannot be rejected', res LIKE 'ERR:A confirmed payment%');
-
-  RAISE NOTICE '--- LEDGER FOLLOWS THE MONEY ---';
-
-  -- Release R600 of the funded campaign to the assigned creator.
-  INSERT INTO campaign_assignments (campaign_id, creator_id)
-  VALUES ('cccccccc-0000-4000-8000-000000000002','22222222-2222-4222-8222-222222222222');
-
-  PERFORM set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111', true);
-  SELECT balance_cents INTO funds2  FROM ledger_account_balances WHERE code='campaign_funds';
-  SELECT balance_cents INTO payable FROM ledger_account_balances WHERE code='creator_payable';
-  j := release_campaign_escrow('cccccccc-0000-4000-8000-000000000002',
-                               '22222222-2222-4222-8222-222222222222',
-                               600, 'content approved', 'ledger-release-0001');
-  PERFORM expect('Escrow release succeeds', (j->>'success') = 'true');
-
-  PERFORM expect('Campaign funds fall by R600',
-    funds2 - (SELECT balance_cents FROM ledger_account_balances WHERE code='campaign_funds') = 60000);
-  PERFORM expect('Creator payable rises by R600',
-    (SELECT balance_cents FROM ledger_account_balances WHERE code='creator_payable') - payable = 60000);
-  PERFORM expect('Ledger still balances after a release', ledger_is_balanced());
-  PERFORM expect('No cash left the bank on a release',
-    (SELECT balance_cents FROM ledger_account_balances WHERE code='bank') = bank);
 
   RAISE NOTICE '--- RECONCILIATION ---';
 

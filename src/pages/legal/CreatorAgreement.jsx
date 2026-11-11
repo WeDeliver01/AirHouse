@@ -29,7 +29,8 @@ const CreatorAgreement = () => (
     <section id="payouts">
       <h2>2. Payouts &amp; wallet</h2>
       <p>
-        Earnings are credited to your AirHouse wallet as escrow is released by the Developer. You can
+        Earnings are credited to your AirHouse wallet directly and in full as soon as the Developer's
+        payment for a booking is confirmed — there is no escrow hold or revenue share. You can
         request a payout to your verified bank account from your wallet at{' '}
         <a href="/creator/wallet">/creator/wallet</a>, or initiate a payout request directly at{' '}
         <a href="/creator/wallet/payout">/creator/wallet/payout</a>. Payouts are processed within 3–5
@@ -81,7 +82,7 @@ const CreatorAgreement = () => (
       </ul>
       <p>
         Breach of these standards or of our <a href="/legal/aup">Acceptable Use Policy</a> may result
-        in suspension, removal from the marketplace, or forfeiture of pending escrow earnings as
+        in suspension, removal from the marketplace, or a clawback of earnings already paid, as
         provided in the Refund Policy.
       </p>
     </section>

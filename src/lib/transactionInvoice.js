@@ -1,16 +1,16 @@
 import { supabase } from './supabase'
 
 const FEE_RATES = {
-  PLATFORM: 0.25,
+  PLATFORM: 0.027,
   PAYOUT: 0.03,
 }
 
 const TYPE_META = {
   deposit:          { label: 'Deposit',              kind: 'deposit',       fromRole: 'developer' },
-  platform_fee:     { label: 'Platform Commission',  kind: 'commission',    fromRole: 'developer' },
-  escrow_lock:      { label: 'Escrow Lock',          kind: 'escrow',        fromRole: 'developer' },
-  escrow_release:   { label: 'Escrow Release',       kind: 'release',       fromRole: 'developer' },
-  content_payment:  { label: 'Content Payment',      kind: 'earning',       fromRole: 'developer' },
+  platform_fee:     { label: 'Platform Fee',         kind: 'commission',    fromRole: 'developer' },
+  escrow_lock:      { label: 'Campaign Payment',     kind: 'escrow',        fromRole: 'developer' },
+  escrow_release:   { label: 'Campaign Payment',     kind: 'release',       fromRole: 'developer' },
+  content_payment:  { label: 'Campaign Payment',     kind: 'earning',       fromRole: 'developer' },
   payout_request:   { label: 'Payout Request',       kind: 'payout',        fromRole: 'platform' },
   payout_fee:       { label: 'Payout Fee',           kind: 'fee',           fromRole: 'platform' },
   refund:           { label: 'Refund',               kind: 'refund',        fromRole: 'platform' },

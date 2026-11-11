@@ -7,10 +7,10 @@ const ITEMS = [
   { slug: 'terms',               title: 'Terms of Service',        icon: FileText,   blurb: 'The master agreement that governs your use of AirHouse.' },
   { slug: 'privacy',             title: 'Privacy Policy',          icon: Shield,     blurb: 'What personal information we collect and how we use it, under POPIA.' },
   { slug: 'cookies',             title: 'Cookie Policy',           icon: Cookie,     blurb: 'Which cookies we set, why, and how to manage them.' },
-  { slug: 'refunds',             title: 'Refund & Cancellation',   icon: RotateCcw,  blurb: 'How escrow refunds work, including chargebacks and ECTA cooling-off.' },
+  { slug: 'refunds',             title: 'Refund & Cancellation',   icon: RotateCcw,  blurb: 'How refunds work, including chargebacks and ECTA cooling-off.' },
   { slug: 'aup',                 title: 'Acceptable Use Policy',   icon: Ban,        blurb: 'What you may not do on AirHouse — and what happens if you do.' },
   { slug: 'creator-agreement',   title: 'Creator Agreement',       icon: UserCheck,  blurb: 'The terms specific to creators — payouts, IP, performance.' },
-  { slug: 'developer-agreement', title: 'Developer Agreement',     icon: Building2,  blurb: 'The terms specific to developers — escrow, platform fee, leads.' },
+  { slug: 'developer-agreement', title: 'Developer Agreement',     icon: Building2,  blurb: 'The terms specific to developers — pricing, the transaction fee, leads.' },
   { slug: 'paia',                title: 'PAIA Manual',             icon: FileSearch, blurb: 'How to request access to records we hold under PAIA s.51.' },
 ]
 

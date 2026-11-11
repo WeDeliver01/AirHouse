@@ -150,7 +150,7 @@ const AdminFinancials = () => {
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
           <div className="flex justify-between items-start mb-sm">
-            <span className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Platform Fees (25%)</span>
+            <span className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Platform Fees (2.7%)</span>
             <Percent className="w-5 h-5 text-primary" />
           </div>
           <p className="font-headline-xl text-headline-xl text-on-surface">{formatCurrency(stats.platformFees)}</p>
@@ -211,14 +211,14 @@ const AdminFinancials = () => {
             <h3 className="font-headline-md text-headline-md text-on-surface mb-4 flex items-center gap-2"><PieChart className="w-5 h-5 text-primary" />Revenue Split</h3>
             <div className="space-y-3">
               <div className="flex justify-between p-3 bg-primary-container/10 border border-outline-variant rounded font-body-md text-body-md text-on-surface">
-                <span>Platform (25%)</span><span className="font-data-mono text-data-mono">{formatCurrency(stats.platformFees)}</span>
+                <span>Platform (2.7%)</span><span className="font-data-mono text-data-mono">{formatCurrency(stats.platformFees)}</span>
               </div>
               <div className="flex justify-between p-3 bg-secondary-container border border-outline-variant rounded font-body-md text-body-md text-on-secondary-fixed">
-                <span>Creators (75%)</span><span className="font-data-mono text-data-mono">{formatCurrency(stats.totalRevenue - stats.platformFees)}</span>
+                <span>Creators (97.3%)</span><span className="font-data-mono text-data-mono">{formatCurrency(stats.totalRevenue - stats.platformFees)}</span>
               </div>
               <div className="h-4 rounded flex overflow-hidden bg-surface-container-highest">
-                <div className="bg-primary" style={{ width: '25%' }} />
-                <div className="bg-secondary" style={{ width: '75%' }} />
+                <div className="bg-primary" style={{ width: '2.7%' }} />
+                <div className="bg-secondary" style={{ width: '97.3%' }} />
               </div>
             </div>
           </div>

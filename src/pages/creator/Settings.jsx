@@ -2,6 +2,7 @@ import { useState} from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { Button} from '../../components/ui'
 import SecuritySettings from '../../components/SecuritySettings'
+import RateCardSettings from '../../components/RateCardSettings'
 import { toast } from 'react-hot-toast'
 import { 
   Settings, Bell, Shield, Eye, Lock, 
@@ -175,6 +176,8 @@ const CreatorSettings = () => {
           />
         </div>
       </div>
+
+      <RateCardSettings />
 
       <SecuritySettings required={false} />
 

@@ -193,11 +193,11 @@ const FundCampaign = () => {
                 <span className="text-on-surface font-data-mono">{formatCurrency(total)}</span>
               </div>
               <div className="flex justify-between font-body-md text-body-md">
-                <span className="text-on-surface-variant">Platform Fee (25%)</span>
+                <span className="text-on-surface-variant">Platform Fee (2.7%)</span>
                 <span className="text-on-surface-variant font-data-mono">{formatCurrency(platformFee)}</span>
               </div>
               <div className="flex justify-between font-body-md text-body-md pt-sm border-t border-outline-variant">
-                <span className="text-on-surface">Creator Budget (Escrow)</span>
+                <span className="text-on-surface">Creator Payout</span>
                 <span className="text-secondary font-data-mono">{formatCurrency(creatorBudget)}</span>
               </div>
             </div>
@@ -353,7 +353,7 @@ const FundCampaign = () => {
 
               <div className="flex justify-between items-center py-md border-b border-outline-variant">
                 <div>
-                  <p className="font-label-lg text-label-lg text-on-surface-variant">Platform Fee (25%)</p>
+                  <p className="font-label-lg text-label-lg text-on-surface-variant">Platform Fee (2.7%)</p>
                   <p className="font-body-sm text-body-sm text-on-surface-variant">AirHouse service fee</p>
                 </div>
                 <span className="font-body-md text-body-md text-on-surface-variant font-data-mono">
@@ -377,10 +377,10 @@ const FundCampaign = () => {
             <div className="bg-surface-container-low border border-outline-variant rounded p-md flex gap-sm">
               <Icon name="info" size={18} className="text-primary shrink-0 mt-xs" />
               <div className="font-body-sm text-body-sm text-on-surface">
-                <p className="font-label-lg text-label-lg text-on-surface">How escrow works</p>
+                <p className="font-label-lg text-label-lg text-on-surface">How payment works</p>
                 <p className="text-on-surface-variant mt-xs">
-                  75% of your payment is held securely. Funds are released to creators only when they complete
-                  approved work (content or qualified leads).
+                  As soon as your payment is confirmed, the creator is paid 97.3% of it directly. There is no
+                  escrow hold -- nothing is released later against content approval.
                 </p>
               </div>
             </div>
@@ -521,7 +521,7 @@ const FundCampaign = () => {
             <a href="/legal/terms" target="_blank" rel="noreferrer" className="text-primary hover:underline">Terms of Service</a>,{' '}
             <a href="/legal/developer-agreement" target="_blank" rel="noreferrer" className="text-primary hover:underline">Developer Agreement</a>{' '}and{' '}
             <a href="/legal/refunds" target="_blank" rel="noreferrer" className="text-primary hover:underline">Refund Policy</a>.{' '}
-            Funds are held in our segregated escrow account. The 25% Platform Fee is non-refundable once a Creator is onboarded.
+            Once your payment is confirmed the creator is paid directly. The 2.7% platform fee is non-refundable except where a dispute refunds the booking.
           </p>
         </div>
       </Modal>

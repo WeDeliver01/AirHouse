@@ -29,7 +29,7 @@ const Help = () => {
   const [submitted, setSubmitted] = useState(null)
 
   // Filter articles by viewer role first so developer-only articles
-  // (e.g. "How the AirHouse 25% platform fee works") never reach creators.
+  // (e.g. "How the AirHouse 2.7% transaction fee works") never reach creators.
   const audienceArticles = useMemo(() => {
     const role = profile?.role
     return ARTICLES.filter((a) => !a.audience || a.audience === role)

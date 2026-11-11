@@ -177,19 +177,18 @@ const DeveloperWallet = () => {
         />
       </div>
 
-      {/* How escrow works */}
+      {/* How payment works */}
       <Card className="bg-surface-container-low flex flex-col gap-md">
         <div className="flex items-start gap-sm">
           <span className="w-9 h-9 rounded bg-primary-container/30 text-primary inline-flex items-center justify-center shrink-0">
             <Icon name="info" size={18} />
           </span>
           <div className="min-w-0">
-            <h3 className="font-headline-md text-headline-md text-on-surface">How escrow works</h3>
+            <h3 className="font-headline-md text-headline-md text-on-surface">How payment works</h3>
             <ul className="mt-sm flex flex-col gap-xs font-body-sm text-body-sm text-on-surface-variant">
-              <li>• When you create a campaign, the creator budget is locked in escrow.</li>
-              <li>• A 25% platform fee is deducted immediately from your deposit.</li>
-              <li>• Funds are released to creators when their content is approved and live.</li>
-              <li>• Unused escrow is refunded when campaigns are completed or cancelled.</li>
+              <li>• A campaign is priced from the creator's rate card when you check out their cart.</li>
+              <li>• Once your payment is confirmed, the creator is paid 97.3% of it immediately.</li>
+              <li>• AirHouse keeps a flat 2.7% transaction fee -- there is no escrow hold or revenue share.</li>
             </ul>
           </div>
         </div>

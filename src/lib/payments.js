@@ -6,17 +6,24 @@
  * This module no longer moves money. Every balance-changing operation is a
  * call to a database function that runs in a single transaction, takes row
  * locks, re-derives the amounts from stored data and enforces authorization
- * itself (see supabase/migrations/016_financial_integrity.sql).
+ * itself (see supabase/migrations/016_financial_integrity.sql and
+ * 030_pricing_cart_checkout.sql).
  *
  * The browser is not trusted to decide:
  *   - how much a creator is paid,
  *   - whether a payment succeeded,
  *   - what a wallet balance becomes.
  *
- * If you need a new financial operation, add a function to migration 016 and
- * call it from here. Do not write to `wallets`, `wallet_transactions` or
- * `payout_requests` directly -- those grants have been revoked and the write
- * will be refused.
+ * There is no escrow and no 75/25 revenue split. A campaign is priced from
+ * the creator's rate card at checkout (see cart.js / pricing.js); once an
+ * operator confirms the payment, the creator is credited 97.3% of it
+ * directly and the platform keeps a flat 2.7% transaction fee. Nothing is
+ * held back pending content approval.
+ *
+ * If you need a new financial operation, add a function to migration 016 (or
+ * a later financial migration) and call it from here. Do not write to
+ * `wallets`, `wallet_transactions` or `payout_requests` directly -- those
+ * grants have been revoked and the write will be refused.
  */
 
 import { supabase } from './supabase'
@@ -37,7 +44,7 @@ const IS_PRODUCTION = Boolean(import.meta.env?.PROD)
  * happened (AH-010).
  */
 export const PAYMENT_CONFIG = {
-  PLATFORM_FEE_RATE: 0.25, // 25% platform commission
+  PLATFORM_FEE_RATE: 0.027, // 2.7% platform transaction fee, taken at checkout
   PAYOUT_FEE_RATE: 0.03, // 3% payout fee
   MIN_PAYOUT_AMOUNT: 100, // Minimum R100 to withdraw
   CURRENCY: 'ZAR',
@@ -198,32 +205,35 @@ export const getWalletTransactions = async (userId, limit = 50) => {
  *
  * DISABLED pending a real payment provider.
  *
- * The previous implementation credited a campaign's escrow wallet from the
- * browser without any payment having been taken, and created a fresh escrow
- * wallet on every call. Crediting escrow must happen server-side, only after
- * a provider webhook has confirmed settlement, which is why this now refuses
- * rather than silently creating funds (AH-010, AH-011).
+ * A campaign is funded by raising a payment intent against it (see
+ * createPaymentIntent() in manualPayments.js, or via cart.js's checkoutCart()
+ * for a rate-card booking) and having an operator confirm the transfer.
+ * Crediting money must happen server-side, only after a provider webhook or
+ * an operator has confirmed settlement, which is why this now refuses rather
+ * than silently creating funds (AH-010, AH-011).
  */
 export const fundCampaign = async () => {
   throw new Error(
     'Campaign funding is disabled until a payment provider is integrated. ' +
-      'Escrow may only be credited by the server after a verified provider webhook.',
+      'Funds may only be credited by the server after a verified provider webhook or ' +
+      'an operator-confirmed bank transfer.',
   )
 }
 
 // ============================================
-// ESCROW RELEASE
+// REFUNDS
 // ============================================
 
 /**
- * Release campaign escrow to a creator.
+ * Claw back a campaign payment and refund the developer.
  *
- * Delegates to release_campaign_escrow(), which verifies that the caller owns
- * the campaign (or is a super admin), that the creator is assigned to it, and
- * that the escrow actually holds the amount -- then moves the money and
- * writes both ledger sides in one transaction.
+ * There is no escrow to refund from any more: the creator was already paid
+ * in full at checkout, so this pulls the disputed amount back out of the
+ * creator's own wallet balance. It fails cleanly if the creator has already
+ * withdrawn more than the refund amount -- see refund_campaign_payment() in
+ * supabase/migrations/030_pricing_cart_checkout.sql. Super admins only.
  */
-export const releaseEscrowToCreator = async ({
+export const refundCampaignPayment = async ({
   campaignId,
   creatorId,
   amount,
@@ -231,94 +241,18 @@ export const releaseEscrowToCreator = async ({
   idempotencyKey,
 }) => {
   if (!campaignId || !creatorId) throw new Error('campaignId and creatorId are required')
-  if (!amount || amount <= 0) throw new Error('Release amount must be greater than zero')
-
-  const { data, error } = await supabase.rpc('release_campaign_escrow', {
-    p_campaign_id: campaignId,
-    p_creator_id: creatorId,
-    p_amount: amount,
-    p_reason: reason || 'Content approved',
-    p_idempotency_key: idempotencyKey || newIdempotencyKey('release'),
-  })
-
-  if (error) throw rpcError(error, 'Escrow release failed')
-  return data
-}
-
-/**
- * Refund unspent campaign escrow to the developer. Super admins only; the
- * developer is derived from the campaign server-side.
- */
-export const refundEscrowToDeveloper = async ({
-  campaignId,
-  amount,
-  reason,
-  idempotencyKey,
-}) => {
-  if (!campaignId) throw new Error('campaignId is required')
   if (!amount || amount <= 0) throw new Error('Refund amount must be greater than zero')
 
-  const { data, error } = await supabase.rpc('refund_campaign_escrow', {
+  const { data, error } = await supabase.rpc('refund_campaign_payment', {
     p_campaign_id: campaignId,
+    p_creator_id: creatorId,
     p_amount: amount,
     p_reason: reason || 'Dispute resolution',
     p_idempotency_key: idempotencyKey || newIdempotencyKey('refund'),
   })
 
-  if (error) throw rpcError(error, 'Escrow refund failed')
+  if (error) throw rpcError(error, 'Refund failed')
   return data
-}
-
-/**
- * Release payment for an approved content submission.
- *
- * The amount must be recorded against the submission. The previous code fell
- * back to a hard-coded R500 when it was missing, which silently invented a
- * payment amount nobody had agreed (AH-012).
- */
-export const releaseContentPayment = async (contentSubmissionId, _approvedBy, options = {}) => {
-  const { data: submission, error } = await supabase
-    .from('content_submissions')
-    .select(
-      `
-      id,
-      payment_amount,
-      content_type,
-      assignment:campaign_assignments(
-        id,
-        creator_id,
-        campaign:campaigns(id, title)
-      )
-    `,
-    )
-    .eq('id', contentSubmissionId)
-    .single()
-
-  if (error) throw error
-  if (!submission) throw new Error('Content submission not found')
-
-  const paymentAmount = Number(submission.payment_amount)
-
-  if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
-    throw new Error(
-      'This submission has no agreed payment amount. Set the amount on the assignment ' +
-        'before approving, rather than relying on a default.',
-    )
-  }
-
-  const assignment = submission.assignment
-  if (!assignment?.creator_id || !assignment?.campaign?.id) {
-    throw new Error('Content submission is not linked to a campaign assignment')
-  }
-
-  return releaseEscrowToCreator({
-    campaignId: assignment.campaign.id,
-    creatorId: assignment.creator_id,
-    amount: paymentAmount,
-    reason: `Content approved: ${submission.content_type || 'submission'}`,
-    // Keying on the submission makes a double-approval a no-op.
-    idempotencyKey: options.idempotencyKey || `content-${contentSubmissionId}`,
-  })
 }
 
 // ============================================
@@ -427,9 +361,7 @@ export default {
   getWalletBalance,
   getWalletTransactions,
   fundCampaign,
-  releaseEscrowToCreator,
-  refundEscrowToDeveloper,
-  releaseContentPayment,
+  refundCampaignPayment,
   requestPayout,
   processPayoutRequest,
   getPayoutHistory,

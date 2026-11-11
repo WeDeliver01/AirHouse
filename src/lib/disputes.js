@@ -7,10 +7,7 @@
  */
 
 import { supabase } from './supabase'
-import {
-  releaseEscrowToCreator,
-  refundEscrowToDeveloper,
-} from './payments'
+import { refundCampaignPayment } from './payments'
 import { notify } from './notifications'
 
 const BUCKET = 'dispute-evidence'
@@ -417,30 +414,28 @@ export async function sendDisputeMessage(
 // ============================================
 
 /**
- * Resolve / close / escalate a dispute and (optionally) move escrow funds.
- * Super-admin only — RLS enforces who may write to disputes.
+ * Resolve / close / escalate a dispute and (optionally) refund the
+ * developer. Super-admin only — RLS enforces who may write to disputes.
  *
- * The mediation panel passes one of three escrow actions:
- *   - 'none'                : record outcome only, do not touch escrow
- *   - 'refund_developer'    : credit `escrowAmount` from the campaign escrow
- *                             back to the developer's wallet
- *   - 'release_creator'     : release `escrowAmount` from the campaign escrow
- *                             to the creator's wallet (early payout)
+ * There is no escrow to move any more: the creator was paid in full at
+ * checkout, so the only financial action a dispute can take is
+ * 'refund_developer', which claws the disputed amount back out of the
+ * creator's wallet. 'none' records the outcome without moving money.
  *
- * The escrow movement runs FIRST. If it fails (e.g. insufficient escrow
- * balance) the dispute row is not updated, so the admin can fix the amount
- * and retry without leaving the case in an inconsistent half-resolved state.
+ * The refund runs FIRST. If it fails (e.g. the creator has already
+ * withdrawn more than the refund amount) the dispute row is not updated, so
+ * the admin can fix the amount and retry without leaving the case in an
+ * inconsistent half-resolved state.
  *
  * @param {object} params
  * @param {string} params.disputeId
  * @param {string} params.adminId
  * @param {'resolved'|'closed'|'escalated'|'under_review'} params.status
  * @param {string} params.notes
- * @param {'none'|'refund_developer'|'release_creator'} [params.escrowAction]
- * @param {number} [params.escrowAmount]  amount in ZAR for the escrow action
- * @param {string} [params.campaignId]    required for any escrow movement
- * @param {string} [params.developerId]   required for refund_developer
- * @param {string} [params.creatorId]     required for release_creator (creator user id)
+ * @param {'none'|'refund_developer'} [params.escrowAction]
+ * @param {number} [params.escrowAmount]  amount in ZAR to refund
+ * @param {string} [params.campaignId]    required for refund_developer
+ * @param {string} [params.creatorId]     required for refund_developer (whose wallet is clawed back)
  */
 export async function resolveDispute({
   disputeId,
@@ -450,42 +445,28 @@ export async function resolveDispute({
   escrowAction = 'none',
   escrowAmount = 0,
   campaignId = null,
-  developerId = null,
   creatorId = null,
 }) {
   if (!disputeId || !adminId || !status) {
     throw new Error('disputeId, adminId, status are required')
   }
 
-  // ---- 1. Escrow movement (optional) ----
+  // ---- 1. Refund (optional) ----
   let escrowResult = null
   const amount = Number(escrowAmount) || 0
   if (escrowAction !== 'none') {
-    if (!campaignId) throw new Error('campaignId is required for escrow actions')
-    if (amount <= 0) throw new Error('Escrow amount must be greater than zero')
-    if (escrowAction === 'refund_developer') {
-      if (!developerId) throw new Error('developerId is required to refund the developer')
-      escrowResult = await refundEscrowToDeveloper({
-        campaignId,
-        developerId,
-        amount,
-        reason: `Dispute resolution: ${disputeId}`,
-        releasedBy: adminId,
-        metadata: { dispute_id: disputeId },
-      })
-    } else if (escrowAction === 'release_creator') {
-      if (!creatorId) throw new Error('creatorId is required to release escrow to the creator')
-      escrowResult = await releaseEscrowToCreator({
-        campaignId,
-        creatorId,
-        amount,
-        reason: `Dispute resolution: ${disputeId}`,
-        releasedBy: adminId,
-        metadata: { dispute_id: disputeId },
-      })
-    } else {
-      throw new Error(`Unknown escrow action: ${escrowAction}`)
+    if (escrowAction !== 'refund_developer') {
+      throw new Error(`Unknown dispute action: ${escrowAction}`)
     }
+    if (!campaignId) throw new Error('campaignId is required to refund the developer')
+    if (!creatorId) throw new Error('creatorId is required to refund the developer')
+    if (amount <= 0) throw new Error('Refund amount must be greater than zero')
+    escrowResult = await refundCampaignPayment({
+      campaignId,
+      creatorId,
+      amount,
+      reason: `Dispute resolution: ${disputeId}`,
+    })
   }
 
   // ---- 2. Dispute record ----
@@ -557,18 +538,15 @@ export async function resolveDispute({
 function buildResolutionMessage(status, notes, escrowAction, amount) {
   const lines = [`Status changed to: ${status}`]
   if (escrowAction === 'refund_developer' && amount > 0) {
-    lines.push(`Escrow refund to developer: R ${amount.toFixed(2)}`)
-  } else if (escrowAction === 'release_creator' && amount > 0) {
-    lines.push(`Escrow released to creator: R ${amount.toFixed(2)}`)
+    lines.push(`Refund to developer (clawed back from creator): R ${amount.toFixed(2)}`)
   }
   if (notes) lines.push(`Notes: ${notes}`)
   return lines.join('\n')
 }
 
 export const ESCROW_ACTIONS = {
-  none:              { label: 'No escrow movement',           tone: 'neutral' },
-  refund_developer:  { label: 'Refund developer from escrow', tone: 'warning' },
-  release_creator:   { label: 'Release escrow to creator',    tone: 'success' },
+  none:              { label: 'No payment movement',              tone: 'neutral' },
+  refund_developer:  { label: 'Refund developer (claw back from creator)', tone: 'warning' },
 }
 
 export const DISPUTE_TYPES = [

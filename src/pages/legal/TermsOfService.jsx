@@ -7,7 +7,7 @@ const sections = [
   { id: 'accounts',      label: '3. Accounts & verification' },
   { id: 'roles',         label: '4. Role-specific obligations' },
   { id: 'campaigns',     label: '5. Campaign lifecycle & contracts' },
-  { id: 'escrow-fee',    label: '6. Escrow & platform fees' },
+  { id: 'escrow-fee',    label: '6. Pricing & platform fees' },
   { id: 'payments',      label: '7. Payment processing' },
   { id: 'content',       label: '8. Content licensing' },
   { id: 'disputes',      label: '9. Disputes' },
@@ -95,18 +95,18 @@ const TermsOfService = () => (
     </section>
 
     <section id="escrow-fee">
-      <h2>6. Escrow &amp; Platform Fees</h2>
+      <h2>6. Pricing, Payment &amp; Platform Fees</h2>
       <p>
-        When a Developer funds a Campaign, the funds are deducted from their wallet and held in a{' '}
-        <strong>segregated Escrow Account</strong>. Funds are released to Creators on milestone or content
-        approval, in line with the Assignment terms. Creators are paid the amount agreed in their
-        Assignment in full — no fee is deducted from a Creator's earnings.
+        A Campaign is priced from the Creator's own rate card for the deliverables the Developer adds
+        to their cart at checkout. There is no escrow account: once the Developer's payment is
+        confirmed, the Creator is paid directly and in full for the agreed deliverables at that moment.
+        No fee is deducted from a Creator's earnings.
       </p>
       <p>
-        We retain a Platform Fee from the Developer's Campaign budget to operate the Platform. The Fee
-        is disclosed to the Developer before they confirm funding and is set out in the{' '}
-        <a href="/legal/developer-agreement">Developer Agreement</a>. Refund treatment is governed by the{' '}
-        <a href="/legal/refunds">Refund Policy</a>.
+        We retain a flat <strong>2.7% transaction fee</strong> on the checkout total to operate the
+        Platform. The Fee is disclosed to the Developer before they confirm payment and is set out in
+        the <a href="/legal/developer-agreement">Developer Agreement</a>. Refund treatment is governed
+        by the <a href="/legal/refunds">Refund Policy</a>.
       </p>
     </section>
 
@@ -146,7 +146,7 @@ const TermsOfService = () => (
       <p>
         We may suspend or terminate your account for breach of these Terms or our{' '}
         <a href="/legal/aup">Acceptable Use Policy</a>, for fraud, for chargeback abuse, or where required
-        by law. Active escrow funds will be settled in line with the <a href="/legal/refunds">Refund
+        by law. Any outstanding refund is settled in line with the <a href="/legal/refunds">Refund
         Policy</a>.
       </p>
     </section>

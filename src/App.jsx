@@ -39,6 +39,7 @@ const CreatorActiveCampaigns = lazy(() => import('./pages/creator/ActiveCampaign
 const CreatorAgreement = lazy(() => import('./pages/legal/CreatorAgreement'))
 const CreatorApplications = lazy(() => import('./pages/creator/Applications'))
 const CreatorBrowser = lazy(() => import('./pages/developer/CreatorBrowser'))
+const BookCreator = lazy(() => import('./pages/developer/BookCreator'))
 const CreatorDashboard = lazy(() => import('./pages/creator/Dashboard'))
 const CreatorEarnings = lazy(() => import('./pages/creator/Earnings'))
 const CreatorProfile = lazy(() => import('./pages/public/CreatorProfile'))
@@ -168,6 +169,7 @@ function App() {
         <Route path="properties/new" element={<PropertyEditor />} />
         <Route path="properties/:propertyId/edit" element={<PropertyEditor />} />
         <Route path="creators" element={<CreatorBrowser />} />
+        <Route path="creators/:creatorId/book" element={<BookCreator />} />
         <Route path="favorites" element={<MyFavorites />} />
         <Route path="assignments" element={<DeveloperAssignments />} />
         <Route path="assignments/:assignmentId" element={<AssignmentDetail />} />

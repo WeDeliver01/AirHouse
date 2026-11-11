@@ -4,8 +4,8 @@ import { COMPANY } from '../../data/companyInfo'
 const sections = [
   { id: 'authority',   label: '1. Authority to advertise' },
   { id: 'leads',       label: '2. Lead handling & POPIA' },
-  { id: 'escrow',      label: '3. Payment & escrow' },
-  { id: 'fee',         label: '4. The 25% Platform Fee' },
+  { id: 'escrow',      label: '3. Payment at checkout' },
+  { id: 'fee',         label: '4. The 2.7% Transaction Fee' },
   { id: 'reviews',     label: '5. Reviews & disputes' },
   { id: 'liability',   label: '6. Liability for property representations' },
 ]
@@ -40,27 +40,29 @@ const DeveloperAgreement = () => (
     </section>
 
     <section id="escrow">
-      <h2>3. Payment &amp; escrow</h2>
+      <h2>3. Payment at checkout</h2>
       <p>
-        Campaign budgets are funded into the segregated Escrow Account before any Creator is engaged.
-        Funds are released to Creators on milestone or content approval. See our{' '}
-        <a href="/legal/refunds">Refund Policy</a> for the full escrow lifecycle.
+        A Campaign is priced from the Creator's published rate card for the deliverables you add to
+        your cart. Once you check out and your payment is confirmed, the Creator is paid directly and
+        in full at that moment. There is no Escrow Account and funds are not held pending content
+        approval. See our <a href="/legal/refunds">Refund Policy</a> for how disputes after payment
+        are handled.
       </p>
     </section>
 
     <section id="fee">
-      <h2>4. The 25% Platform Fee</h2>
+      <h2>4. The 2.7% Transaction Fee</h2>
       <p>
-        <strong>{COMPANY.tradingName} retains a flat 25% Platform Fee on every Campaign budget.</strong>{' '}
-        This Fee covers matching, escrow, dispute handling, payout processing and ongoing platform
-        development. It is disclosed before you confirm funding and reflected in every wallet
-        transaction.
+        <strong>{COMPANY.tradingName} retains a flat 2.7% transaction fee on every Campaign, taken at
+        checkout.</strong>{' '} This Fee covers matching, payment processing, dispute handling, payout
+        processing and ongoing platform development. It is disclosed before you confirm payment and
+        reflected in every wallet transaction.
       </p>
       <p><strong>Worked example:</strong></p>
       <ul>
-        <li>You fund a Campaign with R 20 000.</li>
-        <li>R 5 000 (25%) is retained as the Platform Fee.</li>
-        <li>R 15 000 is held in escrow and released to Creators as the Campaign progresses.</li>
+        <li>You check out a cart totalling R 20 000.</li>
+        <li>R 540 (2.7%) is retained as the Transaction Fee.</li>
+        <li>R 19 460 is paid to the Creator immediately once your payment is confirmed.</li>
       </ul>
     </section>
 

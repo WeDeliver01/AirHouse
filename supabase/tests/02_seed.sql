@@ -50,3 +50,17 @@ INSERT INTO ledger_entries (transaction_id, account_code, direction, amount_cent
 SELECT transaction_id, 'campaign_funds', 'credit', 100000, 'opening_balance',
        'cccccccc-0000-4000-8000-000000000001', 'SEED-OPENING'
 FROM ledger_entries WHERE reference = 'SEED-OPENING' AND account_code = 'bank';
+
+-- Fixtures for 11_pricing_checkout_tests.sql: Creator One publishes a rate
+-- card, and Dev One has already started a cart against it.
+INSERT INTO creator_rate_cards (id, creator_id, platform, deliverable_type, label, unit_price_cents) VALUES
+  ('eeeeeeee-0000-4000-8000-000000000001','22222222-2222-4222-8222-222222222222','instagram','reel','Instagram Reel',50000),
+  ('eeeeeeee-0000-4000-8000-000000000002','22222222-2222-4222-8222-222222222222','tiktok','video','TikTok Video',80000);
+
+INSERT INTO campaign_carts (id, developer_id, creator_id, status)
+VALUES ('dddddddd-0000-4000-8000-000000000001','11111111-1111-4111-8111-111111111111',
+        '22222222-2222-4222-8222-222222222222','draft');
+
+INSERT INTO campaign_cart_items (cart_id, rate_card_id, platform, deliverable_type, label, quantity, unit_price_cents) VALUES
+  ('dddddddd-0000-4000-8000-000000000001','eeeeeeee-0000-4000-8000-000000000001','instagram','reel','Instagram Reel',2,50000),
+  ('dddddddd-0000-4000-8000-000000000001','eeeeeeee-0000-4000-8000-000000000002','tiktok','video','TikTok Video',1,80000);

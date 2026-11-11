@@ -47,6 +47,7 @@ export default function DisputeDetail() {
   const [messages, setMessages] = useState([])
   const [evidenceLinks, setEvidenceLinks] = useState([])
   const [escrow, setEscrow] = useState(null)
+  const [creatorWalletBalance, setCreatorWalletBalance] = useState(0)
   const [contract, setContract] = useState(null)
 
   const [newMessage, setNewMessage] = useState('')
@@ -114,11 +115,24 @@ export default function DisputeDetail() {
         const { data: aRow } = await supabase
           .from('campaign_assignments')
           .select(
-            'id, agreed_budget, agreed_deliverables, amount_paid, leads_generated, content_submitted, content_approved, creator_profiles(profiles:user_id(full_name))',
+            'id, creator_id, agreed_budget, agreed_deliverables, amount_paid, leads_generated, content_submitted, content_approved',
           )
           .eq('id', disputeRow.assignment_id)
           .maybeSingle()
         setAssignment(aRow || null)
+
+        // There is no escrow to refund from any more: a refund claws the
+        // amount back out of the creator's own wallet, so the admin needs
+        // to see what is actually available there.
+        if (aRow?.creator_id) {
+          const { data: walletRow } = await supabase
+            .from('wallets')
+            .select('balance')
+            .eq('user_id', aRow.creator_id)
+            .eq('wallet_type', 'creator')
+            .maybeSingle()
+          setCreatorWalletBalance(Number(walletRow?.balance || 0))
+        }
       }
 
       // Related contract (if any)
@@ -195,10 +209,6 @@ export default function DisputeDetail() {
     if (!resolveData.status) return
     setResolving(true)
     try {
-      // For escrow movements we need to pass the campaign + recipient ids.
-      // The creator id we pass to releaseEscrowToCreator is the
-      // creator_profiles.id, not the user_id, because that's what the
-      // payment helper uses to look up the creator wallet.
       const result = await resolveDispute({
         disputeId,
         adminId: user.id,
@@ -209,7 +219,6 @@ export default function DisputeDetail() {
           ? Number(resolveData.escrowAmount) || 0
           : 0,
         campaignId: campaign?.id || dispute?.campaign_id || null,
-        developerId: campaign?.developer_id || null,
         creatorId: assignment?.creator_id || null,
       })
       setDispute((d) => ({ ...d, ...result.dispute }))
@@ -242,8 +251,11 @@ export default function DisputeDetail() {
     [dispute],
   )
   const isClosed = dispute && ['resolved', 'closed'].includes(dispute.status)
+  // A refund claws money back out of the creator's wallet, so it can never
+  // exceed what the creator was actually paid for this campaign, or what
+  // is still sitting in their wallet (whichever is smaller).
   const escrowAvailable = escrow
-    ? Math.max(0, escrow.escrow_amount - escrow.amount_paid_out)
+    ? Math.max(0, Math.min(escrow.amount_paid_out, creatorWalletBalance))
     : 0
 
   const timeline = useMemo(() => {
@@ -371,9 +383,9 @@ export default function DisputeDetail() {
             <Card>
               <div className="flex items-center justify-between mb-sm">
                 <div className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">
-                  Escrow status
+                  Payment status
                 </div>
-                <Chip tone="primary" icon="lock">
+                <Chip tone="primary" icon="payments">
                   {campaign?.status || 'campaign'}
                 </Chip>
               </div>
@@ -382,15 +394,11 @@ export default function DisputeDetail() {
                 value={formatCurrency(escrow.total_budget)}
               />
               <DataRow
-                label="Held in escrow"
-                value={formatCurrency(escrow.escrow_amount)}
-              />
-              <DataRow
-                label="Released to creators"
+                label="Paid to creator"
                 value={formatCurrency(escrow.amount_paid_out)}
               />
               <DataRow
-                label="Available for refund"
+                label="Available to claw back"
                 value={formatCurrency(escrowAvailable)}
                 emphasis
               />
@@ -652,28 +660,24 @@ export default function DisputeDetail() {
             }
           />
           <Select
-            label="Escrow action"
+            label="Refund action"
             value={resolveData.escrowAction}
             onChange={(e) =>
               setResolveData((r) => ({ ...r, escrowAction: e.target.value }))
             }
             options={[
-              { value: 'none', label: 'No escrow movement' },
+              { value: 'none', label: 'No payment movement' },
               {
                 value: 'refund_developer',
-                label: 'Refund developer (debit campaign escrow)',
-              },
-              {
-                value: 'release_creator',
                 label: assignment
-                  ? 'Release escrow to creator (credit creator wallet)'
-                  : 'Release escrow to creator (no assignment — unavailable)',
+                  ? 'Refund developer (claw back from creator’s wallet)'
+                  : 'Refund developer (no assignment — unavailable)',
               },
             ]}
             helperText={
-              !assignment && resolveData.escrowAction === 'release_creator'
-                ? 'This dispute has no creator assignment, so escrow cannot be released to a creator.'
-                : `Available in escrow: ${formatCurrency(escrowAvailable)}`
+              !assignment && resolveData.escrowAction === 'refund_developer'
+                ? 'This dispute has no creator assignment, so there is no wallet to refund from.'
+                : `Available to claw back: ${formatCurrency(escrowAvailable)}`
             }
           />
           {resolveData.escrowAction !== 'none' && (
@@ -691,10 +695,10 @@ export default function DisputeDetail() {
               error={
                 resolveData.escrowAmount &&
                 Number(resolveData.escrowAmount) > escrowAvailable
-                  ? `Cannot exceed available escrow (${formatCurrency(escrowAvailable)})`
+                  ? `Cannot exceed what is available to claw back (${formatCurrency(escrowAvailable)})`
                   : undefined
               }
-              helperText="Funds will move immediately when you save. A wallet transaction is recorded on each side and the dispute audit log captures the reference number."
+              helperText="The amount is clawed back from the creator's wallet and credited to the developer immediately when you save. A wallet transaction is recorded on each side and the dispute audit log captures the reference number."
             />
           )}
         </div>

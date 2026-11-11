@@ -50,6 +50,8 @@ CREATE TABLE campaigns (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   developer_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   title TEXT,
+  property_name TEXT,
+  property_location TEXT,
   status campaign_status DEFAULT 'draft',
   total_budget DECIMAL(12,2),
   platform_fee DECIMAL(12,2),
@@ -57,6 +59,7 @@ CREATE TABLE campaigns (
   escrow_amount DECIMAL(12,2) DEFAULT 0.00,
   amount_paid_out DECIMAL(12,2) DEFAULT 0.00,
   escrow_wallet_id UUID,
+  deliverables JSONB DEFAULT '[]',
   funded_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -65,7 +68,10 @@ CREATE TABLE campaign_assignments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
   creator_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  status TEXT DEFAULT 'active'
+  status TEXT DEFAULT 'active',
+  agreed_deliverables JSONB,
+  agreed_budget DECIMAL(12,2),
+  creator_referral_code TEXT
 );
 
 CREATE TABLE bank_accounts (
