@@ -12,14 +12,15 @@ const PublicLayout = () => {
       </main>
 
       {/* Footer */}
-      <footer className="w-full border-t border-outline-variant bg-surface-container-lowest">
+      <footer className="w-full bg-surface-container-lowest">
+        <div className="h-1.5 w-full bg-gradient-to-r from-primary via-secondary to-tertiary" aria-hidden />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             {/* Brand + ECTA s.43 business identity */}
             <div className="md:col-span-2">
               <div className="flex items-center gap-2 mb-3">
                 <img src="/logo.png" alt="AirHouse" className="w-7 h-7 object-contain" />
-                <span className="font-bold text-on-surface">{COMPANY.tradingName}</span>
+                <span className="font-bold text-primary">{COMPANY.tradingName}</span>
               </div>
               <p className="font-body-sm text-body-sm text-on-surface-variant mb-2">
                 {COMPANY.legalName}

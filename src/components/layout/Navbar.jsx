@@ -34,9 +34,9 @@ const Navbar = () => {
   }
 
   const navLinkClass = (path) => cn(
-    'font-label-lg text-label-lg transition-colors',
+    'font-label-lg text-label-lg transition-colors px-3 py-1.5 rounded-full',
     location.pathname === path
-      ? 'text-on-surface'
+      ? 'bg-primary-container text-on-primary-container'
       : 'text-on-surface-variant hover:text-on-surface'
   )
 
@@ -48,7 +48,7 @@ const Navbar = () => {
           <div className="flex items-center gap-8">
             <Link to="/" className="flex items-center gap-2">
               <img src="/logo.png" alt="AirHouse" className="w-9 h-9 object-contain" />
-              <span className="text-xl font-bold tracking-tight text-on-surface">
+              <span className="text-xl font-bold tracking-tight text-primary">
                 AirHouse
               </span>
             </Link>
@@ -71,7 +71,7 @@ const Navbar = () => {
               <>
                 <Link
                   to={getDashboardPath()}
-                  className="border border-outline-variant text-on-surface px-4 py-2 rounded-lg font-label-lg text-label-lg hover:bg-surface-container-low transition-colors"
+                  className="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-lg text-label-lg hover:opacity-90 transition-colors"
                 >
                   Dashboard
                 </Link>
@@ -194,14 +194,14 @@ const Navbar = () => {
             <div className="flex flex-col gap-1">
               <Link
                 to="/"
-                className="px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors font-label-lg text-label-lg"
+                className={cn('py-2.5 hover:bg-surface-container-low', navLinkClass('/'))}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Home
               </Link>
               <Link
                 to="/properties"
-                className="px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors font-label-lg text-label-lg"
+                className={cn('py-2.5 hover:bg-surface-container-low', navLinkClass('/properties'))}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Properties
