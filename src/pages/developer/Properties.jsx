@@ -26,11 +26,8 @@ const Properties = () => {
   const [view, setView] = useState('grid')
   const [filter, setFilter] = useState({ search: '', city: '', status: '' })
 
-  useEffect(() => {
-    if (user?.id) load()
-  }, [user, load])
-
   const load = useCallback(async () => {
+    if (!user?.id) return
     setLoading(true)
     setError(null)
     try {
@@ -48,7 +45,11 @@ const Properties = () => {
     } finally {
       setLoading(false)
     }
-  }, [user.id])
+  }, [user?.id])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   const filtered = properties.filter(p => {
     if (filter.status && p.status !== filter.status) return false
