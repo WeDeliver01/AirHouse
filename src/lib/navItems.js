@@ -45,6 +45,7 @@ export const NAV_ITEMS = {
     { label: 'Payments',     path: '/admin/payments',     icon: 'payments' },
     { label: 'Confirm Payments', path: '/admin/payment-confirmations', icon: 'fact_check' },
     { label: 'All Campaigns',path: '/admin/campaigns',    icon: 'campaign' },
+    { label: 'All Properties', path: '/admin/properties', icon: 'home_work' },
     { label: 'Marketplace',  path: '/marketplace',        icon: 'storefront',          superAdminOnly: true },
     { label: 'Public Campaigns', path: '/campaigns',      icon: 'travel_explore',       superAdminOnly: true },
     { label: 'All Users',    path: '/admin/users',        icon: 'group' },
