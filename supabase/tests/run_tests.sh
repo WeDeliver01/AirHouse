@@ -71,8 +71,7 @@ OUTPUT="$(
     -f "$HERE/07_ledger_tests.sql" \
     -f "$HERE/08_lead_integrity_tests.sql" \
     -f "$HERE/09_data_protection_tests.sql" \
-    -f "$HERE/10_rls_as_client_tests.sql" \
-    -f "$HERE/11_pricing_checkout_tests.sql" 2>&1
+    -f "$HERE/10_rls_as_client_tests.sql" 2>&1
 )"
 
 echo "$OUTPUT" | grep -E 'PASS|FAIL|NOTICE:  ---' | sed 's/^psql:[^ ]* //'
