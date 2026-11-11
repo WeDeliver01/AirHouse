@@ -47,7 +47,7 @@ const Sidebar = ({
           <div className="flex items-center gap-3 min-w-0">
             <img src="/logo.png" alt="AirHouse" className="w-9 h-9 object-contain flex-shrink-0" />
             <div className="leading-tight min-w-0">
-              <div className="font-headline-md text-base font-bold text-on-surface truncate">AirHouse</div>
+              <div className="font-headline-md text-base font-bold text-primary truncate">AirHouse</div>
               <div className="text-[11px] text-on-surface-variant tracking-wide truncate">Property Tech</div>
             </div>
           </div>
@@ -111,7 +111,7 @@ const Sidebar = ({
                         ? 'justify-center px-2 py-2.5'
                         : 'px-3 py-2.5',
                       isActive
-                        ? 'bg-surface-container-low text-primary font-semibold'
+                        ? 'bg-primary-container text-on-primary-container font-semibold'
                         : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
                     )
                   }

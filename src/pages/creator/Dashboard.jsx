@@ -27,13 +27,8 @@ const SparklineChart = ({ data, color = '#FD550A', height = 40 }) => {
   const gid = `cg-${Math.abs(color.split('').reduce((a, c) => a + c.charCodeAt(0), 0))}`
   return (
     <svg viewBox="0 0 100 100" className="w-full" style={{ height }} preserveAspectRatio="none">
-      <defs>
-        <linearGradient id={gid} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polygon points={`0,100 ${points} 100,100`} fill={`url(#${gid})`} />
+      
+      <polygon points={`0,100 ${points} 100,100`} fill={color} fillOpacity="0.15" />
       <polyline points={points} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   )

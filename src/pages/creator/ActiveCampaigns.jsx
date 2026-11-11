@@ -96,22 +96,22 @@ const CreatorActiveCampaigns = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-primary to-teal-600 rounded-2xl p-4 text-white">
+        <div className="bg-primary rounded-2xl p-4 text-white">
           <Briefcase className="w-8 h-8 opacity-80 mb-2" />
           <p className="text-3xl font-bold">{stats.active}</p>
           <p className="text-sm opacity-80">Active Campaigns</p>
         </div>
-        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-4 text-white">
+        <div className="bg-green-600 rounded-2xl p-4 text-white">
           <CheckCircle className="w-8 h-8 opacity-80 mb-2" />
           <p className="text-3xl font-bold">{stats.completed}</p>
           <p className="text-sm opacity-80">Completed</p>
         </div>
-        <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-4 text-white">
+        <div className="bg-purple-600 rounded-2xl p-4 text-white">
           <TrendingUp className="w-8 h-8 opacity-80 mb-2" />
           <p className="text-3xl font-bold">{stats.totalLeads}</p>
           <p className="text-sm opacity-80">Leads Generated</p>
         </div>
-        <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-4 text-white">
+        <div className="bg-secondary rounded-2xl p-4 text-white">
           <DollarSign className="w-8 h-8 opacity-80 mb-2" />
           <p className="text-3xl font-bold">{formatCurrency(stats.totalEarned)}</p>
           <p className="text-sm opacity-80">Total Earned</p>
@@ -176,7 +176,7 @@ const CreatorActiveCampaigns = () => {
                       </div>
                       <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-gradient-to-r from-primary to-teal-500 rounded-full transition-all duration-500"
+                          className="h-full bg-primary rounded-full transition-all duration-500"
                           style={{ width: `${progress.percent}%` }}
                         />
                       </div>

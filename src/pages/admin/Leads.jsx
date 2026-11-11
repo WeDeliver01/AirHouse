@@ -175,7 +175,7 @@ const AdminLeads = () => {
         {selectedLead && (
           <div className="space-y-6">
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-primary/40 rounded-2xl flex items-center justify-center text-2xl font-bold text-primary">
+              <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center text-2xl font-bold text-primary">
                 {selectedLead.lead_name?.charAt(0)}
               </div>
               <div className="flex-1">

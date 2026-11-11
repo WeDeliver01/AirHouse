@@ -673,7 +673,7 @@ const AdminVerification = () => {
                             rel="noopener noreferrer"
                             className="p-sm border border-outline-variant rounded bg-surface-container-lowest flex items-center gap-3 hover:border-primary/50 transition-colors"
                           >
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-white shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-[#E1306C] flex items-center justify-center text-white shrink-0">
                               <Instagram className="w-5 h-5" />
                             </div>
                             <div className="flex-1 min-w-0">

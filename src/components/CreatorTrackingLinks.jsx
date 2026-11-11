@@ -84,7 +84,7 @@ const CreatorTrackingLinks = ({ assignmentId }) => {
   return (
     <div className="space-y-6">
       {/* Main Link Card */}
-      <Card className="bg-gradient-to-br from-primary/5 to-green-50 border-primary/20">
+      <Card className="bg-primary/5 border-primary/20">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white">
             <Link className="w-6 h-6" />

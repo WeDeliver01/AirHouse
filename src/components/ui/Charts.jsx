@@ -9,10 +9,8 @@ export const SparklineChart = ({ data, color = '#d2f9f0', height = 40 }) => {
   const id = `spark-${Math.random().toString(36).slice(2)}`
   return (
     <svg viewBox="0 0 100 100" className="w-full" style={{ height }} preserveAspectRatio="none">
-      <defs><linearGradient id={id} x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor={color} stopOpacity="0.3" /><stop offset="100%" stopColor={color} stopOpacity="0" />
-      </linearGradient></defs>
-      <polygon points={`0,100 ${points} 100,100`} fill={`url(#${id})`} />
+      
+      <polygon points={`0,100 ${points} 100,100`} fill={color} fillOpacity="0.15" />
       <polyline points={points} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   )

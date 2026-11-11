@@ -25,7 +25,7 @@ const RankedBars = ({ data, height = 220, max }) => {
         <div key={d.label} className="flex items-center gap-3">
           <span className="font-label-md text-label-md text-on-surface w-48 truncate" title={d.label}>{d.label}</span>
           <div className="flex-1 h-5 bg-surface-container-highest rounded overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-primary to-primary-container rounded transition-all duration-500" style={{ width: `${(d.value / localMax) * 100}%` }} />
+            <div className="h-full bg-primary rounded transition-all duration-500" style={{ width: `${(d.value / localMax) * 100}%` }} />
           </div>
           <span className="font-data-mono text-data-mono text-on-surface w-14 text-right">{d.value}</span>
         </div>
@@ -42,7 +42,7 @@ const DailyBars = ({ data, height = 180 }) => {
       <div className="flex items-end justify-between gap-1" style={{ height }}>
         {data.map((d, i) => (
           <div key={i} className="flex-1 flex flex-col items-center justify-end h-full" title={`${d.label}: ${d.value}`}>
-            <div className="w-full bg-gradient-to-t from-secondary-fixed-dim to-secondary rounded-t transition-all duration-500" style={{ height: `${(d.value / max) * 100}%`, minHeight: 2 }} />
+            <div className="w-full bg-secondary rounded-t transition-all duration-500" style={{ height: `${(d.value / max) * 100}%`, minHeight: 2 }} />
           </div>
         ))}
       </div>

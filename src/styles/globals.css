@@ -92,7 +92,7 @@
   }
   
   .btn-primary {
-    @apply bg-gradient-to-br from-primary to-accent text-white border-none;
+    @apply bg-primary text-white border-none;
   }
   
   .btn-secondary {
@@ -183,7 +183,7 @@
   }
   
   .progress-fill {
-    @apply h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500;
+    @apply h-full bg-primary rounded-full transition-all duration-500;
   }
   
   /* Divider */
@@ -194,10 +194,6 @@
 
 /* Utility classes */
 @layer utilities {
-  .text-gradient {
-    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
-  }
-
   /* Stitch ambient elevation — the only shadow used on Stitch surfaces.
      4px vertical offset, 24px blur, 6% black tinted toward primary neutral. */
   .ambient-shadow {

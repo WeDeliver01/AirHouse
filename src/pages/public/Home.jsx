@@ -9,7 +9,7 @@ const Home = () => {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-hero-property"
           aria-hidden
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/30 sm:from-black/75 sm:via-black/50 sm:to-black/20" />
+        <div className="absolute inset-0 bg-black/60" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-32 w-full">
           <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-4 sm:mb-6">
@@ -129,7 +129,7 @@ const Home = () => {
               className="absolute inset-0 bg-cover bg-center bg-how-it-works"
               aria-hidden
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-on-surface/90 via-on-surface/50 to-on-surface/10" />
+            <div className="absolute inset-0 bg-on-surface/70" />
             <div className="relative p-8 flex-1 flex flex-col justify-end text-white">
               <h3 className="font-headline-md text-headline-md mb-1">How it works</h3>
               <p className="font-body-sm text-body-sm text-white/70 mb-6">
@@ -168,7 +168,7 @@ const Home = () => {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-cta-property"
           aria-hidden
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/60 to-secondary/60" />
+        <div className="absolute inset-0 bg-primary/70" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="font-headline-lg text-2xl sm:text-3xl font-bold text-white mb-4">
             Ready to get started?

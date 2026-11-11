@@ -188,6 +188,12 @@ const CATEGORY_LABEL = {
   house: 'House',
 }
 
+const CATEGORY_BADGE_CLASS = {
+  getaway_stay: 'bg-tertiary text-on-tertiary',
+  apartment: 'bg-secondary text-on-secondary',
+  house: 'bg-primary text-on-primary',
+}
+
 const PropertyCard = ({ property: p }) => (
   <Link
     to={p.slug ? `/${p.slug}` : '#'}
@@ -201,11 +207,14 @@ const PropertyCard = ({ property: p }) => (
           <span className="material-symbols-outlined text-[40px]">home_work</span>
         </div>
       )}
-      <span className="absolute top-3 left-3 bg-surface-container-lowest/90 text-on-surface font-label-md text-label-md px-2.5 py-1 rounded-full">
+      <span className={cn(
+        'absolute top-3 left-3 font-label-md text-label-md px-2.5 py-1 rounded-full',
+        CATEGORY_BADGE_CLASS[p.property_type] || 'bg-surface-container-lowest/90 text-on-surface'
+      )}>
         {CATEGORY_LABEL[p.property_type] || 'House'}
       </span>
       {p.listing_category === 'short_term_rental' && (
-        <span className="absolute top-3 right-3 bg-primary text-on-primary font-label-md text-label-md px-2.5 py-1 rounded-full">
+        <span className="absolute top-3 right-3 bg-surface-container-lowest/95 text-on-surface font-label-md text-label-md px-2.5 py-1 rounded-full">
           Short-Term Rental
         </span>
       )}
