@@ -4,12 +4,13 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node server/index.js & vite",
+    "dev": "node scripts/optimizeImages.mjs && node server/index.js & vite",
     "dev:server": "node server/index.js",
     "dev:client": "vite",
-    "build": "vite build && node scripts/check-bundle.mjs",
+    "build": "node scripts/optimizeImages.mjs && vite build && node scripts/check-bundle.mjs",
     "start": "NODE_ENV=production node server/index.js",
     "preview": "vite preview",
+    "optimize:images": "node scripts/optimizeImages.mjs",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -33,7 +34,8 @@
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.21.0",
     "recharts": "^2.10.3",
-    "resend": "^6.37.0"
+    "resend": "^6.37.0",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",

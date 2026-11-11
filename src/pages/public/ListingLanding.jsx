@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { Card, Button, Input, LoadingSpinner, ErrorState } from '../../components/ui'
+import { Card, Button, Input, LoadingSpinner, ErrorState, SmartImage } from '../../components/ui'
 import { toast } from 'react-hot-toast'
 import { Building2, User, Mail, Phone, MapPin, CheckCircle, ExternalLink } from 'lucide-react'
 import { recordPageView, recordOutboundClick } from '../../lib/siteAnalytics'
@@ -156,7 +156,13 @@ const ListingLanding = () => {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           {photo ? (
-            <img src={photo} alt={property.title} className="w-full max-h-80 object-cover rounded-2xl mb-6" />
+            <SmartImage
+              src={photo}
+              alt={property.title}
+              width={1200}
+              eager
+              className="w-full max-h-80 object-cover rounded-2xl mb-6"
+            />
           ) : (
             <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Building2 className="w-8 h-8 text-primary" />

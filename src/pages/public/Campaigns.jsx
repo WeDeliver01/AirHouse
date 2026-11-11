@@ -52,8 +52,7 @@ const Campaigns = () => {
     <div className="min-h-screen bg-gray-50">
       <section className="relative overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/images/campaigns-hero.png')" }}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-campaigns-hero"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-gray-50" />
         <div className="relative px-4 sm:px-6 lg:px-8 pt-10 pb-20 sm:pt-16 sm:pb-28 max-w-7xl mx-auto">

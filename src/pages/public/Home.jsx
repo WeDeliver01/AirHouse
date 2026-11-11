@@ -6,8 +6,7 @@ const Home = () => {
       {/* HERO */}
       <section className="relative overflow-hidden min-h-[500px] sm:min-h-[600px] flex items-center">
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/images/hero-property.png')" }}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-hero-property"
           aria-hidden
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/30 sm:from-black/75 sm:via-black/50 sm:to-black/20" />
@@ -127,8 +126,7 @@ const Home = () => {
           {/* How it works — full width */}
           <div className="md:col-span-12 rounded-[28px] overflow-hidden relative min-h-[320px] flex flex-col">
             <div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: "url('/images/why-platform-bg.png')" }}
+              className="absolute inset-0 bg-cover bg-center bg-how-it-works"
               aria-hidden
             />
             <div className="absolute inset-0 bg-gradient-to-t from-on-surface/90 via-on-surface/50 to-on-surface/10" />
@@ -167,8 +165,7 @@ const Home = () => {
       {/* CTA */}
       <section className="relative py-12 sm:py-20 overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/images/cta-property.jpg')" }}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-cta-property"
           aria-hidden
         />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/60 to-secondary/60" />

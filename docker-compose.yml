@@ -63,6 +63,8 @@ services:
       MAX_BATCH_SIZE: ${MAX_BATCH_SIZE:-50}
       MAX_REQUEST_BODY: ${MAX_REQUEST_BODY:-64kb}
 
+      IMG_CACHE_DIR: /var/cache/airhouse/img
+
     # Docker's own init, in place of tini: reaps zombies and forwards signals
     # so `docker stop` is prompt rather than waiting out the timeout.
     init: true
@@ -94,7 +96,18 @@ services:
     security_opt:
       - no-new-privileges:true
 
-    # The application writes nothing to disk; everything persists in Supabase.
+    # The application writes nothing to disk itself; everything persists in
+    # Supabase. The one exception is the resized-image variant cache below,
+    # which is a cache, not data — fine to lose, and deliberately not backed
+    # up.
     read_only: true
     tmpfs:
       - /tmp
+    volumes:
+      - img-cache:/var/cache/airhouse/img
+
+volumes:
+  # Resized image variants. Regenerable from Supabase Storage originals at
+  # any time, so this is a cache, not data — deliberately not part of any
+  # backup.
+  img-cache:

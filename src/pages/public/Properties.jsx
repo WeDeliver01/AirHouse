@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { EmptyState, ErrorState, LoadingSpinner } from '../../components/ui'
+import { EmptyState, ErrorState, LoadingSpinner, SmartImage } from '../../components/ui'
 import { cn, formatCurrency } from '../../lib/utils'
 import { Home as HomeIcon } from 'lucide-react'
 
@@ -195,7 +195,7 @@ const PropertyCard = ({ property: p }) => (
   >
     <div className="relative h-44 w-full bg-surface-container">
       {p.photo_urls?.[0] ? (
-        <img src={p.photo_urls[0]} alt={p.title} className="w-full h-full object-cover" />
+        <SmartImage src={p.photo_urls[0]} alt={p.title} width={400} className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full flex items-center justify-center text-outline">
           <span className="material-symbols-outlined text-[40px]">home_work</span>

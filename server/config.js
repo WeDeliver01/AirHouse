@@ -52,6 +52,12 @@ export const config = {
 
   appUrl: process.env.APP_URL || 'https://airhouse.co.za',
 
+  // On-the-fly image transform (/img). Defaults to the container's tmpfs so
+  // it works with no configuration; set it to a mounted volume in production
+  // so resized variants survive a redeploy instead of being regenerated for
+  // every visitor after every deploy.
+  imgCacheDir: process.env.IMG_CACHE_DIR || '',
+
   /**
    * Which upstream proxies may be believed about the client's address.
    *

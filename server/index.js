@@ -11,6 +11,7 @@ import { RateLimiter, rateLimitMiddleware } from './rateLimit.js';
 import { validateBatch, validateNotification } from './validation.js';
 import { isUuid, resolveLeadNotification } from './leads.js';
 import { EMAIL_TYPES, sendNotification } from './email.js';
+import { registerImageTransformRoute } from './imageTransform.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -277,6 +278,10 @@ app.get('/api/notifications/types', authenticate, (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'airhouse-notifications' });
 });
+
+// Resized/re-encoded property photo variants. Registered before the
+// production static/catch-all block below so it is never shadowed by it.
+registerImageTransformRoute(app);
 
 /** Surface body-parser and CORS errors as JSON rather than HTML stack traces. */
 app.use((error, req, res, next) => {

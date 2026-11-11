@@ -89,6 +89,14 @@ COPY --from=build /app/dist ./dist
 # env file by hand in a shell.
 COPY scripts ./scripts
 
+# The image-variant cache directory must exist in the image, owned by the
+# `node` user, BEFORE the volume is mounted over it — Docker initialises an
+# empty named volume from whatever is at that path in the image, ownership
+# included. Without this the volume would be root-owned while the app runs
+# as `node`, and every cache write would fail silently (it's best-effort),
+# so every image would be re-fetched and re-resized on every single request.
+RUN mkdir -p /var/cache/airhouse/img && chown -R node:node /var/cache/airhouse
+
 # Run unprivileged. The node image already provides this user.
 USER node
 

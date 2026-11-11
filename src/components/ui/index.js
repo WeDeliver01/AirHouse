@@ -15,6 +15,7 @@ export { default as LoadingSpinner, PageLoader } from './LoadingSpinner'
 export { default as Tabs } from './Tabs'
 export { default as Dropdown, DropdownItem, DropdownDivider } from './Dropdown'
 export { default as PageBackground } from './PageBackground'
+export { default as SmartImage } from './SmartImage'
 export { 
   SparklineChart, 
   DonutChart, 

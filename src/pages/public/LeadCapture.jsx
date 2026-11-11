@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { Card, Button, Input, Textarea, Select, LoadingSpinner, ErrorState } from '../../components/ui'
+import { Card, Button, Input, Textarea, Select, LoadingSpinner, ErrorState, SmartImage } from '../../components/ui'
 import { toast } from 'react-hot-toast'
 import { 
   Building2, User, Mail, Phone, CheckCircle, 
@@ -307,7 +307,7 @@ const LeadCaptureForm = () => {
                   className="aspect-video rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity bg-gray-100 relative"
                   onClick={() => setSelectedImageIndex(index)}
                 >
-                  <img src={url} alt={`Property ${index + 1}`} className="w-full h-full object-cover" />
+                  <SmartImage src={url} alt={`Property ${index + 1}`} width={300} className="w-full h-full object-cover" />
                   {index === 3 && propertyImages.length > 4 && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                       <span className="text-white font-semibold text-lg">+{propertyImages.length - 4} more</span>
