@@ -23,9 +23,9 @@ const Home = () => {
             </h1>
 
             <p className="mt-4 sm:mt-6 font-body-lg text-base sm:text-lg text-white/80 leading-relaxed">
-              List your getaway stays, apartments, or houses and run
-              structured marketing campaigns that put your properties in
-              front of potential buyers and guests.
+              List your getaway stays, apartments, houses, or developments
+              and get a shareable page for every listing — then grow reach
+              through social media or a full marketing campaign.
             </p>
 
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -33,7 +33,7 @@ const Home = () => {
                 to="/register?role=developer"
                 className="inline-flex items-center justify-center gap-2 bg-secondary-container text-on-secondary-container px-6 h-12 rounded-lg font-label-lg text-label-lg hover:bg-secondary-fixed transition-colors w-full sm:w-auto"
               >
-                Market My Development
+                List Your Property
                 <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
               </Link>
             </div>
@@ -63,9 +63,9 @@ const Home = () => {
             Showcasing the stays people actually want to book
           </h2>
           <p className="font-body-lg text-body-lg text-on-surface-variant">
-            From weekend getaways and serviced apartments to full houses —
-            AirHouse helps you market every short-stay listing and turn
-            attention into real bookings, not vanity metrics.
+            From weekend getaways and serviced apartments to full houses and
+            developments — AirHouse helps you market every listing and turn
+            attention into real enquiries and bookings, not vanity metrics.
           </p>
         </div>
 
@@ -75,12 +75,13 @@ const Home = () => {
             <div className="mb-6">
               <span className="font-label-md text-label-md text-primary uppercase tracking-wider">01 · Hosts & Developers</span>
               <h3 className="font-headline-md text-headline-md text-on-surface mt-2 mb-2">
-                List getaways, apartments & homes
+                List getaways, apartments, homes & developments
               </h3>
               <p className="font-body-md text-body-md text-on-surface-variant">
-                Market Airbnb-style getaways, serviced apartments, and full
-                houses through structured marketing campaigns, with full
-                visibility into performance and lead generation.
+                Every listing gets its own shareable page the moment it goes
+                live. Promote it on social media, or layer on a structured
+                marketing campaign when you want extra reach — with full
+                visibility into performance and lead generation either way.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-4 pt-6 border-t border-outline-variant/60">
@@ -93,8 +94,8 @@ const Home = () => {
                 <div className="font-label-lg text-label-lg text-on-surface">List unlimited properties</div>
               </div>
               <div>
-                <span className="material-symbols-outlined text-primary mb-2 block">campaign</span>
-                <div className="font-label-lg text-label-lg text-on-surface">Manage campaigns in one place</div>
+                <span className="material-symbols-outlined text-primary mb-2 block">link</span>
+                <div className="font-label-lg text-label-lg text-on-surface">A shareable link for every listing</div>
               </div>
             </div>
             <Link
@@ -127,20 +128,20 @@ const Home = () => {
           <div className="md:col-span-12 rounded-[28px] overflow-hidden relative min-h-[320px] flex flex-col">
             <div
               className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: "url('/images/how-it-works-bg.jpg')" }}
+              style={{ backgroundImage: "url('/images/why-platform-bg.png')" }}
               aria-hidden
             />
             <div className="absolute inset-0 bg-gradient-to-t from-on-surface/90 via-on-surface/50 to-on-surface/10" />
             <div className="relative p-8 flex-1 flex flex-col justify-end text-white">
               <h3 className="font-headline-md text-headline-md mb-1">How it works</h3>
               <p className="font-body-sm text-body-sm text-white/70 mb-6">
-                A simple, transparent process from campaign brief to qualified lead.
+                A simple, transparent process from listing to qualified lead.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-0 sm:gap-6">
                 {[
-                  { num: '01', icon: 'campaign',    title: 'Create a campaign',   body: 'Define brief, budget, and audience.' },
-                  { num: '02', icon: 'palette',      title: 'Content gets produced', body: 'Your listing is turned into campaign-ready content.' },
+                  { num: '01', icon: 'home_work',   title: 'Add your listing',     body: 'Getaway, apartment, house, or development — list it in minutes.' },
+                  { num: '02', icon: 'palette',      title: 'Go live instantly', body: 'Get a shareable page, then promote it via social media or a campaign.' },
                   { num: '03', icon: 'trending_up', title: 'Generate leads',       body: 'Capture real enquiries via tracked links.' },
                 ].map((step, i) => (
                   <div key={step.num} className="flex-1 flex sm:flex-col gap-3 py-3 sm:py-0 relative">

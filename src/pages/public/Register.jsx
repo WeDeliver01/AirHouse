@@ -183,7 +183,7 @@ const Register = () => {
         {step === 1 && (
           <div className="grid max-w-md mx-auto gap-4">
             {[
-              { role: 'developer', icon: 'domain', title: 'Property Developer', desc: 'List your properties, run marketing campaigns, and generate real leads', perks: ['Post campaign briefs','Manage your listings','Track leads & ROI'] },
+              { role: 'developer', icon: 'home_work', title: 'Host or Property Owner', desc: 'List getaway stays, apartments, homes, or developments and generate real leads', perks: ['Get a shareable link for every listing','Promote listings on social media or with a campaign','Track leads & ROI'] },
             ].map((opt) => (
               <button
                 key={opt.role}
