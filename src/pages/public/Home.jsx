@@ -18,7 +18,7 @@ const Home = () => {
             </div>
             <h1 className="font-headline-xl text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
               Turn social media attention into
-              <span className="text-secondary-fixed"> property leads</span>.
+              <span className="text-secondary"> property leads</span>.
             </h1>
 
             <p className="mt-4 sm:mt-6 font-body-lg text-base sm:text-lg text-white/80 leading-relaxed">
@@ -30,7 +30,7 @@ const Home = () => {
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Link
                 to="/register?role=developer"
-                className="inline-flex items-center justify-center gap-2 bg-secondary-container text-on-secondary-container px-6 h-12 rounded-lg font-label-lg text-label-lg hover:bg-secondary-fixed transition-colors w-full sm:w-auto"
+                className="inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary px-6 h-12 rounded-lg font-label-lg text-label-lg hover:opacity-90 transition-colors w-full sm:w-auto"
               >
                 List Your Property
                 <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
@@ -39,15 +39,15 @@ const Home = () => {
 
             <div className="mt-8 sm:mt-12 flex flex-wrap items-center gap-4 sm:gap-8 font-label-md text-label-md text-white/70">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-secondary-fixed text-[20px]">check_circle</span>
+                <span className="material-symbols-outlined text-secondary text-[20px]">check_circle</span>
                 <span>Verified Listings</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-secondary-fixed text-[20px]">check_circle</span>
+                <span className="material-symbols-outlined text-secondary text-[20px]">check_circle</span>
                 <span>Transparent Pricing</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-secondary-fixed text-[20px]">check_circle</span>
+                <span className="material-symbols-outlined text-secondary text-[20px]">check_circle</span>
                 <span>Real Leads</span>
               </div>
             </div>

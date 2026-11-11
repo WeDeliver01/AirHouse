@@ -670,7 +670,7 @@ const Marketplace = () => {
             {!isAuthenticated && (
               <Link
                 to="/register?role=developer"
-                className="hidden sm:inline-flex items-center justify-center gap-2 bg-secondary-container text-on-secondary-container px-5 py-3 rounded-lg font-label-lg text-label-lg hover:bg-secondary-fixed transition-colors"
+                className="hidden sm:inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary px-5 py-3 rounded-lg font-label-lg text-label-lg hover:opacity-90 transition-colors"
               >
                 Sign up to invite
                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>

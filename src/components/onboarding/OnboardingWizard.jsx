@@ -684,7 +684,7 @@ const OnboardingWizard = ({ role, profile, onComplete }) => {
       <button
         onClick={handleComplete}
         disabled={saving}
-        className="inline-flex items-center gap-2 bg-secondary-container text-on-secondary-container font-label-lg text-label-lg px-8 h-12 rounded-lg hover:bg-secondary-fixed disabled:opacity-60 disabled:cursor-not-allowed transition-colors min-w-[220px] justify-center"
+        className="inline-flex items-center gap-2 bg-secondary text-on-secondary font-label-lg text-label-lg px-8 h-12 rounded-lg hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors min-w-[220px] justify-center"
       >
         {saving ? (
           <>
@@ -738,7 +738,7 @@ const OnboardingWizard = ({ role, profile, onComplete }) => {
                 type="button"
                 onClick={handleNext}
                 disabled={!canProceed()}
-                className="inline-flex items-center gap-2 bg-secondary-container text-on-secondary-container font-label-lg text-label-lg px-6 h-11 rounded hover:bg-secondary-fixed disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center gap-2 bg-secondary text-on-secondary font-label-lg text-label-lg px-6 h-11 rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Next Step
                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
