@@ -23,6 +23,7 @@ const AdminLeads = lazy(() => import('./pages/admin/Leads'))
 const AdminPaymentConfirmations = lazy(() => import('./pages/admin/PaymentConfirmations'))
 const AdminPayments = lazy(() => import('./pages/admin/Payments'))
 const AdminProperties = lazy(() => import('./pages/admin/Properties'))
+const AdminPropertyEditor = lazy(() => import('./pages/admin/PropertyEditor'))
 const AdminSettings = lazy(() => import('./pages/admin/Settings'))
 const AdminTraffic = lazy(() => import('./pages/admin/Traffic'))
 const AdminUsers = lazy(() => import('./pages/admin/Users'))
@@ -213,6 +214,8 @@ function App() {
         <Route path="campaigns" element={<AdminCampaigns />} />
         <Route path="campaigns/:campaignId" element={<CampaignDetail />} />
         <Route path="properties" element={<AdminProperties />} />
+        <Route path="properties/new" element={<AdminPropertyEditor />} />
+        <Route path="properties/:propertyId/edit" element={<AdminPropertyEditor />} />
         <Route path="leads" element={<AdminLeads />} />
         <Route path="financials" element={<AdminFinancials />} />
         <Route path="payment-confirmations" element={<AdminPaymentConfirmations />} />
