@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { PageLoader } from './components/ui'
 import { PublicLayout, DashboardLayout, ProtectedRoute } from './components/layout'
+import RouteTracker from './components/RouteTracker'
 
 /**
  * Everything behind authentication is loaded on demand.
@@ -22,6 +23,7 @@ const AdminLeads = lazy(() => import('./pages/admin/Leads'))
 const AdminPaymentConfirmations = lazy(() => import('./pages/admin/PaymentConfirmations'))
 const AdminPayments = lazy(() => import('./pages/admin/Payments'))
 const AdminSettings = lazy(() => import('./pages/admin/Settings'))
+const AdminTraffic = lazy(() => import('./pages/admin/Traffic'))
 const AdminUsers = lazy(() => import('./pages/admin/Users'))
 const AdminVerification = lazy(() => import('./pages/admin/Verification'))
 const AssignmentDetail = lazy(() => import('./pages/developer/AssignmentDetail'))
@@ -90,6 +92,7 @@ import ResetPassword from './pages/public/ResetPassword'
 import AuthCallback from './pages/public/AuthCallback'
 import LeadCapture from './pages/public/LeadCapture'
 import GoRedirect from './pages/public/GoRedirect'
+import ListingLanding from './pages/public/ListingLanding'
 
 // Creator Pages
 // Developer Pages
@@ -104,6 +107,7 @@ function App() {
   return (
     // Lazily loaded routes need a fallback while their chunk is fetched.
     <Suspense fallback={<PageLoader />}>
+    <RouteTracker />
     <Routes>
       {/* PUBLIC */}
       <Route element={<PublicLayout />}>
@@ -124,6 +128,14 @@ function App() {
         <Route path="/legal/creator-agreement" element={<CreatorAgreement />} />
         <Route path="/legal/developer-agreement" element={<DeveloperAgreement />} />
         <Route path="/legal/paia" element={<PAIAManual />} />
+        {/*
+          Unique per-listing marketing URL (airhouse.co.za/:slug) — kept
+          last among PublicLayout's children. React Router ranks static
+          segments above a dynamic one regardless of declaration order, so
+          this never shadows any of the explicit paths above; it only
+          matches when nothing else does.
+        */}
+        <Route path="/:slug" element={<ListingLanding />} />
       </Route>
       <Route path="/lead/:campaignId" element={<LeadCapture />} />
       <Route path="/go/:token" element={<GoRedirect />} />
@@ -193,6 +205,7 @@ function App() {
       <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']} requireSuperAdmin><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<AdminDashboard />} />
         <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="traffic" element={<AdminTraffic />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="verification" element={<AdminVerification />} />
         <Route path="verification/:id" element={<AdminVerification />} />

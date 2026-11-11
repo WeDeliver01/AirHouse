@@ -68,6 +68,7 @@ const DeveloperAnalytics = () => {
   const [stats, setStats] = useState({ campaigns: 0, leads: 0, conversions: 0, spent: 0 })
   const [monthlyData, setMonthlyData] = useState([])
   const [campaignPerformance, setCampaignPerformance] = useState([])
+  const [propertyTraffic, setPropertyTraffic] = useState([])
 
   useEffect(() => {
     if (user?.id) fetchData()
@@ -167,6 +168,31 @@ const DeveloperAnalytics = () => {
         leads: leadsData.filter(l => l.campaign_id === c.id).length,
         conversions: leadsData.filter(l => l.campaign_id === c.id && l.pipeline_stage === 'converted').length,
       })) || [])
+
+      // Per-property traffic: page views and outbound clicks on each
+      // listing's own public URL (airhouse.co.za/:slug), independent of
+      // whether that property is attached to a campaign.
+      const { data: myProperties } = await supabase
+        .from('properties')
+        .select('id, title, slug')
+        .eq('developer_id', user.id)
+
+      if (myProperties?.length > 0) {
+        const { data: traffic } = await supabase
+          .from('property_traffic_summary')
+          .select('property_id, page_views, outbound_clicks, unique_visitors, unique_sessions, last_viewed_at')
+          .in('property_id', myProperties.map((p) => p.id))
+
+        const trafficByProperty = new Map((traffic || []).map((t) => [t.property_id, t]))
+        setPropertyTraffic(
+          myProperties.map((p) => ({
+            ...p,
+            ...(trafficByProperty.get(p.id) || { page_views: 0, outbound_clicks: 0, unique_visitors: 0, unique_sessions: 0, last_viewed_at: null }),
+          })).sort((a, b) => (b.page_views || 0) - (a.page_views || 0))
+        )
+      } else {
+        setPropertyTraffic([])
+      }
 
     } catch (e) {
       console.error(e)
@@ -355,6 +381,48 @@ const DeveloperAnalytics = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Per-Property Traffic Table */}
+      <div className="bg-white rounded-2xl p-6 border border-gray-100">
+        <h3 className="font-semibold text-gray-900 mb-1">Listing Traffic</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Visits to each listing's own public URL (airhouse.co.za/your-listing) — this is what your ad traffic shows up as.
+        </p>
+        {propertyTraffic.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center py-8">No properties listed yet</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left py-3 font-semibold text-gray-500">Listing</th>
+                  <th className="text-right py-3 font-semibold text-gray-500">Page Views</th>
+                  <th className="text-right py-3 font-semibold text-gray-500">Unique Visitors</th>
+                  <th className="text-right py-3 font-semibold text-gray-500">Outbound Clicks</th>
+                  <th className="text-right py-3 font-semibold text-gray-500">Last Viewed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {propertyTraffic.map((p) => (
+                  <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="py-3 font-medium">
+                      <a href={`/${p.slug}`} target="_blank" rel="noreferrer" className="hover:underline">
+                        {p.title}
+                      </a>
+                    </td>
+                    <td className="py-3 text-right font-semibold">{p.page_views || 0}</td>
+                    <td className="py-3 text-right">{p.unique_visitors || 0}</td>
+                    <td className="py-3 text-right">{p.outbound_clicks || 0}</td>
+                    <td className="py-3 text-right text-gray-500">
+                      {p.last_viewed_at ? new Date(p.last_viewed_at).toLocaleDateString() : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Campaign Performance Table */}

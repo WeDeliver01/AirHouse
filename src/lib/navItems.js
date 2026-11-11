@@ -40,6 +40,7 @@ export const NAV_ITEMS = {
   admin: [
     { label: 'Overview',     path: '/admin',              icon: 'dashboard',           end: true },
     { label: 'Analytics',    path: '/admin/analytics',    icon: 'monitoring' },
+    { label: 'Site Traffic', path: '/admin/traffic',      icon: 'travel_explore' },
     { label: 'Financials',   path: '/admin/financials',   icon: 'account_balance' },
     { label: 'Payments',     path: '/admin/payments',     icon: 'payments' },
     { label: 'Confirm Payments', path: '/admin/payment-confirmations', icon: 'fact_check' },

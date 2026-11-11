@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { supabase, handleSupabaseError } from '../lib/supabase'
 import { toast } from 'react-hot-toast'
+import { recordLogin, recordSignup } from '../lib/siteAnalytics'
 
 // ============================================
 // CONFIGURATION
@@ -223,6 +224,8 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error
 
+      recordSignup()
+
       // Check if email confirmation is required
       if (data.user && !data.session) {
         toast.success('Please check your email to verify your account')
@@ -264,6 +267,7 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error
 
+      recordLogin()
       toast.success('Welcome back!')
       return data
     } catch (error) {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { EmptyState, ErrorState, LoadingSpinner } from '../../components/ui'
 import { cn, formatCurrency } from '../../lib/utils'
@@ -12,12 +13,29 @@ const CATEGORIES = [
 ]
 
 const Properties = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [properties, setProperties] = useState([])
-  const [category, setCategory] = useState('all')
+  const initialCategory = CATEGORIES.some((c) => c.value === searchParams.get('type'))
+    ? searchParams.get('type')
+    : 'all'
+  const [category, setCategory] = useState(initialCategory)
   const [search, setSearch] = useState('')
   const [city, setCity] = useState('')
+
+  // Arriving from a specific listing's "browse other X" button carries the
+  // filter in the URL (?type=getaway_stay) so a shared/bookmarked link keeps
+  // working even if this component hasn't mounted its own state yet.
+  const selectCategory = (value) => {
+    setCategory(value)
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (value === 'all') next.delete('type')
+      else next.set('type', value)
+      return next
+    })
+  }
 
   useEffect(() => { load() }, [])
 
@@ -112,7 +130,7 @@ const Properties = () => {
                 <button
                   key={c.value}
                   type="button"
-                  onClick={() => setCategory(c.value)}
+                  onClick={() => selectCategory(c.value)}
                   className={cn(
                     'px-4 py-2 rounded-full font-label-lg text-label-lg border transition-colors',
                     active
@@ -171,7 +189,10 @@ const CATEGORY_LABEL = {
 }
 
 const PropertyCard = ({ property: p }) => (
-  <article className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/40 transition-all">
+  <Link
+    to={p.slug ? `/${p.slug}` : '#'}
+    className="block bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/40 transition-all"
+  >
     <div className="relative h-44 w-full bg-surface-container">
       {p.photo_urls?.[0] ? (
         <img src={p.photo_urls[0]} alt={p.title} className="w-full h-full object-cover" />
@@ -210,7 +231,7 @@ const PropertyCard = ({ property: p }) => (
         </div>
       </div>
     </div>
-  </article>
+  </Link>
 )
 
 export default Properties
