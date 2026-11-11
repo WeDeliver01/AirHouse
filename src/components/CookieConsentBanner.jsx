@@ -111,7 +111,7 @@ const CookieConsentBanner = () => {
               <button
                 type="button"
                 onClick={acceptAll}
-                className="px-4 h-9 rounded-md bg-secondary-container text-on-secondary-container text-label-md hover:bg-secondary-fixed transition-colors"
+                className="px-4 h-9 rounded-md bg-secondary text-on-secondary text-label-md hover:opacity-90 transition-colors"
               >
                 Accept all
               </button>
@@ -191,7 +191,7 @@ const CookieConsentBanner = () => {
               <button
                 type="button"
                 onClick={acceptAll}
-                className="px-4 h-9 rounded-md bg-secondary-container text-on-secondary-container text-label-md hover:bg-secondary-fixed"
+                className="px-4 h-9 rounded-md bg-secondary text-on-secondary text-label-md hover:opacity-90"
               >
                 Accept all
               </button>

@@ -148,7 +148,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 bg-secondary-container text-on-secondary-container font-label-lg text-label-lg rounded hover:bg-secondary-fixed disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              className="w-full h-11 bg-secondary text-on-secondary font-label-lg text-label-lg rounded hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

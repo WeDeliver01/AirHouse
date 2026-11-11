@@ -17,12 +17,14 @@ test.describe('Registration', () => {
     await expect(page.getByRole('heading', { name: /create|register|sign up|join/i }).first())
       .toBeVisible()
 
-    const developerOption = page.getByText(/developer/i).first()
-    if (await developerOption.isVisible().catch(() => false)) {
-      await developerOption.click()
+    // Only one role is offered publicly right now (host/developer), and its
+    // copy is expected to keep changing -- select by position, not wording.
+    const emailField = page.locator('form, input[type="email"]').first()
+    if (!(await emailField.isVisible().catch(() => false))) {
+      await page.getByRole('button').first().click()
     }
 
-    await expect(page.locator('form, input[type="email"]').first()).toBeVisible()
+    await expect(emailField).toBeVisible()
     expect(state).toBeTruthy()
   })
 

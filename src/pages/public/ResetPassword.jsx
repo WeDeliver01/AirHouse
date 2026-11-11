@@ -81,7 +81,7 @@ const ResetPassword = () => {
           </p>
           <button
             onClick={() => navigate('/forgot-password')}
-            className="block w-full h-11 leading-[44px] text-center bg-secondary-container text-on-secondary-container font-label-lg text-label-lg rounded hover:bg-secondary-fixed transition-colors"
+            className="block w-full h-11 leading-[44px] text-center bg-secondary text-on-secondary font-label-lg text-label-lg rounded hover:opacity-90 transition-colors"
           >
             Request New Link
           </button>
@@ -103,7 +103,7 @@ const ResetPassword = () => {
           </p>
           <Link
             to="/login"
-            className="block w-full h-11 leading-[44px] text-center bg-secondary-container text-on-secondary-container font-label-lg text-label-lg rounded hover:bg-secondary-fixed transition-colors"
+            className="block w-full h-11 leading-[44px] text-center bg-secondary text-on-secondary font-label-lg text-label-lg rounded hover:opacity-90 transition-colors"
           >
             Go to Login
           </Link>
@@ -175,7 +175,7 @@ const ResetPassword = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 bg-secondary-container text-on-secondary-container font-label-lg text-label-lg rounded hover:bg-secondary-fixed disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              className="w-full h-11 bg-secondary text-on-secondary font-label-lg text-label-lg rounded hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

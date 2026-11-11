@@ -149,7 +149,7 @@ const Navbar = () => {
                 </button>
                 <button
                   onClick={() => navigate('/register')}
-                  className="bg-secondary-container text-on-secondary-container font-label-lg text-label-lg px-4 py-2 rounded-lg hover:bg-secondary-fixed transition-colors"
+                  className="bg-secondary text-on-secondary font-label-lg text-label-lg px-4 py-2 rounded-lg hover:opacity-90 transition-colors"
                 >
                   Get Started
                 </button>
@@ -262,7 +262,7 @@ const Navbar = () => {
                   </Link>
                   <Link
                     to="/register"
-                    className="px-3 py-2.5 bg-secondary-container text-on-secondary-container rounded-lg text-center font-label-lg text-label-lg"
+                    className="px-3 py-2.5 bg-secondary text-on-secondary rounded-lg text-center font-label-lg text-label-lg"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Get Started
