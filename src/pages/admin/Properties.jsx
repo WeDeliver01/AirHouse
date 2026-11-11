@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
+import { Button, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
 import { formatCurrency } from '../../lib/utils'
-import { Home, Search, MapPin, Image as ImageIcon, Megaphone } from 'lucide-react'
+import { Home, Search, MapPin, Image as ImageIcon, Megaphone, Plus, Edit } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
 const STATUS_STYLES = {
@@ -60,11 +60,16 @@ const AdminProperties = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-headline-lg text-headline-lg text-on-surface">All Properties</h1>
-        <p className="font-body-md text-body-md text-on-surface-variant mt-1">
-          Every property listing on the platform, including ones not yet linked to a campaign.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <h1 className="font-headline-lg text-headline-lg text-on-surface">All Properties</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+            Every property listing on the platform, including ones not yet linked to a campaign.
+          </p>
+        </div>
+        <Link to="/admin/properties/new">
+          <Button variant="primary"><Plus className="w-4 h-4 mr-2" />New Property</Button>
+        </Link>
       </div>
 
       {/* Stats */}
@@ -115,6 +120,8 @@ const AdminProperties = () => {
           description={properties.length === 0
             ? 'No developer has created a property listing yet.'
             : 'Try clearing or adjusting the search and filters.'}
+          action={properties.length === 0 ? () => { window.location.href = '/admin/properties/new' } : undefined}
+          actionLabel={properties.length === 0 ? 'New Property' : undefined}
         />
       ) : (
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
@@ -128,6 +135,7 @@ const AdminProperties = () => {
                   <th className="px-4 py-3 font-medium">Price</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Campaign</th>
+                  <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant">
@@ -169,6 +177,13 @@ const AdminProperties = () => {
                       ) : (
                         <span className="text-on-surface-variant">None</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end">
+                        <Link to={`/admin/properties/${p.id}/edit`}>
+                          <Button variant="secondary" size="sm"><Edit className="w-3.5 h-3.5 mr-1" />Edit</Button>
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
