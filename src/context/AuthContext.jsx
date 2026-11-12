@@ -367,6 +367,9 @@ export const AuthProvider = ({ children }) => {
 
     if (!user) throw new Error('No user logged in')
 
+    const isMissingRow = (err) =>
+      err?.code === 'PGRST116' || err?.message?.includes('Cannot coerce the result to a single JSON object')
+
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -397,6 +400,30 @@ export const AuthProvider = ({ children }) => {
             return retryData
           }
         }
+
+        // The update matched no row. This happens when the signup trigger
+        // that provisions a profiles row failed silently (it never blocks
+        // account creation — see handle_new_user() in migration 017) and
+        // left this account without one. Create it now rather than
+        // forcing the user to contact support over a row they didn't know
+        // was missing.
+        if (isMissingRow(error)) {
+          const fallbackName =
+            sanitized.full_name ||
+            user.user_metadata?.full_name ||
+            user.email?.split('@')[0] ||
+            'User'
+          const { data: insertedData, error: insertError } = await supabase
+            .from('profiles')
+            .insert({ id: user.id, email: user.email, ...sanitized, full_name: fallbackName })
+            .select()
+            .single()
+          if (insertError) throw insertError
+          setProfile(insertedData)
+          toast.success('Profile updated')
+          return insertedData
+        }
+
         throw error
       }
       setProfile(data)
