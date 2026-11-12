@@ -48,11 +48,8 @@ const CreatorVerification = () => {
   })
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    if (creatorProfile?.id) fetchVerifications()
-  }, [creatorProfile, fetchVerifications])
-
   const fetchVerifications = useCallback(async () => {
+    if (!creatorProfile?.id) return
     setLoading(true)
     setError(null)
     try {
@@ -68,7 +65,11 @@ const CreatorVerification = () => {
     } finally {
       setLoading(false)
     }
-  }, [creatorProfile.id])
+  }, [creatorProfile?.id])
+
+  useEffect(() => {
+    fetchVerifications()
+  }, [fetchVerifications])
 
   const submitVerification = async () => {
     if (!selectedType || !creatorProfile?.id) return

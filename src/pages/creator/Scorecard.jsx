@@ -105,11 +105,8 @@ const CreatorScorecard = () => {
     completedAssignments: 0,
   })
 
-  useEffect(() => {
-    if (user?.id) fetchData()
-  }, [user, fetchData])
-
   const fetchData = useCallback(async () => {
+    if (!user?.id) return
     setLoading(true)
     setError(null)
     try {
@@ -182,7 +179,11 @@ const CreatorScorecard = () => {
     } finally {
       setLoading(false)
     }
-  }, [user.id])
+  }, [user?.id])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const scoreColor = (s) => (s >= 90 ? '#FD550A' : s >= 70 ? '#ca8a04' : '#ba1a1a')
   const scoreLabel = (s) => (s >= 90 ? 'Excellent' : s >= 70 ? 'Good' : 'Needs Improvement')

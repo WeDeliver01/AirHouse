@@ -104,11 +104,8 @@ const CreatorDashboard = () => {
   const [availableCampaigns, setAvailableCampaigns] = useState([])
   const [earningsData, setEarningsData] = useState([])
 
-  useEffect(() => {
-    if (user?.id) fetchData()
-  }, [user, fetchData])
-
   const fetchData = useCallback(async () => {
+    if (!user?.id) return
     setLoading(true)
     setError(null)
     try {
@@ -213,7 +210,11 @@ const CreatorDashboard = () => {
     } finally {
       setLoading(false)
     }
-  }, [user.id])
+  }, [user?.id])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const copyReferralLink = (assignment) => {
     navigator.clipboard.writeText(

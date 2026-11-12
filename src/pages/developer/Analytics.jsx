@@ -67,11 +67,8 @@ const DeveloperAnalytics = () => {
   const [campaignPerformance, setCampaignPerformance] = useState([])
   const [propertyTraffic, setPropertyTraffic] = useState([])
 
-  useEffect(() => {
-    if (user?.id) fetchData()
-  }, [user, period, fetchData])
-
   const fetchData = useCallback(async () => {
+    if (!user?.id) return
     setLoading(true)
     setError(null)
     try {
@@ -197,7 +194,11 @@ const DeveloperAnalytics = () => {
     } finally {
       setLoading(false)
     }
-  }, [user.id])
+  }, [user?.id])
+
+  useEffect(() => {
+    fetchData()
+  }, [period, fetchData])
 
   if (loading) return <div className="flex items-center justify-center min-h-[400px]"><LoadingSpinner size="lg" text="Loading..." /></div>
   if (error) return <ErrorState message={error} onRetry={fetchData} />

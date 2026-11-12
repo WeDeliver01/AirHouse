@@ -12,13 +12,8 @@ const CreatorTrackingLinks = ({ assignmentId }) => {
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
 
-  useEffect(() => {
-    if (assignmentId) {
-      loadTrackingLink()
-    }
-  }, [assignmentId, loadTrackingLink])
-
   const loadTrackingLink = useCallback(async () => {
+    if (!assignmentId) return
     try {
       const trackingLink = await getOrCreateTrackingLink(assignmentId)
       setLink(trackingLink)
@@ -29,6 +24,10 @@ const CreatorTrackingLinks = ({ assignmentId }) => {
       setLoading(false)
     }
   }, [assignmentId])
+
+  useEffect(() => {
+    loadTrackingLink()
+  }, [loadTrackingLink])
 
   const copyToClipboard = async () => {
     if (!link) return

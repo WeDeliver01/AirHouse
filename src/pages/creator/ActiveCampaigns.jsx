@@ -17,11 +17,8 @@ const CreatorActiveCampaigns = () => {
   const [assignments, setAssignments] = useState([])
   const [stats, setStats] = useState({ active: 0, completed: 0, totalEarned: 0, totalLeads: 0 })
 
-  useEffect(() => {
-    if (user?.id) fetchAssignments()
-  }, [user, fetchAssignments])
-
   const fetchAssignments = useCallback(async () => {
+    if (!user?.id) return
     setLoading(true)
     setError(null)
     try {
@@ -66,7 +63,11 @@ const CreatorActiveCampaigns = () => {
     } finally {
       setLoading(false)
     }
-  }, [user.id])
+  }, [user?.id])
+
+  useEffect(() => {
+    fetchAssignments()
+  }, [fetchAssignments])
 
   const copyReferralLink = (assignment) => {
     const link = `${window.location.origin}/lead/${assignment.campaign_id}?ref=${assignment.creator_referral_code}`
