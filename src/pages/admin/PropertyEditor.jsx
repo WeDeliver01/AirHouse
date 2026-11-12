@@ -7,9 +7,11 @@ import {
   deletePropertyPhoto,
 } from '../../lib/supabase'
 import { Button, Input, Textarea, Select, LoadingSpinner } from '../../components/ui'
+import { VideoEmbed } from '../../components/VideoEmbed'
+import { isValidVideoUrl } from '../../lib/video'
 import { toast } from 'react-hot-toast'
 import {
-  ArrowLeft, Upload, ChevronUp, ChevronDown, Trash2, Save,
+  ArrowLeft, Upload, ChevronUp, ChevronDown, Trash2, Save, Plus, Video,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
@@ -107,6 +109,11 @@ const AdminPropertyEditor = () => {
   // Track removed uploaded paths for deletion on save
   const [removedPaths, setRemovedPaths] = useState([])
 
+  // Videos: array of external YouTube/TikTok/Instagram URLs
+  const [videos, setVideos] = useState([])
+  const [videoUrlInput, setVideoUrlInput] = useState('')
+  const [videoUrlError, setVideoUrlError] = useState(null)
+
   useEffect(() => {
     const loadDevelopers = async () => {
       const { data, error } = await supabase
@@ -158,6 +165,7 @@ const AdminPropertyEditor = () => {
         })
         setSlugTouched(true)
         setPhotos((data.photo_urls || []).map(url => ({ url })))
+        setVideos(data.video_urls || [])
       } catch (e) {
         console.error(e)
         toast.error('Failed to load property')
@@ -226,6 +234,27 @@ const AdminPropertyEditor = () => {
     })
   }
 
+  // Video handlers
+  const addVideoUrl = () => {
+    const url = videoUrlInput.trim()
+    if (!url) return
+    if (!isValidVideoUrl(url)) {
+      setVideoUrlError('Must be a YouTube, TikTok or Instagram link')
+      return
+    }
+    if (videos.includes(url)) {
+      setVideoUrlError('That video is already added')
+      return
+    }
+    setVideos(prev => [...prev, url])
+    setVideoUrlInput('')
+    setVideoUrlError(null)
+  }
+
+  const removeVideo = (index) => {
+    setVideos(prev => prev.filter((_, i) => i !== index))
+  }
+
   const validate = () => {
     const e = {}
     if (!form.developer_id) e.developer_id = 'Choose which developer this listing belongs to'
@@ -270,6 +299,7 @@ const AdminPropertyEditor = () => {
         amenities: form.listing_category === 'short_term_rental'
           ? form.amenities.split(',').map(a => a.trim()).filter(Boolean)
           : [],
+        video_urls: videos,
       }
 
       // Step 1: insert/update the row to get an id
@@ -558,6 +588,51 @@ const AdminPropertyEditor = () => {
             </button>
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onSelectFiles} />
+        </section>
+
+        {/* Videos */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Videos (optional)</h2>
+            <span className="text-xs text-gray-500">YouTube, TikTok or Instagram links</span>
+          </div>
+          <div className="flex gap-2 items-start">
+            <div className="flex-1">
+              <Input
+                value={videoUrlInput}
+                onChange={(e) => { setVideoUrlInput(e.target.value); if (videoUrlError) setVideoUrlError(null) }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addVideoUrl() } }}
+                placeholder="https://www.youtube.com/watch?v=..."
+                error={videoUrlError}
+              />
+            </div>
+            <Button type="button" variant="secondary" onClick={addVideoUrl}>
+              <Plus className="w-4 h-4 mr-1" />Add
+            </Button>
+          </div>
+          {videos.length > 0 && (
+            <div className="grid sm:grid-cols-2 gap-4">
+              {videos.map((url, i) => (
+                <div key={`${url}-${i}`} className="relative group">
+                  <VideoEmbed url={url} />
+                  <button
+                    type="button"
+                    onClick={() => removeVideo(i)}
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Remove"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {videos.length === 0 && (
+            <div className="flex items-center gap-2 text-sm text-gray-400 py-3">
+              <Video className="w-4 h-4" />
+              No videos added yet.
+            </div>
+          )}
         </section>
       </div>
 

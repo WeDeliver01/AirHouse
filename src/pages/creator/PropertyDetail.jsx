@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { Button, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
+import { VideoEmbed } from '../../components/VideoEmbed'
 import { formatCurrency } from '../../lib/utils'
 import {
   ArrowLeft, Bed, Bath, Car, Ruler, MapPin, Image as ImageIcon,
-  Building2, Megaphone, ArrowRight, Calendar,
+  Building2, Megaphone, ArrowRight, Calendar, Video,
 } from 'lucide-react'
 
 const PropertyDetail = () => {
@@ -76,6 +77,7 @@ const PropertyDetail = () => {
   }
 
   const photos = property.photo_urls || []
+  const videos = property.video_urls || []
   const heroPhoto = photos[activePhoto]
   const locationLabel = [property.location_suburb, property.location_city].filter(Boolean).join(', ')
 
@@ -129,6 +131,21 @@ const PropertyDetail = () => {
           </div>
         )}
       </div>
+
+      {/* Videos */}
+      {videos.length > 0 && (
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Video className="w-5 h-5 text-primary" />
+            Videos
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {videos.map((url, i) => (
+              <VideoEmbed key={url + i} url={url} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
