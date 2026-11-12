@@ -51,11 +51,8 @@ const ContentSubmission = () => {
   const [mediaPreview, setMediaPreview] = useState([])
   const [dragActive, setDragActive] = useState(false)
 
-  useEffect(() => {
-    if (assignmentId) fetchData()
-  }, [assignmentId, fetchData])
-
   const fetchData = useCallback(async () => {
+    if (!assignmentId) return
     setError(null)
     try {
       const { data: assignmentData, error: assignmentError } = await supabase
@@ -102,6 +99,10 @@ const ContentSubmission = () => {
       setLoading(false)
     }
   }, [assignmentId])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const uploadFiles = async (files) => {
     if (!files || files.length === 0) return

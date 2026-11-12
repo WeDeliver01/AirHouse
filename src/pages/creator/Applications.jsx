@@ -26,11 +26,8 @@ const CreatorApplications = () => {
   const [filter, setFilter] = useState('all')
   const [stats, setStats] = useState({ total: 0, pending: 0, accepted: 0, rejected: 0 })
 
-  useEffect(() => {
-    if (user?.id) fetchApplications()
-  }, [user, fetchApplications])
-
   const fetchApplications = useCallback(async () => {
+    if (!user?.id) return
     setLoading(true)
     setError(null)
     try {
@@ -77,7 +74,11 @@ const CreatorApplications = () => {
     } finally {
       setLoading(false)
     }
-  }, [user.id])
+  }, [user?.id])
+
+  useEffect(() => {
+    fetchApplications()
+  }, [fetchApplications])
 
   const withdrawApplication = async (applicationId) => {
     if (!confirm('Are you sure you want to withdraw this application?')) return

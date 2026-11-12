@@ -27,11 +27,8 @@ const CampaignApplications = () => {
   const [assignBudget, setAssignBudget] = useState('')
   const [processing, setProcessing] = useState(false)
 
-  useEffect(() => {
-    if (campaignId) fetchData()
-  }, [campaignId, fetchData])
-
   const fetchData = useCallback(async () => {
+    if (!campaignId) return
     setLoading(true)
     setError(null)
     try {
@@ -94,6 +91,10 @@ const CampaignApplications = () => {
       setLoading(false)
     }
   }, [campaignId])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const updateApplicationStatus = async (appId, status) => {
     setProcessing(true)

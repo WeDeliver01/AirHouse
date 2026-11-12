@@ -28,11 +28,8 @@ const Achievements = () => {
     avgResponseHours: null,
   })
 
-  useEffect(() => {
-    if (user?.id) fetchData()
-  }, [user, fetchData])
-
   const fetchData = useCallback(async () => {
+    if (!user?.id) return
     setLoading(true)
     setError(null)
     try {
@@ -75,7 +72,11 @@ const Achievements = () => {
     } finally {
       setLoading(false)
     }
-  }, [user.id])
+  }, [user?.id])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   if (loading)
     return (

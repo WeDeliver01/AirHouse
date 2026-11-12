@@ -21,10 +21,6 @@ const AdminInvite = () => {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
 
-  useEffect(() => {
-    validateInvite()
-  }, [code, validateInvite])
-
   const validateInvite = useCallback(async () => {
     try {
       const { data, error } = await supabase.rpc('validate_admin_invite', {
@@ -51,6 +47,10 @@ const AdminInvite = () => {
       setStatus('invalid')
     }
   }, [code])
+
+  useEffect(() => {
+    validateInvite()
+  }, [validateInvite])
 
   const validate = () => {
     const errs = {}

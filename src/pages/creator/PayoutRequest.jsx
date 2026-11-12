@@ -74,11 +74,8 @@ const PayoutRequest = () => {
     branchCode: '',
   })
 
-  useEffect(() => {
-    loadData()
-  }, [user.id, loadData])
-
   const loadData = useCallback(async () => {
+    if (!user?.id) return
     setError(null)
     try {
       const { data: walletData } = await supabase
@@ -112,7 +109,11 @@ const PayoutRequest = () => {
     } finally {
       setLoading(false)
     }
-  }, [user.id])
+  }, [user?.id])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleAddBank = async () => {
     if (!bankForm.bankName || !bankForm.accountNumber || !bankForm.branchCode) {

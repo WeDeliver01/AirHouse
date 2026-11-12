@@ -70,11 +70,8 @@ const CreatorWallet = () => {
     account_type: 'savings',
   })
 
-  useEffect(() => {
-    if (user?.id) fetchWalletData()
-  }, [user, fetchWalletData])
-
   const fetchWalletData = useCallback(async () => {
+    if (!user?.id) return
     setLoading(true)
     setError(null)
     try {
@@ -121,7 +118,11 @@ const CreatorWallet = () => {
     } finally {
       setLoading(false)
     }
-  }, [user.id])
+  }, [user?.id])
+
+  useEffect(() => {
+    fetchWalletData()
+  }, [fetchWalletData])
 
   const handlePayoutRequest = async () => {
     const amount = parseFloat(payoutAmount)
