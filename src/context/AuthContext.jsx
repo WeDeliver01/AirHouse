@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { supabase, handleSupabaseError } from '../lib/supabase'
 import { toast } from 'react-hot-toast'
 import { recordLogin, recordSignup } from '../lib/siteAnalytics'
+import {
+  PROFILE_FIELDS, CREATOR_FIELDS, pick, writeProfileRow, writeCreatorRow, saveMyProfile,
+} from '../lib/profileSave'
 
 // ============================================
 // CONFIGURATION
@@ -103,7 +106,7 @@ export const AuthProvider = ({ children }) => {
           .from('creator_profiles')
           .select('*')
           .eq('user_id', userId)
-          .single()
+          .maybeSingle()
         
         setCreatorProfile(creatorData)
       } else {
@@ -347,13 +350,8 @@ export const AuthProvider = ({ children }) => {
   // ----------------------------------------
   // Update Profile
   // ----------------------------------------
-  const ALLOWED_PROFILE_FIELDS = ['full_name', 'avatar_url', 'company_name', 'bio', 'phone']
-
   const updateProfile = async (updates) => {
-    const sanitized = {}
-    for (const key of ALLOWED_PROFILE_FIELDS) {
-      if (key in updates) sanitized[key] = updates[key]
-    }
+    const sanitized = pick(updates, PROFILE_FIELDS)
 
     if (Object.keys(sanitized).length === 0) {
       throw new Error('No valid fields to update')
@@ -367,68 +365,16 @@ export const AuthProvider = ({ children }) => {
 
     if (!user) throw new Error('No user logged in')
 
-    const isMissingRow = (err) =>
-      err?.code === 'PGRST116' || err?.message?.includes('Cannot coerce the result to a single JSON object')
-
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(sanitized)
-        .eq('id', user.id)
-        .select()
-        .single()
-
-      if (error) {
-        if (error.message?.includes('column') && error.message?.includes('schema cache')) {
-          const match = error.message.match(/'(\w+)' column/)
-          const badField = match?.[1]
-          if (badField && sanitized[badField] !== undefined) {
-            console.warn(`Field '${badField}' not in DB, retrying without it`)
-            delete sanitized[badField]
-            if (Object.keys(sanitized).length === 0) {
-              throw new Error('No valid fields to update')
-            }
-            const { data: retryData, error: retryError } = await supabase
-              .from('profiles')
-              .update(sanitized)
-              .eq('id', user.id)
-              .select()
-              .single()
-            if (retryError) throw retryError
-            setProfile(retryData)
-            toast.success('Profile updated')
-            return retryData
-          }
-        }
-
-        // The update matched no row. This happens when the signup trigger
-        // that provisions a profiles row failed silently (it never blocks
-        // account creation — see handle_new_user() in migration 017) and
-        // left this account without one. Create it now rather than
-        // forcing the user to contact support over a row they didn't know
-        // was missing.
-        if (isMissingRow(error)) {
-          const fallbackName =
-            sanitized.full_name ||
-            user.user_metadata?.full_name ||
-            user.email?.split('@')[0] ||
-            'User'
-          const { data: insertedData, error: insertError } = await supabase
-            .from('profiles')
-            .insert({ id: user.id, email: user.email, ...sanitized, full_name: fallbackName })
-            .select()
-            .single()
-          if (insertError) throw insertError
-          setProfile(insertedData)
-          toast.success('Profile updated')
-          return insertedData
-        }
-
-        throw error
-      }
-      setProfile(data)
+      // writeProfileRow never uses .single() on the write, so a zero-row
+      // update (missing row, or a policy that silently blocks it) no longer
+      // surfaces as "Cannot coerce the result to a single JSON object".
+      const row = await writeProfileRow(supabase, user, sanitized)
+      // Merge only the written fields so client-side overrides (e.g. the
+      // super-admin role set in fetchUserData) survive.
+      setProfile(prev => (prev ? { ...prev, ...pick(row, Object.keys(sanitized)) } : row))
       toast.success('Profile updated')
-      return data
+      return row
     } catch (error) {
       const message = handleSupabaseError(error)
       toast.error(message)
@@ -437,15 +383,24 @@ export const AuthProvider = ({ children }) => {
   }
 
   // ----------------------------------------
+  // Save own profile + creator details in one call (profile editor)
+  // ----------------------------------------
+  const saveProfile = async (profileFields = {}, creatorFields = null) => {
+    if (DEMO_MODE) {
+      setProfile(prev => ({ ...prev, ...pick(profileFields, PROFILE_FIELDS) }))
+      if (creatorFields) setCreatorProfile(prev => ({ ...prev, ...pick(creatorFields, CREATOR_FIELDS) }))
+      return { profile, creator_profile: creatorProfile }
+    }
+    const result = await saveMyProfile(supabase, user, profileFields, creatorFields)
+    await fetchUserData(user.id)
+    return result
+  }
+
+  // ----------------------------------------
   // Update Creator Profile
   // ----------------------------------------
-  const ALLOWED_CREATOR_FIELDS = ['instagram_handle', 'tiktok_handle', 'youtube_handle', 'follower_count', 'niche', 'portfolio_urls', 'past_collaborations', 'rate_card', 'location', 'is_available', 'avg_engagement_rate']
-
   const updateCreatorProfile = async (updates) => {
-    const sanitized = {}
-    for (const key of ALLOWED_CREATOR_FIELDS) {
-      if (key in updates) sanitized[key] = updates[key]
-    }
+    const sanitized = pick(updates, CREATOR_FIELDS)
 
     if (Object.keys(sanitized).length === 0) {
       throw new Error('No valid fields to update')
@@ -462,14 +417,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('creator_profiles')
-        .update(sanitized)
-        .eq('user_id', user.id)
-        .select()
-        .single()
-
-      if (error) throw error
+      const data = await writeCreatorRow(supabase, user, sanitized)
       setCreatorProfile(data)
       toast.success('Creator profile updated')
       return data
@@ -506,6 +454,7 @@ export const AuthProvider = ({ children }) => {
     updatePassword,
     updateProfile,
     updateCreatorProfile,
+    saveProfile,
     refreshUserData,
     isAuthenticated: !!user,
     isCreator: profile?.role === 'creator',
