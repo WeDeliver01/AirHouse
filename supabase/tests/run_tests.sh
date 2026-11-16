@@ -53,7 +53,7 @@ echo "==> Applying migration 016_financial_integrity.sql"
 "${PSQL[@]}" -f "$REPO_ROOT/supabase/migrations/016_financial_integrity.sql" 2>&1 \
   | grep -v '^psql:.*NOTICE' || true
 
-for m in 017_access_control_hardening 018_tenant_isolation 019_storage_hardening 020_campaign_lifecycle 021_audit_and_settings 022_double_entry_ledger 023_ledger_integration 024_lead_integrity 025_data_protection 026_profile_policy_repair 027_super_admin_continuity 030_pricing_cart_checkout 034_save_my_profile_rpc 035_fix_super_admin_link_trigger 036_disable_admin_mfa; do
+for m in 017_access_control_hardening 018_tenant_isolation 019_storage_hardening 020_campaign_lifecycle 021_audit_and_settings 022_double_entry_ledger 023_ledger_integration 024_lead_integrity 025_data_protection 026_profile_policy_repair 027_super_admin_continuity 030_pricing_cart_checkout 034_save_my_profile_rpc 035_fix_super_admin_link_trigger 036_disable_admin_mfa 037_apply_to_campaign_rpc; do
   echo "==> Applying migration $m.sql"
   "${PSQL[@]}" -f "$REPO_ROOT/supabase/migrations/$m.sql" 2>&1 | grep -v '^psql:.*NOTICE' || true
 done
@@ -74,7 +74,8 @@ OUTPUT="$(
     -f "$HERE/10_rls_as_client_tests.sql" \
     -f "$HERE/11_save_my_profile_tests.sql" \
     -f "$HERE/12_super_admin_link_tests.sql" \
-    -f "$HERE/13_public_lead_capture_tests.sql" 2>&1
+    -f "$HERE/13_apply_to_campaign_tests.sql" \
+    -f "$HERE/14_public_lead_capture_tests.sql" 2>&1
 )"
 
 echo "$OUTPUT" | grep -E 'PASS|FAIL|NOTICE:  ---' | sed 's/^psql:[^ ]* //'
