@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { referralLinkForAssignment } from '../../lib/tracking'
 import { Button, Badge, LoadingSpinner, ErrorState, EmptyState } from '../../components/ui'
 import { formatCurrency, formatRelativeTime} from '../../lib/utils'
 import { toast } from 'react-hot-toast'
@@ -70,7 +71,7 @@ const CreatorActiveCampaigns = () => {
   }, [fetchAssignments])
 
   const copyReferralLink = (assignment) => {
-    const link = `${window.location.origin}/lead/${assignment.campaign_id}?ref=${assignment.creator_referral_code}`
+    const link = referralLinkForAssignment(assignment)
     navigator.clipboard.writeText(link)
     toast.success('Referral link copied!')
   }
@@ -217,7 +218,7 @@ const CreatorActiveCampaigns = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <code className="text-xs bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-600 truncate max-w-xs">
-                        {`${window.location.origin}/lead/${assignment.campaign_id}?ref=${assignment.creator_referral_code}`}
+                        {referralLinkForAssignment(assignment)}
                       </code>
                       <Button variant="secondary" size="sm" onClick={() => copyReferralLink(assignment)}>
                         <Copy className="w-4 h-4" />

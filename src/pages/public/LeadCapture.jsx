@@ -165,33 +165,12 @@ const LeadCaptureForm = () => {
     setSubmitting(true)
 
     try {
-      // Find creator by tracking token if provided. Attribution is only ever
-      // trusted when it is re-verified server-side (migration 024's
-      // validate_lead trigger drops creator_id unless that creator is
-      // actually assigned to this campaign) -- this lookup just finds who
-      // to credit, it is not the source of truth.
-      let creatorId = null
-
-      if (refCode) {
-        const { data: trackingLink } = await supabase
-          .from('creator_tracking_links')
-          .select('creator_id')
-          .eq('token', refCode)
-          .maybeSingle()
-
-        if (trackingLink) {
-          creatorId = trackingLink.creator_id
-        } else {
-          // Fallback for older campaign_assignments-based referral codes.
-          const { data: assignment } = await supabase
-            .from('campaign_assignments')
-            .select('creator_id')
-            .eq('creator_referral_code', refCode)
-            .maybeSingle()
-
-          creatorId = assignment?.creator_id || null
-        }
-      }
+      // Attribution is resolved in the database (migration 038) from the
+      // referral code below. Anonymous visitors are not allowed to read
+      // creator_tracking_links or campaign_assignments, so a lookup here
+      // always came back empty and creators were never credited. The
+      // validate_lead trigger still drops any creator not actually assigned
+      // to this campaign.
 
       // The id is generated here rather than read back from the insert.
       // Anonymous visitors may INSERT into leads but are (deliberately) not
@@ -203,7 +182,6 @@ const LeadCaptureForm = () => {
       const leadData = {
         id: leadId,
         campaign_id: campaignId,
-        creator_id: creatorId,
         referral_code: refCode || campaign?.referral_code,
         tracking_token: refCode || null,
         lead_name: formData.name,

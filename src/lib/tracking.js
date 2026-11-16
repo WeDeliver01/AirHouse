@@ -35,8 +35,24 @@ export const buildTrackingUrl = (link) => {
   if (link.destination_mode === 'redirect') {
     return `${origin}/go/${link.token}`
   }
-  return `${origin}/lead/${link.campaign_id}?ref=${link.token}`
+  return buildReferralUrl(link.token)
 }
+
+/**
+ * Short shareable enquiry link for a referral code or tracking token:
+ * airhouse.co.za/r/CRE-XXXXXXXX. Resolved to its campaign server-side
+ * (resolve_referral_campaign, migration 038) by the /r/:code route.
+ */
+export const buildReferralUrl = (code) => `${window.location.origin}/r/${encodeURIComponent(code)}`
+
+/**
+ * A creator's shareable link for a campaign assignment: the short /r/ link
+ * when the assignment has a referral code, otherwise the plain enquiry page.
+ */
+export const referralLinkForAssignment = (assignment) =>
+  assignment?.creator_referral_code
+    ? buildReferralUrl(assignment.creator_referral_code)
+    : `${window.location.origin}/lead/${assignment?.campaign_id}`
 
 /**
  * Get or create the single tracking link for a campaign assignment.

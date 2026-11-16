@@ -67,7 +67,7 @@ export function seedData() {
       },
     ],
     campaign_assignments: [
-      { id: 'assign-1', campaign_id: 'camp-1', creator_id: 'creator-1', status: 'active' },
+      { id: 'assign-1', campaign_id: 'camp-1', creator_id: 'creator-1', status: 'active', creator_referral_code: 'CRE-SEAPT001' },
     ],
     campaign_applications: [
       {
@@ -386,6 +386,14 @@ export async function installSupabaseMock(page, { signedInAs = null, data = null
       state.rpcCalls.push({ fn, args })
 
       switch (fn) {
+        case 'resolve_referral_campaign': {
+          // Mirrors migration 038: a referral code resolves only to a live campaign.
+          const assignment = (state.db.campaign_assignments || [])
+            .find((a) => a.creator_referral_code === args.p_code)
+          const campaign = assignment && state.db.campaigns
+            .find((c) => c.id === assignment.campaign_id && ['open', 'invited', 'active'].includes(c.status))
+          return route.fulfill(json(campaign ? campaign.id : null))
+        }
         case 'create_payment_intent': {
           const id = `intent-${state.db.payment_intents.length + 1}`
           const reference = `AH-E2E${state.db.payment_intents.length + 1}`

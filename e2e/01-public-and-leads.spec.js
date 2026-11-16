@@ -146,6 +146,34 @@ test.describe('Lead capture', () => {
     expect(lead.tracking_code || lead.referral_code).toBeTruthy()
   })
 
+  test('a short /r/ referral link opens the campaign enquiry page with the code attached', async ({ page }) => {
+    const state = await installSupabaseMock(page)
+    await visit(page, '/r/CRE-SEAPT001')
+
+    await expect(page).toHaveURL(/\/lead\/camp-1\?ref=CRE-SEAPT001$/)
+    await expect(page.getByText(/The Atlantic|Sea Point Launch/i).first()).toBeVisible()
+
+    await page.getByLabel('Full Name').fill('Short Link Visitor')
+    await page.getByLabel('Email Address').fill('shortlink@example.com')
+    await page.getByLabel('Phone Number').fill('0823334444')
+    await page.waitForTimeout(2100)
+    await page.getByRole('checkbox').first().check()
+    await page.getByRole('button', { name: 'Submit Enquiry' }).click()
+
+    await expect
+      .poll(() => state.inserts.filter((i) => i.table === 'leads').length, { timeout: 10_000 })
+      .toBeGreaterThan(0)
+    const lead = state.inserts.find((i) => i.table === 'leads').rows[0]
+    // The database credits the creator from this code (migration 038).
+    expect(lead.tracking_token).toBe('CRE-SEAPT001')
+  })
+
+  test('an unknown short link says so instead of loading forever', async ({ page }) => {
+    await installSupabaseMock(page)
+    await visit(page, '/r/CRE-NOPE0000')
+    await expect(page.getByText('This link is no longer active.')).toBeVisible()
+  })
+
   test('the developer email address is not exposed to an anonymous visitor', async ({ page }) => {
     await installSupabaseMock(page)
 
