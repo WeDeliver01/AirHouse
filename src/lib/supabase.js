@@ -247,23 +247,32 @@ export const uploadAvatar = async (userId, file) => {
 }
 
 /**
- * Upload campaign images (high quality, up to 4K, no compression)
+ * Upload a campaign image or brochure at full quality. Returns
+ * { url, path, type, name, size, contentType }.
+ *
+ * Storage RLS (migration 019) only lets a user write under a first path
+ * segment equal to their own user id, so the object path MUST start with
+ * `ownerId` -- the signed-in user's id:  <ownerId>/<campaignId>/<file>.
+ * Uploading under `<campaignId>/...` is rejected by the bucket policy.
+ *
+ * @param ownerId    - auth.uid() of the uploader
  * @param campaignId - Campaign ID
- * @param file - File to upload
- * @param type - 'image' | 'brochure'
+ * @param file       - File to upload
+ * @param type       - 'image' | 'brochure'
  */
-export const uploadCampaignMedia = async (campaignId, file, type = 'image') => {
-  const fileExt = file.name.split('.').pop().toLowerCase()
-  const timestamp = Date.now()
-  const fileName = `${campaignId}/${type}-${timestamp}.${fileExt}`
-  
-  // Determine bucket based on type
+export const uploadCampaignMedia = async (ownerId, campaignId, file, type = 'image') => {
+  if (!ownerId) throw new Error('ownerId is required')
+  if (!campaignId) throw new Error('campaignId is required')
+
+  const fileExt = (file.name.split('.').pop() || 'bin').toLowerCase()
+  const fileName = `${ownerId}/${campaignId}/${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`
+
   const bucket = 'campaign-media'
 
   // Upload without compression to maintain 4K quality
   const { error: uploadError } = await supabase.storage
     .from(bucket)
-    .upload(fileName, file, { 
+    .upload(fileName, file, {
       upsert: false,
       contentType: file.type,
       cacheControl: '31536000', // 1 year cache
@@ -271,7 +280,6 @@ export const uploadCampaignMedia = async (campaignId, file, type = 'image') => {
 
   if (uploadError) throw uploadError
 
-  // Get public URL
   const { data: { publicUrl } } = supabase.storage
     .from(bucket)
     .getPublicUrl(fileName)
@@ -289,21 +297,35 @@ export const uploadCampaignMedia = async (campaignId, file, type = 'image') => {
 /**
  * Upload multiple campaign files
  */
-export const uploadCampaignFiles = async (campaignId, files, type = 'image') => {
-  const uploads = await Promise.all(
-    files.map(file => uploadCampaignMedia(campaignId, file, type))
+export const uploadCampaignFiles = async (ownerId, campaignId, files, type = 'image') => {
+  return Promise.all(
+    files.map(file => uploadCampaignMedia(ownerId, campaignId, file, type))
   )
-  return uploads
 }
 
 /**
- * Delete campaign media file
+ * Storage path of a campaign-media object, given its public URL or its path.
+ * Returns null for anything that is not an object in that bucket.
  */
-export const deleteCampaignMedia = async (filePath) => {
+export const campaignMediaPath = (urlOrPath) => {
+  if (!urlOrPath) return null
+  const marker = '/campaign-media/'
+  const idx = urlOrPath.indexOf(marker)
+  if (idx !== -1) return urlOrPath.slice(idx + marker.length).split('?')[0]
+  return /^[a-z]+:/i.test(urlOrPath) ? null : urlOrPath
+}
+
+/**
+ * Delete campaign media file, by storage path or public URL.
+ */
+export const deleteCampaignMedia = async (urlOrPath) => {
+  const path = campaignMediaPath(urlOrPath)
+  if (!path) return true
+
   const { error } = await supabase.storage
     .from('campaign-media')
-    .remove([filePath])
-  
+    .remove([path])
+
   if (error) throw error
   return true
 }

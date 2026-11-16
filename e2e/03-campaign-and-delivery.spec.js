@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { installSupabaseMock, visit } from './support/supabaseMock.js'
+import { installSupabaseMock, seedData, visit } from './support/supabaseMock.js'
 
 /**
  * Journeys: campaign lifecycle, creator assignment, content approval,
@@ -37,6 +37,47 @@ test.describe('Campaign lifecycle', () => {
 
     await expect(page.locator('input, select, textarea').first()).toBeVisible()
   })
+
+  test('an image added in the wizard is uploaded to the owner\'s folder and saved as its storage URL',
+    async ({ page }) => {
+      // A campaign that already passes every step's validation, so the test
+      // only has to add an image and click through.
+      const data = seedData()
+      Object.assign(data.campaigns.find((c) => c.id === 'camp-1'), {
+        target_audience: ['Investors'],
+        start_date: '2026-12-01',
+        end_date: '2027-01-31',
+        deliverables: [{ type: 'instagram_reel', label: 'Instagram Reel', quantity: 1 }],
+        property_images: ['blob:http://127.0.0.1:5173/stale-preview'],
+      })
+      const state = await installSupabaseMock(page, { signedInAs: 'dev@example.com', data })
+
+      const uploads = []
+      page.on('request', (req) => {
+        if (req.url().includes('/storage/v1/object/') && req.method() === 'POST') uploads.push(req.url())
+      })
+
+      await visit(page, '/developer/campaigns/camp-1/edit')
+      await expect(page.locator('input[value="Sea Point Launch"]')).toBeVisible()
+
+      await page.getByRole('button', { name: 'Next' }).click()
+      await page.locator('input[type="file"][accept="image/*"]').setInputFiles({
+        name: 'lounge.jpg', mimeType: 'image/jpeg', buffer: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+      })
+      for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Next' }).click()
+      await page.getByRole('button', { name: 'Save Draft' }).click()
+      await expect(page).toHaveURL(/\/developer\/campaigns$/)
+
+      // Storage RLS only accepts objects under the uploader's own user id.
+      expect(uploads).toHaveLength(1)
+      expect(uploads[0]).toMatch(/\/storage\/v1\/object\/campaign-media\/dev-1\/camp-1\/image-[^/]+\.jpg$/)
+
+      // The saved URL is the uploaded object's public URL, never a blob: preview,
+      // and the stale blob: URL from before is dropped.
+      const saved = state.db.campaigns.find((c) => c.id === 'camp-1').property_images
+      expect(saved).toHaveLength(1)
+      expect(saved[0]).toMatch(/^https?:\/\/.+\/storage\/v1\/object\/public\/campaign-media\/dev-1\/camp-1\//)
+    })
 })
 
 test.describe('Funding by bank transfer', () => {
