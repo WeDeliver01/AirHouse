@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { isEmptyLeadScope, scopeLeadsQuery } from '../../lib/developerLeads'
 import { Button, LoadingSpinner, ErrorState } from '../../components/ui'
 import { formatCurrency} from '../../lib/utils'
 import { 
@@ -78,11 +79,28 @@ const DeveloperAnalytics = () => {
         .eq('developer_id', user.id)
 
       const campaignIds = campaigns?.map(c => c.id) || []
+
+      // Loaded up front: direct enquiries from a property's own page carry a
+      // property_id and no campaign, and must be counted alongside campaign
+      // leads.
+      const { data: myProperties } = await supabase
+        .from('properties')
+        .select('id, title, slug')
+        .eq('developer_id', user.id)
+      const leadScope = { campaignIds, propertyIds: (myProperties || []).map((p) => p.id) }
+
       let leadsData = []
-      if (campaignIds.length > 0) {
-        const { data } = await supabase.from('leads').select('id, pipeline_stage, campaign_id, created_at, lead_quality').in('campaign_id', campaignIds)
+      if (!isEmptyLeadScope(leadScope)) {
+        const { data, error: leadsError } = await scopeLeadsQuery(
+          supabase.from('leads').select('id, pipeline_stage, campaign_id, property_id, created_at, lead_quality'),
+          leadScope,
+        )
+        if (leadsError) throw leadsError
         leadsData = data || []
       }
+      // Spend is campaign spend, so cost per lead is over campaign leads only;
+      // a direct enquiry did not cost campaign budget.
+      const campaignLeadCount = leadsData.filter((l) => l.campaign_id).length
 
       const { data: assignmentsData } = campaignIds.length > 0 
         ? await supabase.from('campaign_assignments').select('id, creator_id, campaign_id, status').in('campaign_id', campaignIds)
@@ -133,7 +151,7 @@ const DeveloperAnalytics = () => {
         conversions,
         conversionRate: totalLeads > 0 ? Math.round((conversions / totalLeads) * 100) : 0,
         spent: totalSpent,
-        costPerLead: totalLeads > 0 ? totalSpent / totalLeads : 0,
+        costPerLead: campaignLeadCount > 0 ? totalSpent / campaignLeadCount : 0,
         pipelineNew,
         pipelineContacted,
         pipelineQualified,
@@ -166,11 +184,6 @@ const DeveloperAnalytics = () => {
       // Per-property traffic: page views and outbound clicks on each
       // listing's own public URL (airhouse.co.za/:slug), independent of
       // whether that property is attached to a campaign.
-      const { data: myProperties } = await supabase
-        .from('properties')
-        .select('id, title, slug')
-        .eq('developer_id', user.id)
-
       if (myProperties?.length > 0) {
         const { data: traffic } = await supabase
           .from('property_traffic_summary')
@@ -182,6 +195,7 @@ const DeveloperAnalytics = () => {
           myProperties.map((p) => ({
             ...p,
             ...(trafficByProperty.get(p.id) || { page_views: 0, outbound_clicks: 0, unique_visitors: 0, unique_sessions: 0, last_viewed_at: null }),
+            enquiries: leadsData.filter((l) => !l.campaign_id && l.property_id === p.id).length,
           })).sort((a, b) => (b.page_views || 0) - (a.page_views || 0))
         )
       } else {
@@ -398,6 +412,7 @@ const DeveloperAnalytics = () => {
                   <th className="text-right py-3 font-semibold text-gray-500">Page Views</th>
                   <th className="text-right py-3 font-semibold text-gray-500">Unique Visitors</th>
                   <th className="text-right py-3 font-semibold text-gray-500">Outbound Clicks</th>
+                  <th className="text-right py-3 font-semibold text-gray-500">Enquiries</th>
                   <th className="text-right py-3 font-semibold text-gray-500">Last Viewed</th>
                 </tr>
               </thead>
@@ -412,6 +427,7 @@ const DeveloperAnalytics = () => {
                     <td className="py-3 text-right font-semibold">{p.page_views || 0}</td>
                     <td className="py-3 text-right">{p.unique_visitors || 0}</td>
                     <td className="py-3 text-right">{p.outbound_clicks || 0}</td>
+                    <td className="py-3 text-right">{p.enquiries || 0}</td>
                     <td className="py-3 text-right text-gray-500">
                       {p.last_viewed_at ? new Date(p.last_viewed_at).toLocaleDateString() : '—'}
                     </td>

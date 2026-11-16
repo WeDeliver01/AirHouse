@@ -4,6 +4,10 @@ import { supabase } from '../../lib/supabase'
 import { formatRelativeTime, formatDate, cn } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import {
+  fetchDeveloperPropertyIds, isEmptyLeadScope, scopeLeadsQuery,
+  leadSourceLabel, LEAD_PROPERTY_EMBED,
+} from '../../lib/developerLeads'
+import {
   PageHeader, Button, MetricCard, Card, Chip, Icon, EmptyState, Skeleton,
   Modal, Input, Select,
 } from '../../components/stitch'
@@ -27,6 +31,10 @@ const STAGE_TONE = {
 
 const visibleStageFor = (stage) => (stage === 'negotiating' ? 'qualified' : stage)
 
+// Campaign-filter value for enquiries made straight from a property's own
+// page, which carry no campaign.
+const DIRECT_FILTER = '__direct'
+
 const DeveloperLeads = () => {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -49,27 +57,33 @@ const DeveloperLeads = () => {
     setLoading(true)
     setError(null)
     try {
-      const { data: campaignsData, error: campaignsError } = await supabase
-        .from('campaigns')
-        .select('id, title, property_name')
-        .eq('developer_id', user.id)
+      const [{ data: campaignsData, error: campaignsError }, propertyIds] = await Promise.all([
+        supabase
+          .from('campaigns')
+          .select('id, title, property_name')
+          .eq('developer_id', user.id),
+        fetchDeveloperPropertyIds(user.id),
+      ])
       if (campaignsError) throw campaignsError
       setCampaigns(campaignsData || [])
 
       const campaignIds = campaignsData?.map((c) => c.id) || []
-      if (campaignIds.length === 0) {
+      const scope = { campaignIds, propertyIds }
+      if (isEmptyLeadScope(scope)) {
         setLeads([])
+        setStats({ total: 0, new: 0, converted: 0, conversionRate: 0, clicks: 0, clickToEnquiryRate: 0 })
         setLoading(false)
         return
       }
 
-      const { data: leadsData, error: leadsError } = await supabase
-        .from('leads')
-        .select(
-          `*, campaign:campaigns(id, title, property_name), creator:creator_profiles(id, user:profiles(full_name))`,
-        )
-        .in('campaign_id', campaignIds)
-        .order('created_at', { ascending: false })
+      const { data: leadsData, error: leadsError } = await scopeLeadsQuery(
+        supabase
+          .from('leads')
+          .select(
+            `*, campaign:campaigns(id, title, property_name), ${LEAD_PROPERTY_EMBED}, creator:creator_profiles(id, user:profiles(full_name))`,
+          ),
+        scope,
+      ).order('created_at', { ascending: false })
 
       // A failed query must not masquerade as an empty pipeline.
       if (leadsError) throw leadsError
@@ -81,10 +95,12 @@ const DeveloperLeads = () => {
 
       // Outbound tracking-link clicks (e.g. to an Airbnb listing). A click is
       // not an enquiry — this is the funnel step before a lead exists.
-      const { count: clicks } = await supabase
-        .from('link_clicks')
-        .select('id', { count: 'exact', head: true })
-        .in('campaign_id', campaignIds)
+      const { count: clicks } = campaignIds.length > 0
+        ? await supabase
+          .from('link_clicks')
+          .select('id', { count: 'exact', head: true })
+          .in('campaign_id', campaignIds)
+        : { count: 0 }
 
       setStats({
         total, new: newLeads, converted,
@@ -125,7 +141,11 @@ const DeveloperLeads = () => {
 
   const filteredLeads = leads.filter((l) => {
     if (filter.stage && visibleStageFor(l.pipeline_stage) !== filter.stage) return false
-    if (filter.campaign && l.campaign_id !== filter.campaign) return false
+    if (filter.campaign === DIRECT_FILTER) {
+      if (l.campaign_id) return false
+    } else if (filter.campaign && l.campaign_id !== filter.campaign) {
+      return false
+    }
     if (filter.search) {
       const q = filter.search.toLowerCase()
       if (!l.lead_name?.toLowerCase().includes(q) && !l.lead_email?.toLowerCase().includes(q)) {
@@ -257,6 +277,7 @@ const DeveloperLeads = () => {
               {campaigns.map((c) => (
                 <option key={c.id} value={c.id}>{c.title || c.property_name}</option>
               ))}
+              <option value={DIRECT_FILTER}>Direct (property page)</option>
             </Select>
           </div>
           <div className="md:w-44">
@@ -329,6 +350,9 @@ const DeveloperLeads = () => {
                         {lead.pipeline_stage === 'negotiating' && (
                           <Chip tone="tertiary">negotiating</Chip>
                         )}
+                        {!lead.campaign_id && (
+                          <Chip tone="neutral">direct</Chip>
+                        )}
                       </div>
                     </article>
                   ))}
@@ -367,7 +391,7 @@ const DeveloperLeads = () => {
                   {selectedLead.lead_name}
                 </h3>
                 <p className="font-body-md text-body-md text-on-surface-variant truncate">
-                  {selectedLead.campaign?.title || 'Direct lead'}
+                  {leadSourceLabel(selectedLead, 'Direct lead')}
                 </p>
                 <div className="flex flex-wrap gap-sm mt-sm">
                   <a href={`mailto:${selectedLead.lead_email}`}
@@ -389,9 +413,13 @@ const DeveloperLeads = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
               <div className="bg-surface-container-low rounded p-sm border border-outline-variant">
-                <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Campaign</p>
+                <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">
+                  {selectedLead.campaign_id ? 'Campaign' : 'Property (direct enquiry)'}
+                </p>
                 <p className="font-label-lg text-label-lg text-on-surface mt-xs truncate">
-                  {selectedLead.campaign?.title || '—'}
+                  {selectedLead.campaign_id
+                    ? (selectedLead.campaign?.title || '—')
+                    : (selectedLead.property?.title || '—')}
                 </p>
               </div>
               <div className="bg-surface-container-low rounded p-sm border border-outline-variant">

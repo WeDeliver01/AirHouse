@@ -87,6 +87,35 @@ describe('resolveLeadNotification', () => {
     expect(result.data.leadName).toBe('Sipho');
   });
 
+  it('routes a direct property enquiry (no campaign) to the property owner', async () => {
+    const directLead = {
+      ...freshLead,
+      campaign: null,
+      property: {
+        id: 'p1',
+        title: 'Central Developments Group',
+        developer: { full_name: 'Prop Owner', email: 'owner@example.com' },
+      },
+    };
+    const result = await resolveLeadNotification(VALID_ID, {
+      client: stubClient(directLead),
+      now: NOW,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.to).toBe('owner@example.com');
+    expect(result.data.campaignTitle).toBe('Central Developments Group (direct enquiry)');
+  });
+
+  it('refuses a direct property enquiry whose owner has no email', async () => {
+    const directLead = { ...freshLead, campaign: null, property: { id: 'p1', title: 'X', developer: null } };
+    const result = await resolveLeadNotification(VALID_ID, {
+      client: stubClient(directLead),
+      now: NOW,
+    });
+    expect(result).toEqual({ ok: false, reason: 'no_developer_email' });
+  });
+
   it('refuses a malformed lead id without touching the database', async () => {
     const result = await resolveLeadNotification('not-a-uuid', {
       client: stubClient(freshLead),

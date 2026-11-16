@@ -91,6 +91,33 @@ export function seedData() {
         interest_level: 'hot', consent_given: true,
         created_at: '2026-10-22T09:00:00Z',
       },
+      {
+        // A direct enquiry from the property's own page: no campaign.
+        id: 'lead-direct-1', campaign_id: null, property_id: 'prop-1',
+        creator_id: null, lead_name: 'Lerato Direct', lead_email: 'lerato@example.com',
+        lead_phone: '0827654321', status: 'new', pipeline_stage: 'new',
+        consent_given: true, created_at: '2026-10-23T09:00:00Z',
+        property: { id: 'prop-1', title: 'Harbour View Lofts' },
+      },
+      {
+        // Another developer's direct enquiry, which must never be shown.
+        id: 'lead-direct-other', campaign_id: null, property_id: 'prop-other',
+        creator_id: null, lead_name: 'Not Yours', lead_email: 'other@example.com',
+        status: 'new', pipeline_stage: 'new', consent_given: true,
+        created_at: '2026-10-24T09:00:00Z',
+      },
+    ],
+    properties: [
+      {
+        id: 'prop-1', developer_id: 'dev-1', title: 'Harbour View Lofts',
+        slug: 'harbour-view-lofts', status: 'active', photo_urls: [],
+        created_at: '2026-09-01T09:00:00Z',
+      },
+      {
+        id: 'prop-other', developer_id: 'someone-else', title: 'Elsewhere',
+        slug: 'elsewhere', status: 'active', photo_urls: [],
+        created_at: '2026-09-01T09:00:00Z',
+      },
     ],
     wallets: [
       { id: 'wallet-dev-1', user_id: 'dev-1', wallet_type: 'developer', balance: 0, pending_balance: 0, total_earned: 0, total_withdrawn: 0 },
@@ -149,10 +176,40 @@ const USERS = {
 }
 
 /** Parse PostgREST filter params such as `id=eq.camp-1` into predicates. */
+/**
+ * Split a PostgREST `or=(a.op.v,b.op.(x,y))` value into its conditions,
+ * respecting parentheses inside `in.(...)` lists.
+ */
+function parseOrConditions(raw) {
+  const inner = raw.replace(/^\(/, '').replace(/\)$/, '')
+  const parts = []
+  let depth = 0
+  let current = ''
+  for (const ch of inner) {
+    if (ch === '(') depth++
+    if (ch === ')') depth--
+    if (ch === ',' && depth === 0) {
+      parts.push(current)
+      current = ''
+    } else {
+      current += ch
+    }
+  }
+  if (current) parts.push(current)
+  return parts.map((part) => {
+    const [column, op, ...rest] = part.split('.')
+    return { column, op, value: rest.join('.') }
+  })
+}
+
 function buildFilters(searchParams) {
   const filters = []
   for (const [key, raw] of searchParams.entries()) {
     if (['select', 'order', 'limit', 'offset', 'apikey'].includes(key)) continue
+    if (key === 'or') {
+      filters.push({ op: 'or', conditions: parseOrConditions(raw) })
+      continue
+    }
     const [op, ...rest] = raw.split('.')
     const value = rest.join('.')
     filters.push({ column: key, op, value })
@@ -161,7 +218,8 @@ function buildFilters(searchParams) {
 }
 
 function matches(row, filters) {
-  return filters.every(({ column, op, value }) => {
+  return filters.every(({ column, op, value, conditions }) => {
+    if (op === 'or') return conditions.some((condition) => matches(row, [condition]))
     const actual = row?.[column]
     switch (op) {
       case 'eq':   return String(actual) === value
