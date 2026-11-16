@@ -46,12 +46,12 @@ const InviteToCampaignModal = ({
             .from('creator_profiles')
             .select('id, user_id')
             .eq('user_id', creatorUserId)
-            .single(),
+            .maybeSingle(),
           supabase
             .from('profiles')
             .select('email, full_name')
             .eq('id', creatorUserId)
-            .single(),
+            .maybeSingle(),
         ])
 
         if (cancelled) return
@@ -59,6 +59,7 @@ const InviteToCampaignModal = ({
         if (creatorProfileRes.error) throw creatorProfileRes.error
 
         const cp = creatorProfileRes.data
+        if (!cp) throw new Error('This creator has not finished setting up their creator profile yet.')
         setCreatorProfileId(cp.id)
         setCreatorEmail(profileRes.data?.email || null)
 

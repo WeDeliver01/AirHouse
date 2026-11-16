@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { ShoppingCart, Plus, Minus, Trash2, ArrowLeft } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase, handleSupabaseError } from '../../lib/supabase'
 import { Button, LoadingSpinner, ErrorState } from '../../components/ui'
 import { listCreatorRateCard, computeCheckoutTotals, PLATFORMS, DELIVERABLE_TYPES } from '../../lib/pricing'
 import {
@@ -42,8 +42,9 @@ const BookCreator = () => {
         .from('creator_profiles')
         .select('*, user:profiles!user_id(id, full_name, avatar_url, is_verified)')
         .eq('user_id', creatorId)
-        .single()
+        .maybeSingle()
       if (creatorError) throw creatorError
+      if (!creatorRow) throw new Error('This creator has not finished setting up their creator profile yet.')
       setCreator(creatorRow)
 
       const [cards, draftCart] = await Promise.all([
@@ -54,7 +55,7 @@ const BookCreator = () => {
       setCart(draftCart)
     } catch (e) {
       console.error(e)
-      setError('Could not load this creator’s rate card')
+      setError(`Could not load this creator’s rate card: ${handleSupabaseError(e)}`)
     } finally {
       setLoading(false)
     }
