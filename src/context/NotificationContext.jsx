@@ -1,5 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import {
+  fetchDeveloperPropertyIds, isEmptyLeadScope, scopeLeadsQuery,
+  leadSourceLabel, LEAD_PROPERTY_EMBED,
+} from '../lib/developerLeads'
 import { useAuth } from './AuthContext'
 
 const NotificationContext = createContext({})
@@ -37,12 +41,21 @@ const generateNotifications = async (userId, role) => {
         .select('id')
         .eq('developer_id', userId)
       const campaignIds = devCampaigns?.map(c => c.id) || []
+      let propertyIds = []
+      try {
+        propertyIds = await fetchDeveloperPropertyIds(userId)
+      } catch {
+        // Fall back to campaign leads only.
+      }
+      const leadScope = { campaignIds, propertyIds }
 
-      if (campaignIds.length > 0) {
-        const { data: leads } = await supabase
-          .from('leads')
-          .select('id, lead_name, campaign:campaigns(title), created_at')
-          .in('campaign_id', campaignIds)
+      if (!isEmptyLeadScope(leadScope)) {
+        const { data: leads } = await scopeLeadsQuery(
+          supabase
+            .from('leads')
+            .select(`id, lead_name, campaign:campaigns(title), ${LEAD_PROPERTY_EMBED}, created_at`),
+          leadScope,
+        )
           .order('created_at', { ascending: false })
           .limit(5)
 
@@ -51,12 +64,14 @@ const generateNotifications = async (userId, role) => {
             id: `lead-${lead.id}`,
             type: 'new_lead',
             title: 'New Lead Captured',
-            message: `${lead.lead_name || 'A new lead'} for ${lead.campaign?.title || 'your campaign'}`,
+            message: `${lead.lead_name || 'A new lead'} for ${leadSourceLabel(lead, 'your listing')}`,
             created_at: lead.created_at,
             read: false,
           })
         })
+      }
 
+      if (campaignIds.length > 0) {
         const { data: apps } = await supabase
           .from('campaign_applications')
           .select('id, creator:profiles!creator_id(full_name), campaign:campaigns(title), applied_at')

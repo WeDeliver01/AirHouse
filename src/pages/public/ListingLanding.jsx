@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast'
 import { Building2, User, Mail, Phone, MapPin, CheckCircle, ExternalLink } from 'lucide-react'
 import { recordPageView, recordOutboundClick } from '../../lib/siteAnalytics'
 import { formatCurrency } from '../../lib/utils'
+import { notifyNewLead } from '../../lib/notifications'
 
 const TYPE_LABEL = {
   getaway_stay: 'Getaway Stay',
@@ -111,7 +112,11 @@ const ListingLanding = () => {
     if (!validate() || !property) return
     setSubmitting(true)
     try {
+      // Generated here so the developer can be notified without reading the
+      // row back, which anonymous visitors are not allowed to do (RLS).
+      const leadId = crypto.randomUUID()
       const { error } = await supabase.from('leads').insert({
+        id: leadId,
         property_id: property.id,
         lead_name: formData.name,
         lead_email: formData.email,
@@ -124,6 +129,9 @@ const ListingLanding = () => {
         consent_text: CONSENT_TEXT,
       })
       if (error) throw error
+      // Server-side email to the property owner; failure must not fail the
+      // visitor's enquiry.
+      notifyNewLead(leadId)
       setSubmitted(true)
     } catch (err) {
       console.error('Error submitting enquiry:', err)

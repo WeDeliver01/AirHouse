@@ -94,6 +94,7 @@ import ResetPassword from './pages/public/ResetPassword'
 import AuthCallback from './pages/public/AuthCallback'
 import LeadCapture from './pages/public/LeadCapture'
 import GoRedirect from './pages/public/GoRedirect'
+import ReferralShortLink from './pages/public/ReferralShortLink'
 import ListingLanding from './pages/public/ListingLanding'
 
 // Creator Pages
@@ -141,6 +142,7 @@ function App() {
       </Route>
       <Route path="/lead/:campaignId" element={<LeadCapture />} />
       <Route path="/go/:token" element={<GoRedirect />} />
+      <Route path="/r/:code" element={<ReferralShortLink />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
       <Route path="/admin/invite/:code" element={<AdminInvite />} />

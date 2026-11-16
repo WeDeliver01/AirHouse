@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
+import {
+  fetchDeveloperPropertyIds, isEmptyLeadScope, scopeLeadsQuery,
+  leadSourceLabel, LEAD_PROPERTY_EMBED,
+} from '../../lib/developerLeads'
 import { formatCurrency, formatRelativeTime } from '../../lib/utils'
 import {
   PageHeader, Button, MetricCard, Card, Chip, Icon, EmptyState, Skeleton,
@@ -84,6 +88,15 @@ const DeveloperDashboard = () => {
         .eq('user_id', user.id).eq('wallet_type', 'developer').single()
 
       const campaignIds = campaignsData?.map((c) => c.id) || []
+      // Direct enquiries from the developer's own property pages carry no
+      // campaign; they count too. A failure here must not hide campaign leads.
+      let propertyIds = []
+      try {
+        propertyIds = await fetchDeveloperPropertyIds(user.id)
+      } catch (propertiesError) {
+        console.error('Failed to load properties for lead scope', propertiesError)
+      }
+      const leadScope = { campaignIds, propertyIds }
       let totalLeads = 0, newLeads = 0
 
       const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -97,26 +110,24 @@ const DeveloperDashboard = () => {
         return { date: d, label: dayLabels[d.getDay()], value: 0 }
       })
 
-      if (campaignIds.length > 0) {
-        const { count: leadsCount } = await supabase
-          .from('leads').select('*', { count: 'exact', head: true })
-          .in('campaign_id', campaignIds)
-        const { count: newCount } = await supabase
-          .from('leads').select('*', { count: 'exact', head: true })
-          .in('campaign_id', campaignIds).eq('pipeline_stage', 'new')
+      if (!isEmptyLeadScope(leadScope)) {
+        const { count: leadsCount } = await scopeLeadsQuery(
+          supabase.from('leads').select('*', { count: 'exact', head: true }), leadScope)
+        const { count: newCount } = await scopeLeadsQuery(
+          supabase.from('leads').select('*', { count: 'exact', head: true }), leadScope)
+          .eq('pipeline_stage', 'new')
         totalLeads = leadsCount || 0
         newLeads = newCount || 0
 
-        const { data: recent } = await supabase.from('leads')
-          .select('id, lead_name, lead_email, pipeline_stage, created_at, campaign:campaigns(title)')
-          .in('campaign_id', campaignIds)
-          .order('created_at', { ascending: false }).limit(5)
+        const { data: recent } = await scopeLeadsQuery(
+          supabase.from('leads')
+            .select(`id, lead_name, lead_email, pipeline_stage, created_at, campaign:campaigns(title), ${LEAD_PROPERTY_EMBED}`),
+          leadScope,
+        ).order('created_at', { ascending: false }).limit(5)
         setRecentLeads(recent || [])
 
-        const { data: weeklyLeadRows, error: weeklyLeadsError } = await supabase
-          .from('leads')
-          .select('created_at')
-          .in('campaign_id', campaignIds)
+        const { data: weeklyLeadRows, error: weeklyLeadsError } = await scopeLeadsQuery(
+          supabase.from('leads').select('created_at'), leadScope)
           .gte('created_at', weekStart.toISOString())
         if (weeklyLeadsError) {
           console.error('Failed to load weekly leads', weeklyLeadsError)
@@ -317,7 +328,7 @@ const DeveloperDashboard = () => {
                     <div className="min-w-0">
                       <p className="font-label-lg text-label-lg text-on-surface truncate">{lead.lead_name}</p>
                       <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
-                        {lead.campaign?.title || 'Direct'} • {formatRelativeTime(lead.created_at)}
+                        {leadSourceLabel(lead, 'Direct')} • {formatRelativeTime(lead.created_at)}
                       </p>
                     </div>
                   </div>

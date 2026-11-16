@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { referralLinkForAssignment } from '../../lib/tracking'
 import {
   PageHeader,
   Card,
@@ -217,9 +218,7 @@ const CreatorDashboard = () => {
   }, [fetchData])
 
   const copyReferralLink = (assignment) => {
-    navigator.clipboard.writeText(
-      `${window.location.origin}/lead/${assignment.campaign_id}?ref=${assignment.creator_referral_code}`,
-    )
+    navigator.clipboard.writeText(referralLinkForAssignment(assignment))
     toast.success('Referral link copied')
   }
 

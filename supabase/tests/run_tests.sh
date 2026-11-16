@@ -74,7 +74,8 @@ OUTPUT="$(
     -f "$HERE/10_rls_as_client_tests.sql" \
     -f "$HERE/11_save_my_profile_tests.sql" \
     -f "$HERE/12_super_admin_link_tests.sql" \
-    -f "$HERE/13_apply_to_campaign_tests.sql" 2>&1
+    -f "$HERE/13_apply_to_campaign_tests.sql" \
+    -f "$HERE/14_public_lead_capture_tests.sql" 2>&1
 )"
 
 echo "$OUTPUT" | grep -E 'PASS|FAIL|NOTICE:  ---' | sed 's/^psql:[^ ]* //'

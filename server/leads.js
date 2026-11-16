@@ -80,6 +80,11 @@ export async function resolveLeadNotification(leadId, { client = getServiceClien
         title,
         property_name,
         developer:profiles!developer_id ( full_name, email )
+      ),
+      property:properties (
+        id,
+        title,
+        developer:profiles!developer_id ( full_name, email )
       )
     `,
     )
@@ -89,7 +94,10 @@ export async function resolveLeadNotification(leadId, { client = getServiceClien
   if (error) return { ok: false, reason: 'lookup_failed' };
   if (!isNotifiableLead(lead, now)) return { ok: false, reason: 'lead_not_notifiable' };
 
-  const developer = lead.campaign?.developer;
+  // A campaign lead is routed via its campaign; a direct enquiry from the
+  // property's own page (migration 031) has no campaign and is routed via
+  // the property instead.
+  const developer = lead.campaign ? lead.campaign.developer : lead.property?.developer;
   if (!developer?.email) return { ok: false, reason: 'no_developer_email' };
 
   return {
@@ -97,7 +105,11 @@ export async function resolveLeadNotification(leadId, { client = getServiceClien
     to: developer.email,
     data: {
       developerName: developer.full_name || 'there',
-      campaignTitle: lead.campaign?.title || lead.campaign?.property_name || 'your campaign',
+      campaignTitle:
+        lead.campaign?.title ||
+        lead.campaign?.property_name ||
+        (lead.property?.title ? `${lead.property.title} (direct enquiry)` : null) ||
+        'your campaign',
       leadName: lead.lead_name || '',
       leadEmail: lead.lead_email || '',
       leadPhone: lead.lead_phone || '',

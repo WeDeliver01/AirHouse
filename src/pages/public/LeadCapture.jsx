@@ -49,8 +49,12 @@ const LeadCaptureForm = () => {
     guest_count: '',
     consent: false,
     // Honeypot: a real person never fills this in because it is hidden.
-    // Automated form-fillers populate every field they find.
-    company_website: '',
+    // Automated form-fillers populate every field they find. Its name and
+    // label deliberately match none of the browser autofill heuristics
+    // (company, organisation, website, url, ...): an earlier
+    // "company_website" field was being filled by Chrome autofill, which
+    // made genuine enquiries look like bots and silently discarded them.
+    ah_hp_field: '',
   })
 
   // Used to reject submissions that arrive implausibly fast for a human.
@@ -147,7 +151,7 @@ const LeadCaptureForm = () => {
     // Bot protection. Neither check inconveniences a real visitor, and both
     // are cheap compared with a CAPTCHA round trip. The server-side rules in
     // migration 024 are the real defence; these just cut the obvious noise.
-    if (formData.company_website) {
+    if (formData.ah_hp_field) {
       // Honeypot filled: silently accept so the bot does not learn why.
       setSubmitted(true)
       return
@@ -161,37 +165,23 @@ const LeadCaptureForm = () => {
     setSubmitting(true)
 
     try {
-      // Find creator by tracking token if provided. Attribution is only ever
-      // trusted when it is re-verified server-side (migration 024's
-      // validate_lead trigger drops creator_id unless that creator is
-      // actually assigned to this campaign) -- this lookup just finds who
-      // to credit, it is not the source of truth.
-      let creatorId = null
+      // Attribution is resolved in the database (migration 038) from the
+      // referral code below. Anonymous visitors are not allowed to read
+      // creator_tracking_links or campaign_assignments, so a lookup here
+      // always came back empty and creators were never credited. The
+      // validate_lead trigger still drops any creator not actually assigned
+      // to this campaign.
 
-      if (refCode) {
-        const { data: trackingLink } = await supabase
-          .from('creator_tracking_links')
-          .select('creator_id')
-          .eq('token', refCode)
-          .maybeSingle()
-
-        if (trackingLink) {
-          creatorId = trackingLink.creator_id
-        } else {
-          // Fallback for older campaign_assignments-based referral codes.
-          const { data: assignment } = await supabase
-            .from('campaign_assignments')
-            .select('creator_id')
-            .eq('creator_referral_code', refCode)
-            .maybeSingle()
-
-          creatorId = assignment?.creator_id || null
-        }
-      }
+      // The id is generated here rather than read back from the insert.
+      // Anonymous visitors may INSERT into leads but are (deliberately) not
+      // allowed to SELECT them (migration 018), and Postgres applies SELECT
+      // policies to INSERT ... RETURNING -- so asking PostgREST to return the
+      // new row made every anonymous enquiry fail with an RLS error.
+      const leadId = crypto.randomUUID()
 
       const leadData = {
+        id: leadId,
         campaign_id: campaignId,
-        creator_id: creatorId,
         referral_code: refCode || campaign?.referral_code,
         tracking_token: refCode || null,
         lead_name: formData.name,
@@ -213,11 +203,7 @@ const LeadCaptureForm = () => {
         consent_text: CONSENT_TEXT,
       }
 
-      const { data: insertedLead, error } = await supabase
-        .from('leads')
-        .insert(leadData)
-        .select('id')
-        .single()
+      const { error } = await supabase.from('leads').insert(leadData)
 
       if (error) throw error
 
@@ -228,9 +214,7 @@ const LeadCaptureForm = () => {
       // The developer's notification is raised server-side from the stored
       // lead, so this public page never supplies a recipient address or email
       // content. Failure to notify must not fail the visitor's submission.
-      if (insertedLead?.id) {
-        notifyNewLead(insertedLead.id)
-      }
+      notifyNewLead(leadId)
       setSubmitted(true)
     } catch (error) {
       console.error('Error submitting lead:', error)
@@ -502,14 +486,18 @@ const LeadCaptureForm = () => {
 
               {/* Honeypot: hidden from people, visible to naive bots. */}
               <div aria-hidden="true" className="absolute left-[-9999px] w-px h-px overflow-hidden">
-                <label htmlFor="company_website">Company website</label>
+                <label htmlFor="ah_hp_field">Leave this empty</label>
                 <input
-                  id="company_website"
+                  id="ah_hp_field"
+                  name="ah_hp_field"
                   type="text"
                   tabIndex={-1}
                   autoComplete="off"
-                  value={formData.company_website}
-                  onChange={(e) => updateField('company_website', e.target.value)}
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-form-type="other"
+                  value={formData.ah_hp_field}
+                  onChange={(e) => updateField('ah_hp_field', e.target.value)}
                 />
               </div>
 

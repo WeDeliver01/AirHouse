@@ -54,6 +54,44 @@ test.describe('Lead capture', () => {
     expect(lead.lead_email).toBe('sipho.new@example.com')
   })
 
+  test('an anonymous enquiry does not ask to read the lead back, and is not mistaken for a bot when autofilled', async ({ page }) => {
+    const state = await installSupabaseMock(page)
+
+    // Anonymous visitors may insert leads but not select them (RLS), and
+    // Postgres applies SELECT policies to INSERT ... RETURNING. Requesting the
+    // row back therefore failed every real anonymous enquiry.
+    const leadInsertPrefers = []
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && request.url().includes('/rest/v1/leads')) {
+        leadInsertPrefers.push(request.headers()['prefer'] || '')
+      }
+    })
+
+    await visit(page, '/lead/camp-1')
+    await page.getByLabel('Full Name').fill('Autofill Visitor')
+    await page.getByLabel('Email Address').fill('autofill@example.com')
+    await page.getByLabel('Phone Number').fill('0821112222')
+
+    // The honeypot must not look like anything a browser would autofill.
+    const honeypot = page.locator('[aria-hidden="true"] input')
+    const attrs = await honeypot.evaluate((el) =>
+      `${el.id} ${el.name} ${el.labels?.[0]?.textContent || ''}`.toLowerCase())
+    expect(attrs).not.toMatch(/company|organi[sz]ation|website|url|business|address|email|phone|name/)
+
+    await page.waitForTimeout(2100)
+    await page.getByRole('checkbox').first().check()
+    await page.getByRole('button', { name: 'Submit Enquiry' }).click()
+
+    await expect
+      .poll(() => state.inserts.filter((i) => i.table === 'leads').length, { timeout: 10_000 })
+      .toBeGreaterThan(0)
+
+    const lead = state.inserts.find((i) => i.table === 'leads').rows[0]
+    expect(lead.id).toMatch(/^[0-9a-f-]{36}$/)
+    expect(leadInsertPrefers.join(' ')).not.toContain('return=representation')
+    await expect(page.getByText('Thank You!')).toBeVisible()
+  })
+
   test('an enquiry without consent is refused before anything is sent', async ({ page }) => {
     const state = await installSupabaseMock(page)
     await visit(page, '/lead/camp-1')
@@ -106,6 +144,34 @@ test.describe('Lead capture', () => {
     // The database decides whether this attribution is honoured; the page's
     // job is to pass it through faithfully.
     expect(lead.tracking_code || lead.referral_code).toBeTruthy()
+  })
+
+  test('a short /r/ referral link opens the campaign enquiry page with the code attached', async ({ page }) => {
+    const state = await installSupabaseMock(page)
+    await visit(page, '/r/CRE-SEAPT001')
+
+    await expect(page).toHaveURL(/\/lead\/camp-1\?ref=CRE-SEAPT001$/)
+    await expect(page.getByText(/The Atlantic|Sea Point Launch/i).first()).toBeVisible()
+
+    await page.getByLabel('Full Name').fill('Short Link Visitor')
+    await page.getByLabel('Email Address').fill('shortlink@example.com')
+    await page.getByLabel('Phone Number').fill('0823334444')
+    await page.waitForTimeout(2100)
+    await page.getByRole('checkbox').first().check()
+    await page.getByRole('button', { name: 'Submit Enquiry' }).click()
+
+    await expect
+      .poll(() => state.inserts.filter((i) => i.table === 'leads').length, { timeout: 10_000 })
+      .toBeGreaterThan(0)
+    const lead = state.inserts.find((i) => i.table === 'leads').rows[0]
+    // The database credits the creator from this code (migration 038).
+    expect(lead.tracking_token).toBe('CRE-SEAPT001')
+  })
+
+  test('an unknown short link says so instead of loading forever', async ({ page }) => {
+    await installSupabaseMock(page)
+    await visit(page, '/r/CRE-NOPE0000')
+    await expect(page.getByText('This link is no longer active.')).toBeVisible()
   })
 
   test('the developer email address is not exposed to an anonymous visitor', async ({ page }) => {
