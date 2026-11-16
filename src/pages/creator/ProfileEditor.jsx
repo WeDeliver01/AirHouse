@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import { supabase, uploadAvatar } from '../../lib/supabase'
+import { uploadAvatar, handleSupabaseError } from '../../lib/supabase'
 import { 
   Card, Button, Input, Textarea, Avatar, ProgressBar 
 } from '../../components/ui'
@@ -25,7 +25,7 @@ const NICHES = [
 ]
 
 const CreatorProfileEditor = () => {
-  const { user, profile, creatorProfile, updateProfile, refreshUserData } = useAuth()
+  const { user, profile, creatorProfile, saveProfile, refreshUserData } = useAuth()
   const fileInputRef = useRef(null)
   
   const [loading, setLoading] = useState(false)
@@ -183,37 +183,29 @@ const CreatorProfileEditor = () => {
     setLoading(true)
 
     try {
-      // Update basic profile
-      await updateProfile({
-        full_name: basicInfo.full_name,
-        bio: basicInfo.bio,
-        phone: basicInfo.phone,
-      })
+      const followers = parseInt(creatorInfo.follower_count, 10)
+      await saveProfile(
+        {
+          full_name: basicInfo.full_name,
+          bio: basicInfo.bio,
+          phone: basicInfo.phone,
+        },
+        {
+          instagram_handle: creatorInfo.instagram_handle || null,
+          tiktok_handle: creatorInfo.tiktok_handle || null,
+          youtube_handle: creatorInfo.youtube_handle || null,
+          follower_count: Number.isFinite(followers) && followers >= 0 ? followers : null,
+          location: creatorInfo.location || null,
+          niche: creatorInfo.niche,
+          portfolio_urls: creatorInfo.portfolio_urls,
+          rate_card: creatorInfo.rate_card,
+        }
+      )
 
-      // Update creator profile
-      const creatorData = {
-        instagram_handle: creatorInfo.instagram_handle || null,
-        tiktok_handle: creatorInfo.tiktok_handle || null,
-        youtube_handle: creatorInfo.youtube_handle || null,
-        follower_count: creatorInfo.follower_count ? parseInt(creatorInfo.follower_count) : null,
-        location: creatorInfo.location || null,
-        niche: creatorInfo.niche,
-        portfolio_urls: creatorInfo.portfolio_urls,
-        rate_card: creatorInfo.rate_card,
-      }
-
-      const { error } = await supabase
-        .from('creator_profiles')
-        .update(creatorData)
-        .eq('user_id', user.id)
-
-      if (error) throw error
-
-      await refreshUserData()
       toast.success('Profile saved successfully')
     } catch (error) {
       console.error('Save error:', error)
-      toast.error('Failed to save profile')
+      toast.error(`Failed to save profile: ${handleSupabaseError(error)}`, { duration: 6000 })
     } finally {
       setLoading(false)
     }
