@@ -1,5 +1,5 @@
 -- ============================================================================
--- 041_purge_blob_campaign_media_urls.sql
+-- 042_purge_blob_campaign_media_urls.sql
 --
 -- The campaign wizard saved the browser's temporary preview URLs
 -- (`blob:https://airhouse.co.za/...`) into campaigns.property_images instead
@@ -37,7 +37,7 @@ BEGIN
   WHERE EXISTS (SELECT 1 FROM unnest(brochure_urls) u WHERE u !~* '^https?://');
   GET DIAGNOSTICS n_brochures = ROW_COUNT;
 
-  RAISE NOTICE '041: removed non-http image URLs from % campaign(s), brochure URLs from % campaign(s)',
+  RAISE NOTICE '042: removed non-http image URLs from % campaign(s), brochure URLs from % campaign(s)',
     n_images, n_brochures;
 END
 $$;
