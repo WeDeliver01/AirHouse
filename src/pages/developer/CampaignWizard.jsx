@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { supabase, uploadCampaignMedia, deleteCampaignMedia } from '../../lib/supabase'
+import { supabase, uploadCampaignMedia, deleteCampaignMedia, campaignMediaPath } from '../../lib/supabase'
 import { toast } from 'react-hot-toast'
 import { formatCurrency, cn } from '../../lib/utils'
 import {
@@ -55,6 +55,7 @@ const DELIVERABLE_TEMPLATES = [
 ]
 
 const formatFileSize = (bytes) => {
+  if (bytes == null || Number.isNaN(Number(bytes))) return 'Uploaded'
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
@@ -159,6 +160,61 @@ const CampaignWizard = () => {
     load()
     return () => { cancelled = true }
   }, [user])
+
+  // Edit mode: load the existing campaign so saving doesn't overwrite it with
+  // a blank form (and wipe its images and brochures).
+  useEffect(() => {
+    if (!isEditing || !user?.id) return
+    let cancelled = false
+    const load = async () => {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('id', campaignId)
+        .maybeSingle()
+      if (cancelled) return
+      if (error || !data) {
+        console.error('Failed to load campaign:', error)
+        toast.error('Failed to load campaign')
+        return
+      }
+      const audience = Array.isArray(data.target_audience)
+        ? data.target_audience
+        : (data.target_audience ? String(data.target_audience).split(',').map((a) => a.trim()).filter(Boolean) : [])
+      setFormData((prev) => ({
+        ...prev,
+        title: data.title || '',
+        property_name: data.property_name || '',
+        property_location: data.property_location || '',
+        property_type: data.property_type || '',
+        description: data.description || '',
+        target_audience: audience,
+        campaign_objectives: data.campaign_objectives || '',
+        key_selling_points: data.key_selling_points || '',
+        objective: data.objective || '',
+        total_budget: data.total_budget != null ? String(data.total_budget) : '',
+        start_date: data.start_date || '',
+        end_date: data.end_date || '',
+        payment_structure: data.payment_structure || 'milestone',
+        deliverables: Array.isArray(data.deliverables) ? data.deliverables : [],
+        content_guidelines: data.content_guidelines || '',
+        brand_assets_url: data.brand_assets_url || '',
+        landing_page_url: data.landing_page_url || '',
+        property_id: data.property_id || '',
+      }))
+      // Drop any `blob:` preview URLs an earlier version of this page saved
+      // by mistake -- they never pointed at a real file.
+      const isReal = (u) => typeof u === 'string' && /^https?:\/\//.test(u)
+      setPropertyImages((data.property_images || []).filter(isReal).map((url) => ({
+        url, path: campaignMediaPath(url), name: decodeURIComponent(url.split('/').pop() || ''),
+      })))
+      setBrochures((data.brochure_urls || []).filter(isReal).map((url) => ({
+        url, path: campaignMediaPath(url), name: decodeURIComponent(url.split('/').pop() || ''),
+      })))
+    }
+    load()
+    return () => { cancelled = true }
+  }, [isEditing, campaignId, user?.id])
 
   // Pre-select a property from URL ?property_id=... for new campaigns
   useEffect(() => {
@@ -367,38 +423,69 @@ const CampaignWizard = () => {
         if (error) throw error
         savedCampaignId = data.id
       }
-      if (pendingImageFiles.length > 0) {
+      // Upload pending files and collect the results in locals. React state
+      // set here is not visible until the next render, so the URLs we persist
+      // must come from these arrays -- never from the pending previews, whose
+      // `blob:` URLs only exist in this browser tab and show as broken images
+      // to everyone else.
+      const finalImages = [...propertyImages]
+      const finalBrochures = [...brochures]
+      const failed = []
+      if (pendingImageFiles.length > 0 || pendingBrochureFiles.length > 0) {
         setUploadingMedia(true)
-        for (const item of pendingImageFiles) {
-          try {
-            const result = await uploadCampaignMedia(savedCampaignId, item.file, 'image')
-            setPropertyImages((prev) => [...prev, result])
-          } catch (e) { console.error('Image upload error:', e) }
+      }
+      const stillPendingImages = []
+      for (const item of pendingImageFiles) {
+        try {
+          finalImages.push(await uploadCampaignMedia(user.id, savedCampaignId, item.file, 'image'))
+          URL.revokeObjectURL(item.previewUrl)
+        } catch (e) {
+          console.error('Image upload error:', e)
+          failed.push({ name: item.name, message: e?.message })
+          stillPendingImages.push(item)
         }
-        setPendingImageFiles([])
       }
-      if (pendingBrochureFiles.length > 0) {
-        for (const item of pendingBrochureFiles) {
-          try {
-            const result = await uploadCampaignMedia(savedCampaignId, item.file, 'brochure')
-            setBrochures((prev) => [...prev, result])
-          } catch (e) { console.error('Brochure upload error:', e) }
+      const stillPendingBrochures = []
+      for (const item of pendingBrochureFiles) {
+        try {
+          finalBrochures.push(await uploadCampaignMedia(user.id, savedCampaignId, item.file, 'brochure'))
+        } catch (e) {
+          console.error('Brochure upload error:', e)
+          failed.push({ name: item.name, message: e?.message })
+          stillPendingBrochures.push(item)
         }
-        setPendingBrochureFiles([])
       }
-      const mediaUrls = {
-        property_images: [
-          ...propertyImages,
-          ...pendingImageFiles.map((f) => ({ url: f.previewUrl, name: f.name })),
-        ].map((i) => i.url),
-        brochure_urls: brochures.map((b) => b.url),
+      setPropertyImages(finalImages)
+      setBrochures(finalBrochures)
+      setPendingImageFiles(stillPendingImages)
+      setPendingBrochureFiles(stillPendingBrochures)
+
+      const { error: mediaError } = await supabase
+        .from('campaigns')
+        .update({
+          property_images: finalImages.map((i) => i.url),
+          brochure_urls: finalBrochures.map((b) => b.url),
+        })
+        .eq('id', savedCampaignId)
+      if (mediaError) throw mediaError
+
+      if (failed.length > 0) {
+        const reason = failed[0].message ? `: ${failed[0].message}` : ''
+        toast.error(
+          `${failed.length} file${failed.length > 1 ? 's' : ''} failed to upload (${failed[0].name}${reason}). ` +
+          'The campaign was saved — please try uploading again.',
+          { duration: 8000 },
+        )
+        // Stay in the wizard (now in edit mode) so the files can be retried.
+        if (!isEditing) navigate(`/developer/campaigns/${savedCampaignId}/edit`, { replace: true })
+        return
       }
-      await supabase.from('campaigns').update(mediaUrls).eq('id', savedCampaignId)
+
       toast.success(status === 'open' ? 'Campaign published!' : 'Campaign saved as draft')
       navigate('/developer/campaigns')
     } catch (e) {
       console.error('Submit error:', e)
-      toast.error('Failed to save campaign')
+      toast.error(e?.message ? `Failed to save campaign: ${e.message}` : 'Failed to save campaign')
     } finally {
       setLoading(false)
       setUploadingMedia(false)
