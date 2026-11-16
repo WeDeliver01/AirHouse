@@ -89,6 +89,7 @@ export function seedData() {
         lead_name: 'Sipho Dlamini', lead_email: 'sipho@example.com',
         lead_phone: '0821234567', status: 'new', pipeline_stage: 'new',
         interest_level: 'hot', consent_given: true,
+        notes: JSON.stringify({ intent: 'rent', timeline: 'within-1month', budget: 'R8,000', message: '' }),
         created_at: '2026-10-22T09:00:00Z',
       },
       {

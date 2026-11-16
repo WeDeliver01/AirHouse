@@ -7,6 +7,7 @@ import {
   fetchDeveloperPropertyIds, isEmptyLeadScope, scopeLeadsQuery,
   leadSourceLabel, LEAD_PROPERTY_EMBED,
 } from '../../lib/developerLeads'
+import { describeLeadNotes, describeInterest } from '../../lib/leadDetails'
 import {
   PageHeader, Button, MetricCard, Card, Chip, Icon, EmptyState, Skeleton,
   Modal, Input, Select,
@@ -436,16 +437,23 @@ const DeveloperLeads = () => {
               </div>
               <div className="bg-surface-container-low rounded p-sm border border-outline-variant">
                 <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Interest</p>
-                <p className="font-label-lg text-label-lg text-on-surface mt-xs capitalize">
-                  {selectedLead.interest_level || 'Warm'}
+                <p className="font-label-lg text-label-lg text-on-surface mt-xs">
+                  {describeInterest(selectedLead.interest_level, selectedLead.notes)}
                 </p>
               </div>
             </div>
 
-            {selectedLead.notes && (
+            {describeLeadNotes(selectedLead.notes).length > 0 && (
               <div className="bg-surface-container-low rounded p-sm border border-outline-variant">
-                <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-xs">Notes</p>
-                <p className="font-body-sm text-body-sm text-on-surface">{selectedLead.notes}</p>
+                <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-xs">Enquiry</p>
+                <dl className="grid grid-cols-[auto,1fr] gap-x-md gap-y-xs font-body-sm text-body-sm">
+                  {describeLeadNotes(selectedLead.notes).map((row) => (
+                    <div key={row.label} className="contents">
+                      <dt className="text-on-surface-variant">{row.label}</dt>
+                      <dd className="text-on-surface whitespace-pre-line break-words">{row.value}</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
             )}
 
