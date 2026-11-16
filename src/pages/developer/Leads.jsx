@@ -49,10 +49,11 @@ const DeveloperLeads = () => {
     setLoading(true)
     setError(null)
     try {
-      const { data: campaignsData } = await supabase
+      const { data: campaignsData, error: campaignsError } = await supabase
         .from('campaigns')
         .select('id, title, property_name')
         .eq('developer_id', user.id)
+      if (campaignsError) throw campaignsError
       setCampaigns(campaignsData || [])
 
       const campaignIds = campaignsData?.map((c) => c.id) || []
@@ -62,13 +63,16 @@ const DeveloperLeads = () => {
         return
       }
 
-      const { data: leadsData } = await supabase
+      const { data: leadsData, error: leadsError } = await supabase
         .from('leads')
         .select(
           `*, campaign:campaigns(id, title, property_name), creator:creator_profiles(id, user:profiles(full_name))`,
         )
         .in('campaign_id', campaignIds)
         .order('created_at', { ascending: false })
+
+      // A failed query must not masquerade as an empty pipeline.
+      if (leadsError) throw leadsError
 
       setLeads(leadsData || [])
       const total = leadsData?.length || 0
