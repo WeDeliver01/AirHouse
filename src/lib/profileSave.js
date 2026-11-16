@@ -29,7 +29,7 @@ export const pick = (obj, keys) => {
 export const isMissingRpc = (err) =>
   err?.code === 'PGRST202' ||
   err?.code === '42883' ||
-  /could not find the function|function .*save_my_profile.* does not exist/i.test(err?.message || '')
+  /could not find the function|function .* does not exist/i.test(err?.message || '')
 
 const missingColumn = (err) => {
   if (!err?.message?.includes('column') || !err.message.includes('schema cache')) return null

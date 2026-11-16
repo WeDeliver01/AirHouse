@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { supabase } from '../../lib/supabase'
+import { supabase, handleSupabaseError } from '../../lib/supabase'
+import { isMissingRpc } from '../../lib/profileSave'
 import { Card, Button, Badge, Avatar, Modal, ModalFooter, Textarea, EmptyState, StatCard, LoadingSpinner, ErrorState } from '../../components/ui'
 import { toast } from 'react-hot-toast'
 import { formatDate, formatCurrency } from '../../lib/utils'
@@ -57,14 +58,30 @@ const CampaignDetail = () => {
     if (!pitchMessage.trim()) { toast.error('Please write a pitch'); return }
     setApplying(true)
     try {
-      const { data: cp } = await supabase.from('creator_profiles').select('id').eq('user_id', user.id).single()
-      if (!cp) { toast.error('Complete your profile first'); return }
-      const { error } = await supabase.from('campaign_applications').insert({ campaign_id: campaignId, creator_id: cp.id, pitch_message: pitchMessage, status: 'pending' })
-      if (error) throw error
+      // apply_to_campaign (migration 037) files the application as 'pending'
+      // for the signed-in creator. Clients have no direct INSERT on
+      // campaign_applications, so the table write is only a fallback for a
+      // database where 037 hasn't been applied yet.
+      const { error: rpcError } = await supabase.rpc('apply_to_campaign', {
+        p_campaign_id: campaignId,
+        p_pitch: pitchMessage.trim(),
+      })
+      if (rpcError) {
+        if (!isMissingRpc(rpcError)) throw rpcError
+        const { data: cp } = await supabase.from('creator_profiles').select('id').eq('user_id', user.id).maybeSingle()
+        if (!cp) { toast.error('Complete your profile first'); return }
+        const { error } = await supabase.from('campaign_applications').insert({ campaign_id: campaignId, creator_id: cp.id, pitch_message: pitchMessage.trim(), status: 'pending' })
+        if (error) throw error
+      }
       toast.success('Application submitted!')
       setShowApplyModal(false)
+      setPitchMessage('')
     } catch (error) {
-      toast.error(error.code === '23505' ? 'Already applied' : 'Failed to apply')
+      console.error('Apply error:', error)
+      toast.error(
+        error.code === '23505' ? 'You have already applied to this campaign' : `Failed to apply: ${handleSupabaseError(error)}`,
+        { duration: 6000 }
+      )
     } finally {
       setApplying(false)
     }
