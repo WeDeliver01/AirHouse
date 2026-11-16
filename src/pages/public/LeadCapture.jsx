@@ -9,20 +9,9 @@ import {
 } from 'lucide-react'
 import { notifyNewLead } from '../../lib/notifications'
 import { creditTrackingLeadByToken } from '../../lib/tracking'
-
-const INTEREST_LEVELS = [
-  { value: 'hot', label: 'Ready to buy - actively looking' },
-  { value: 'warm', label: 'Interested - exploring options' },
-  { value: 'cold', label: 'Just browsing - future plans' },
-]
-
-const TIMELINE_OPTIONS = [
-  { value: 'immediate', label: 'Immediately' },
-  { value: '1-3months', label: '1-3 months' },
-  { value: '3-6months', label: '3-6 months' },
-  { value: '6-12months', label: '6-12 months' },
-  { value: '12+months', label: '12+ months' },
-]
+import {
+  LEAD_INTENTS, INTEREST_LEVELS, TIMELINE_OPTIONS, TIMELINE_LABEL, BUDGET_FIELD, defaultIntentFor,
+} from '../../lib/leadDetails'
 
 const LeadCaptureForm = () => {
   const { campaignId } = useParams()
@@ -41,6 +30,8 @@ const LeadCaptureForm = () => {
     email: '',
     phone: '',
     interest_level: 'warm',
+    // null until the visitor picks; until then the listing's default applies.
+    intent: null,
     timeline: '',
     budget: '',
     message: '',
@@ -56,6 +47,18 @@ const LeadCaptureForm = () => {
     // made genuine enquiries look like bots and silently discarded them.
     ah_hp_field: '',
   })
+
+  // Rent or buy. Apartments are usually rented (sometimes bought), so the
+  // visitor says which; the timeline and budget questions follow the answer.
+  const intent = formData.intent || defaultIntentFor({
+    listingCategory: campaign?.property?.listing_category,
+    propertyType: campaign?.property_type,
+  })
+  const chooseIntent = (next) => {
+    if (next === intent) return
+    // Timeline options differ between renting and buying.
+    setFormData((prev) => ({ ...prev, intent: next, timeline: '' }))
+  }
 
   // Used to reject submissions that arrive implausibly fast for a human.
   const [formLoadedAt] = useState(() => Date.now())
@@ -192,6 +195,7 @@ const LeadCaptureForm = () => {
         check_out_date: isAccommodation ? (formData.check_out_date || null) : null,
         guest_count: isAccommodation && formData.guest_count ? Number(formData.guest_count) : null,
         notes: JSON.stringify({
+          ...(isAccommodation ? {} : { intent }),
           timeline: formData.timeline,
           budget: formData.budget,
           message: formData.message,
@@ -449,28 +453,53 @@ const LeadCaptureForm = () => {
                 </>
               ) : (
                 <>
+                  {/* Rent or buy */}
+                  <fieldset>
+                    <legend className="block text-xs text-gray-500 mb-1.5 font-medium uppercase tracking-wide">
+                      Are you looking to rent or buy?
+                    </legend>
+                    <div className="grid grid-cols-2 gap-2" role="radiogroup">
+                      {LEAD_INTENTS.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          role="radio"
+                          aria-checked={intent === option.value}
+                          onClick={() => chooseIntent(option.value)}
+                          className={`py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+                            intent === option.value
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+
                   {/* Interest Level */}
                   <Select
                     label="How interested are you?"
-                    options={INTEREST_LEVELS}
+                    options={INTEREST_LEVELS[intent]}
                     value={formData.interest_level}
                     onChange={(e) => updateField('interest_level', e.target.value)}
                   />
 
                   {/* Timeline */}
                   <Select
-                    label="When are you looking to buy?"
-                    options={[{ value: '', label: 'Select timeline' }, ...TIMELINE_OPTIONS]}
+                    label={TIMELINE_LABEL[intent]}
+                    options={TIMELINE_OPTIONS[intent]}
                     value={formData.timeline}
                     onChange={(e) => updateField('timeline', e.target.value)}
                   />
 
                   {/* Budget */}
                   <Input
-                    label="Budget Range (Optional)"
+                    label={BUDGET_FIELD[intent].label}
                     value={formData.budget}
                     onChange={(e) => updateField('budget', e.target.value)}
-                    placeholder="e.g., R1.5M - R2M"
+                    placeholder={BUDGET_FIELD[intent].placeholder}
                   />
                 </>
               )}

@@ -24,6 +24,17 @@ test.describe('Developer leads', () => {
     await expect(page.getByText('Harbour View Lofts').first()).toBeVisible()
   })
 
+  test('the developer reads a rental enquiry\'s answers, not raw data', async ({ page }) => {
+    await installSupabaseMock(page, { signedInAs: 'dev@example.com' })
+    await visit(page, '/developer/leads')
+    await page.getByText('Sipho Dlamini').first().click()
+
+    await expect(page.getByText('Looking to')).toBeVisible()
+    await expect(page.getByText('Within a month')).toBeVisible()
+    await expect(page.getByText('R8,000')).toBeVisible()
+    await expect(page.getByText('"timeline"')).toHaveCount(0)
+  })
+
   test('the Direct filter narrows the pipeline to property-page enquiries', async ({ page }) => {
     await installSupabaseMock(page, { signedInAs: 'dev@example.com' })
     await visit(page, '/developer/leads')

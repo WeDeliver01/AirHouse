@@ -92,6 +92,39 @@ test.describe('Lead capture', () => {
     await expect(page.getByText('Thank You!')).toBeVisible()
   })
 
+  test('an apartment enquiry asks rent or buy, defaults to rent, and the questions follow', async ({ page }) => {
+    const state = await installSupabaseMock(page)
+    await visit(page, '/lead/camp-1')
+
+    // camp-1 is an apartment: renting is the default.
+    await expect(page.getByRole('radio', { name: 'Rent' })).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByLabel('When would you like to move in?')).toBeVisible()
+    await expect(page.getByLabel('Monthly Budget (Optional)')).toBeVisible()
+    await expect(page.getByText('When are you looking to buy?')).toHaveCount(0)
+
+    // Switching to Buy swaps the questions.
+    await page.getByRole('radio', { name: 'Buy' }).click()
+    await expect(page.getByLabel('When are you looking to buy?')).toBeVisible()
+    await expect(page.getByLabel('Budget Range (Optional)')).toBeVisible()
+
+    // Back to Rent and submit: the answers are stored in rental terms.
+    await page.getByRole('radio', { name: 'Rent' }).click()
+    await page.getByLabel('Full Name').fill('Renting Visitor')
+    await page.getByLabel('Email Address').fill('renter@example.com')
+    await page.getByLabel('Phone Number').fill('0821119999')
+    await page.getByLabel('When would you like to move in?').selectOption('within-1month')
+    await page.getByLabel('Monthly Budget (Optional)').fill('R8,000')
+    await page.waitForTimeout(2100)
+    await page.getByRole('checkbox').first().check()
+    await page.getByRole('button', { name: 'Submit Enquiry' }).click()
+
+    await expect
+      .poll(() => state.inserts.filter((i) => i.table === 'leads').length, { timeout: 10_000 })
+      .toBeGreaterThan(0)
+    const lead = state.inserts.find((i) => i.table === 'leads').rows[0]
+    expect(JSON.parse(lead.notes)).toMatchObject({ intent: 'rent', timeline: 'within-1month', budget: 'R8,000' })
+  })
+
   test('an enquiry without consent is refused before anything is sent', async ({ page }) => {
     const state = await installSupabaseMock(page)
     await visit(page, '/lead/camp-1')
